@@ -9,21 +9,21 @@ import pandas as pd
 from library.utils import *
 
 def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
-    buf = tempfile.TemporaryFile(mode="w")
+    buf = tempfile.TemporaryFile(mode="w+")
     charsets = {}
     ntax = 0
 
     for gene in genes:
         output_fragment = pd.DataFrame()
+        output_fragment['seqid'] = into_seqids(gene.iloc[:, :-1].copy())
         output_fragment['sequence'] = gene.iloc[:, -1]
-        output_fragment['seqid'] = into_seqids(gene.iloc[:, :-1])
 
         gene_name = gene.columns[-1][len("sequence_"):]
         gene_len = len(gene.iat[0, -1])
-        charsets[gene_name, gene_len]
+        charsets[gene_name] = gene_len
 
         output_fragment.to_string(buf, header=False, index=False)
-        print(file=buf)
+        print('\n', file=buf)
 
         ntax = len(output_fragment)
 
@@ -47,8 +47,9 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
 
     gene_position = 1
 
-    for gene_name, gene_len in charsets:
-        print('charset ', gene_name, ' = ', gene_position, '-', gene_position + gene_len, ';', sep='', file=output)
+    for gene_name, gene_len in charsets.items():
+        print('charset ', gene_name, ' = ', gene_position, '-', gene_position + gene_len - 1, ';', sep='', file=output)
+        gene_position += gene_len
     
     print('\nend;', file=output)
     buf.close()
