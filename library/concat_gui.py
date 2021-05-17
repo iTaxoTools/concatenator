@@ -7,7 +7,7 @@ import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
-from library.process import process
+from library.concat import process
 
 
 class ConcatGUI(ttk.Frame):
