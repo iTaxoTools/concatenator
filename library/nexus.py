@@ -34,7 +34,7 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     print('#NEXUS\n', file=output)
     print('begin data;\n', file=output)
     print('format datatype=DNA missing=N missing=? Gap=- Interleave=yes;\n', file=output)
-    print(f'dimensions Nchar={nchar} Ntax={ntax}\n', file=output)
+    print(f'dimensions Nchar={nchar} Ntax={ntax};\n', file=output)
     print('matrix\n', file=output)
 
     for line in buf:
