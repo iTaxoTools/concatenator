@@ -362,10 +362,11 @@ class NexusReader:
         """
         if self.state == NexusState.Sets:
             try:
-                self.columns.append(next(args))
+                self.columns.append("sequence_" + next(args))
             except StopIteration:
                 self.columns.append("")
 
     def return_table(self) -> pd.DataFrame:
+        self.table.reset_index(inplace=True)
         self.table.columns = self.columns
         return self.table

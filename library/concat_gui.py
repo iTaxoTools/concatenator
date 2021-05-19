@@ -10,6 +10,7 @@ import tkinter.messagebox as tkmessagebox
 
 import library.concat as concat
 import library.tab_to_nexus as tab_to_nexus
+import library.nexus_to_tab as nexus_to_tab
 
 
 
@@ -25,6 +26,7 @@ class ConcatGUI(ttk.Frame):
         self.operations: Dict[str, Tuple[Callable[[TextIO, TextIO], None], str]] = {
                 "concat": (concat.process, ".tab"),
                 "tab_to_nexus": (tab_to_nexus.process, ".nex"),
+                "nexus_to_tab": (nexus_to_tab.process, ".tab"),
                 }
 
         self.make_button_frame()
@@ -90,6 +92,10 @@ class ConcatGUI(ttk.Frame):
         current_row += 1
 
         ttk.Radiobutton(list_frame, text="Tabfile to NEXUS", variable=self.operation, value="tab_to_nexus").grid(
+                row=current_row, column=0, sticky="w")
+        current_row += 1
+
+        ttk.Radiobutton(list_frame, text="NEXUS to Tabfile", variable=self.operation, value="nexus_to_tab").grid(
                 row=current_row, column=0, sticky="w")
         current_row += 1
 
