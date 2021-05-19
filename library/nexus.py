@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 from enum import Enum
-from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, DefaultDict, Dict
+from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict
 import tempfile
-from collections import defaultdict
 import re
 
 import pandas as pd
@@ -55,6 +54,13 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     
     print('\nend;', file=output)
     buf.close()
+
+def read(input: TextIO) -> pd.DataFrame:
+    commands = NexusCommands(input)
+    reader = NexusReader()
+    for command, args in commands:
+        reader.execute(command, args)
+    return reader.return_table()
 
 class Tokenizer:
     """
