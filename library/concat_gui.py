@@ -20,7 +20,7 @@ class ConcatGUI(ttk.Frame):
         self.input_file = tk.StringVar()
         self.output_dir = tk.StringVar()
 
-        self.operation = tk.StringVar()
+        self.operation = tk.StringVar(value="concat")
 
         self.operations: Dict[str, Tuple[Callable[[TextIO, TextIO], None], str]] = {
                 "concat": (concat.process, ".tab"),
