@@ -2,7 +2,7 @@
 
 import tkinter as tk
 
-from library.gui import ConcatGUI
+from library.concat_gui import ConcatGUI
 
 
 def gui_main() -> None:
