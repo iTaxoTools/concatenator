@@ -141,6 +141,9 @@ class ConcatGUI(ttk.Frame):
             Operator(list_frame, operation=operation, operations=self.operations, command=self.display_operations).grid(
                     row=current_row, column=0, sticky="w")
             current_row += 1
+
+        ttk.Button(list_frame, text="Undo", command=self.pop_operation).grid(row=current_row, column=0, sticky="w")
+        current_row+=1
         
         list_frame.rowconfigure(current_row, weight=1)
         list_frame.grid(row=0, column=0, sticky="nsew")
@@ -150,6 +153,10 @@ class ConcatGUI(ttk.Frame):
         operations_frame.columnconfigure(1, weight=1)
 
         operations_frame.grid(row=2, column=0, sticky="nsew")
+
+    def pop_operation(self) -> None:
+        self.operations.pop()
+        self.display_operations()
 
     def browse_input(self) -> None:
         newpath = tkfiledialog.askopenfilename()
