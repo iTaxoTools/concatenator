@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from typing import Optional, Callable, TextIO, Any
-from enum import Enum, Union
+from typing import Optional, Callable, TextIO, Any, Union
+from enum import Enum
 
 import library.concat as concat
 import library.tab_to_nexus as tab_to_nexus
@@ -9,12 +9,13 @@ import library.nexus_to_tab as nexus_to_tab
 
 class FileType(Enum):
     """Types of files that can be processed by operations"""
-    TabFile = ("Tab file")
-    NexusFile = ("NEXUS file")
-    ConcatTabFile = ("Concatenated Tab file")
+    TabFile = ("Tab file", ".tab")
+    NexusFile = ("NEXUS file", ".nex")
+    ConcatTabFile = ("Concatenated Tab file", ".tab")
 
-    def __init__(self, description: str):
+    def __init__(self, description: str, extension: str):
         self.description = description
+        self.extension = extension
 
 Parameter = Union[None, int, str]
 
