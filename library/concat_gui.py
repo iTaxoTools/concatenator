@@ -9,10 +9,6 @@ import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
-import library.concat as concat
-import library.tab_to_nexus as tab_to_nexus
-import library.nexus_to_tab as nexus_to_tab
-
 from library.operations import Operation, Parameter, FileType
 
 class Operator(ttk.Frame):
@@ -54,14 +50,14 @@ class Operator(ttk.Frame):
     def show_type_error(self, last_op: str, last_output_type: FileType) -> None:
         message = "\n".join([
             "Can't add operation:",
-            self.operation.description.format(self.parameter),
+            self.operation.description.format(self.parameter.get()),
             "",
             "The last operation:",
             last_op,
             "outputs:",
             last_output_type.description,
             "But the new operation:",
-            self.operation.description.format(self.parameter),
+            self.operation.description.format(self.parameter.get()),
             "requires:",
             self.operation.input_type.description
             ])
