@@ -17,3 +17,6 @@ Construct a sequence of operations by clicking the buttons on the left side (`Op
 * `DNAconvert`: Convert a concatenated Tab file into a chosen format.
   - Input: Concatenated Tab file.
   - Output: Concatenated file of the chosen format.
+
+# Requirements
+The file `data\options.tab` should contain a valid path to DNAconvert executable, otherwise `DNAconvert` operation will not work.
