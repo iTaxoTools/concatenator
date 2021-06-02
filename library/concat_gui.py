@@ -9,21 +9,37 @@ import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
-from library.operations import Operation, Parameter, FileType
+from library.operations import Operation, Parameter, FileType, run_pipeline
+
 
 class Operator(ttk.Frame):
-
-    def __init__(self, *args, operation: Operation, operations: List[Tuple[Operation, Parameter]], command=Callable[[],None], **kwargs):
+    def __init__(
+        self,
+        *args,
+        operation: Operation,
+        operations: List[Tuple[Operation, Parameter]],
+        command=Callable[[], None],
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.operations = operations
         self.operation = operation
         self.parameter = tk.StringVar()
         self.command = command
-        ttk.Button(self, text=self.operation.button_text, command=self.push_operation).grid(row=0, column=0, sticky="w")
+        ttk.Button(
+            self, text=self.operation.button_text, command=self.push_operation
+        ).grid(row=0, column=0, sticky="w")
         if self.operation.parameter_type == int or self.operation.parameter_type == str:
-            ttk.Entry(self, textvariable=self.parameter).grid(row=0, column=1, sticky="w")
+            ttk.Entry(self, textvariable=self.parameter).grid(
+                row=0, column=1, sticky="w"
+            )
         elif isinstance(self.operation.parameter_type, list):
-            ttk.Combobox(self, textvariable=self.parameter, values=self.operation.parameter_type, state='readonly').grid(row=0, column=1, sticky="w")
+            ttk.Combobox(
+                self,
+                textvariable=self.parameter,
+                values=self.operation.parameter_type,
+                state="readonly",
+            ).grid(row=0, column=1, sticky="w")
             self.parameter.set(self.operation.parameter_type[0])
         elif self.operation.parameter_type == None:
             pass
@@ -42,26 +58,31 @@ class Operator(ttk.Frame):
             last_op, last_param = self.operations[-1]
             last_output_type = last_op.output_type(last_param)
             if last_op.output_type(last_param) != self.operation.input_type:
-                self.show_type_error(last_op.description.format(last_param), last_output_type)
+                self.show_type_error(
+                    last_op.description.format(last_param), last_output_type
+                )
                 return
         self.operations.append((self.operation, parameter))
         self.command()
 
     def show_type_error(self, last_op: str, last_output_type: FileType) -> None:
-        message = "\n".join([
-            "Can't add operation:",
-            self.operation.description.format(self.parameter.get()),
-            "",
-            "The last operation:",
-            last_op,
-            "outputs:",
-            last_output_type.description,
-            "But the new operation:",
-            self.operation.description.format(self.parameter.get()),
-            "requires:",
-            self.operation.input_type.description
-            ])
+        message = "\n".join(
+            [
+                "Can't add operation:",
+                self.operation.description.format(self.parameter.get()),
+                "",
+                "The last operation:",
+                last_op,
+                "outputs:",
+                last_output_type.description,
+                "But the new operation:",
+                self.operation.description.format(self.parameter.get()),
+                "requires:",
+                self.operation.input_type.description,
+            ]
+        )
         tkmessagebox.showerror("Error", message)
+
 
 class ConcatGUI(ttk.Frame):
     def __init__(self, *args, **kwargs):
@@ -89,21 +110,24 @@ class ConcatGUI(ttk.Frame):
 
         current_column = 0
 
-        ttk.Button(button_frame, text="Browse input file",
-                   command=self.browse_input).grid(row=0, column=current_column)
+        ttk.Button(
+            button_frame, text="Browse input file", command=self.browse_input
+        ).grid(row=0, column=current_column)
         current_column += 1
 
-        ttk.Button(button_frame, text="Browse output directory",
-                   command=self.browse_output).grid(row=0, column=current_column)
+        ttk.Button(
+            button_frame, text="Browse output directory", command=self.browse_output
+        ).grid(row=0, column=current_column)
         current_column += 1
 
         ttk.Button(button_frame, text="Execute", command=self.run).grid(
-            row=0, column=current_column)
+            row=0, column=current_column
+        )
         current_column += 1
 
         button_frame.columnconfigure(current_column, weight=1)
 
-        button_frame.grid(row=0, column=0, sticky='nsew')
+        button_frame.grid(row=0, column=0, sticky="nsew")
 
     def make_entries_frame(self) -> None:
         entries_frame = ttk.Frame(self)
@@ -111,15 +135,19 @@ class ConcatGUI(ttk.Frame):
         current_row = 0
 
         ttk.Label(entries_frame, text="Input file").grid(
-            row=current_row, column=0, sticky='w')
+            row=current_row, column=0, sticky="w"
+        )
         ttk.Entry(entries_frame, textvariable=self.input_file).grid(
-            row=current_row, column=1, sticky='we')
+            row=current_row, column=1, sticky="we"
+        )
         current_row += 1
 
         ttk.Label(entries_frame, text="Output directory").grid(
-            row=current_row, column=0, sticky='w')
+            row=current_row, column=0, sticky="w"
+        )
         ttk.Entry(entries_frame, textvariable=self.output_dir).grid(
-            row=current_row, column=1, sticky='we')
+            row=current_row, column=1, sticky="we"
+        )
         current_row += 1
 
         entries_frame.rowconfigure(current_row, weight=1)
@@ -129,22 +157,30 @@ class ConcatGUI(ttk.Frame):
 
     def make_operations_frame(self) -> None:
         operations_frame = ttk.Frame(self)
-        list_frame = ttk.LabelFrame(operations_frame, text="Operations") 
+        list_frame = ttk.LabelFrame(operations_frame, text="Operations")
 
-        current_row=0 
-        
+        current_row = 0
+
         for operation in Operation:
-            Operator(list_frame, operation=operation, operations=self.operations, command=self.display_operations).grid(
-                    row=current_row, column=0, sticky="w")
+            Operator(
+                list_frame,
+                operation=operation,
+                operations=self.operations,
+                command=self.display_operations,
+            ).grid(row=current_row, column=0, sticky="w")
             current_row += 1
 
-        ttk.Button(list_frame, text="Undo", command=self.pop_operation).grid(row=current_row, column=0, sticky="w")
-        current_row+=1
-        
+        ttk.Button(list_frame, text="Undo", command=self.pop_operation).grid(
+            row=current_row, column=0, sticky="w"
+        )
+        current_row += 1
+
         list_frame.rowconfigure(current_row, weight=1)
         list_frame.grid(row=0, column=0, sticky="nsew")
 
-        ttk.Label(operations_frame, textvariable=self.operations_display).grid(row=0, column=1, sticky="nw")
+        ttk.Label(operations_frame, textvariable=self.operations_display).grid(
+            row=0, column=1, sticky="nw"
+        )
         operations_frame.rowconfigure(0, weight=1)
         operations_frame.columnconfigure(1, weight=1)
 
@@ -177,8 +213,10 @@ class ConcatGUI(ttk.Frame):
         out_ext = self.generate_output_extension()
         output_file = os.path.join(self.output_dir.get(), filename + out_ext)
         try:
-            with open(self.input_file.get(), errors="replace") as infile, open(output_file, mode="w") as outfile:
-                self.run_pipeline(infile, outfile)
+            with open(self.input_file.get(), mode="rb") as infile, open(
+                output_file, mode="wb"
+            ) as outfile:
+                run_pipeline(infile, outfile, self.operations)
             tkmessagebox.showinfo("Done", "Processing is complete")
         except FileNotFoundError as e:
             tkmessagebox.showerror("Error", f"File {e.filename} not found")
@@ -187,20 +225,10 @@ class ConcatGUI(ttk.Frame):
             tkmessagebox.showerror("Error", str(e))
             raise
 
-    def run_pipeline(self, infile: TextIO, outfile: TextIO) -> None:
-        for operation, parameter in self.operations:
-            infile.seek(0, 0)
-            intermediate = cast(TextIO, tempfile.TemporaryFile(mode="w+"))
-            operation.apply(parameter)(infile, intermediate)
-            infile.close()
-            infile = intermediate
-        infile.seek(0, 0)
-        for line in infile:
-            outfile.write(line)
-        pass
-
     def display_operations(self):
-        self.operations_display.set("\n".join(
-            operation.description.format(parameter)
-            for operation, parameter in self.operations))
-
+        self.operations_display.set(
+            "\n".join(
+                operation.description.format(parameter)
+                for operation, parameter in self.operations
+            )
+        )
