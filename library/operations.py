@@ -9,7 +9,8 @@ import library.concat as concat
 import library.tab_to_nexus as tab_to_nexus
 import library.nexus_to_tab as nexus_to_tab
 import library.dnaconvert as dnaconvert
-from library.file_utils import make_binary
+import library.tab_to_multifile as tab_to_multifile
+from library.file_utils import make_binary, make_binary_in
 
 
 class FileType(Enum):
@@ -20,6 +21,7 @@ class FileType(Enum):
     ConcatTabFile = ("Concatenated Tab file", ".tab")
     ConcatFasta = ("Concatenated FASTA file", ".fas")
     ConcatPhylip = ("Concatenated Phylip file", ".phy")
+    MultiFasta = ("Multifile FASTA archive", ".zip")
 
     def __init__(self, description: str, extension: str):
         self.description = description
@@ -48,6 +50,7 @@ class Operation(Enum):
         "Convert into {} with DNAconvert",
         ["fasta", "phylip"],
     )
+    TabToMFasta = (FileType.TabFile, "Tabfile to multifile Fasta", None, None)
 
     def __init__(
         self,
@@ -79,6 +82,8 @@ class Operation(Enum):
                 return FileType.ConcatPhylip
             else:
                 assert False
+        elif self == Operation.TabToMFasta:
+            return FileType.MultiFasta
         else:
             assert False
 
@@ -94,6 +99,8 @@ class Operation(Enum):
                 return make_binary(dnaconvert_wrapper(parameter))
             else:
                 assert False
+        elif self == Operation.TabToMFasta:
+            return make_binary_in(tab_to_multifile.process_fasta)
         else:
             assert False
 

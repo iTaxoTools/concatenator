@@ -9,7 +9,7 @@ from library.file_utils import ZipOutput
 
 
 def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
-    column["seqid"] = into_seqids(column)
+    column["seqid"] = into_seqids(column.iloc[:, :-1].copy())
     for seqid, sequence in column[["seqid", gene_name]].itertuples(
         index=False, name=None
     ):
