@@ -42,6 +42,6 @@ def make_equal_length(column: pd.Series, max_length=None) -> pd.Series:
     if not max_length:
         max_length = column.str.len().max()
     if max_length:
-        return column.str.rjust(max_length, "N")
+        return column.str.ljust(max_length, "N")
     else:
         return column
