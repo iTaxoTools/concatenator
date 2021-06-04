@@ -9,22 +9,24 @@ import pandas as pd
 
 from library.utils import *
 
+
 def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     buf = tempfile.TemporaryFile(mode="w+")
     charsets = {}
     ntax = 0
 
     for gene in genes:
+        gene.iloc[:, -1] = make_equal_length(gene.iloc[:, -1])
         output_fragment = pd.DataFrame()
-        output_fragment['seqid'] = into_seqids(gene.iloc[:, :-1].copy())
-        output_fragment['sequence'] = gene.iloc[:, -1]
+        output_fragment["seqid"] = into_seqids(gene.iloc[:, :-1].copy())
+        output_fragment["sequence"] = gene.iloc[:, -1]
 
-        gene_name = gene.columns[-1][len("sequence_"):]
+        gene_name = gene.columns[-1][len("sequence_") :]
         gene_len = len(gene.iat[0, -1])
         charsets[gene_name] = gene_len
 
         output_fragment.to_string(buf, header=False, index=False)
-        print('\n', file=buf)
+        print("\n", file=buf)
 
         ntax = len(output_fragment)
 
@@ -32,28 +34,41 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
 
     nchar = sum(charsets.values())
 
-    print('#NEXUS\n', file=output)
-    print('begin data;\n', file=output)
-    print('format datatype=DNA missing=N missing=? Gap=- Interleave=yes;\n', file=output)
-    print(f'dimensions Nchar={nchar} Ntax={ntax};\n', file=output)
-    print('matrix\n', file=output)
+    print("#NEXUS\n", file=output)
+    print("begin data;\n", file=output)
+    print(
+        "format datatype=DNA missing=N missing=? Gap=- Interleave=yes;\n", file=output
+    )
+    print(f"dimensions Nchar={nchar} Ntax={ntax};\n", file=output)
+    print("matrix\n", file=output)
 
     for line in buf:
         output.write(line)
-    print(';\nend;', file=output)
+    print(";\nend;", file=output)
 
-    output.write('\n\n\n')
+    output.write("\n\n\n")
 
-    print('begin sets;\n', file=output) 
+    print("begin sets;\n", file=output)
 
     gene_position = 1
 
     for gene_name, gene_len in charsets.items():
-        print('charset ', gene_name, ' = ', gene_position, '-', gene_position + gene_len - 1, ';', sep='', file=output)
+        print(
+            "charset ",
+            gene_name,
+            " = ",
+            gene_position,
+            "-",
+            gene_position + gene_len - 1,
+            ";",
+            sep="",
+            file=output,
+        )
         gene_position += gene_len
-    
-    print('\nend;', file=output)
+
+    print("\nend;", file=output)
     buf.close()
+
 
 def read(input: TextIO) -> pd.DataFrame:
     commands = NexusCommands(input)
@@ -62,13 +77,15 @@ def read(input: TextIO) -> pd.DataFrame:
         reader.execute(command, args)
     return reader.return_table()
 
+
 class Tokenizer:
     """
     Token iterator for the NEXUS format
 
     Emits the stream of words and punctuation
     """
-    punctuation: ClassVar[Set[str]] = set('=;')
+
+    punctuation: ClassVar[Set[str]] = set("=;")
 
     def __init__(self, file: TextIO):
         """
@@ -76,7 +93,7 @@ class Tokenizer:
         """
         # check that the file is in NEXUS format
         magic_word = file.read(6)
-        if magic_word != '#NEXUS':
+        if magic_word != "#NEXUS":
             raise ValueError("The input file is not a nexus file")
         # contains the underlying file
         self.file = file
@@ -131,10 +148,10 @@ class Tokenizer:
             if c is None:
                 # EOF is reached, should not happen in a well-formed file
                 raise ValueError("Nexus: EOF inside a comment")
-            elif c == '[':
+            elif c == "[":
                 # comment inside a comment
                 self.skip_comment
-            elif c == ']':
+            elif c == "]":
                 # end of the comment
                 break
 
@@ -148,11 +165,11 @@ class Tokenizer:
             if c is None:
                 # EOF is reached, should not happen in a well-formed file
                 raise ValueError("Nexus: EOF inside a quoted value")
-            elif c == '\'':
+            elif c == "'":
                 # possible end of the quoted value
-                if self.peek_char == '\'':
+                if self.peek_char == "'":
                     # '' is ', and not the end
-                    s += ['\'']
+                    s += ["'"]
                 else:
                     # the end of the line
                     return s
@@ -160,8 +177,8 @@ class Tokenizer:
                 # update the line
                 s += [c]
 
-    def __iter__(self) -> 'Tokenizer':
-        """ Tokenizer is an Iterator"""
+    def __iter__(self) -> "Tokenizer":
+        """Tokenizer is an Iterator"""
         return self
 
     def __next__(self) -> str:
@@ -181,10 +198,10 @@ class Tokenizer:
                 token = self.replace_token([c])
                 if token:
                     return token
-            elif c == '[':
+            elif c == "[":
                 # a comment => skip it
                 self.skip_comment()
-            elif c == '\'':
+            elif c == "'":
                 # a quoted value => read it and save into the token
                 token = self.replace_token(self.read_quoted())
                 if token:
@@ -219,7 +236,7 @@ class NexusCommands:
         """
         self.tokenizer = Tokenizer(file)
 
-    def __iter__(self) -> 'NexusCommands':
+    def __iter__(self) -> "NexusCommands":
         """
         NexusCommands is an Iterator
         """
@@ -237,10 +254,11 @@ class NexusCommands:
                 except StopIteration:
                     # EOF is reached; should not happen in a well-formed file
                     raise ValueError("Nexus: EOF inside a command")
-                if arg == ';':
+                if arg == ";":
                     break
                 else:
                     yield arg
+
         return command, arguments()
 
     @staticmethod
@@ -252,18 +270,22 @@ class NexusCommands:
             for command, args in NexusCommands(file):
                 print(repr(command), [repr(arg) for arg in args])
 
-NexusState = Enum('NexusState', ['Data', 'Sets'])
+
+NexusState = Enum("NexusState", ["Data", "Sets"])
+
 
 class NexusReader:
     """
     A virtual machine that executes NEXUS command and constructs a pandas table
     """
 
-    nexus_state: ClassVar[Dict[str, NexusState]] = dict(data=NexusState.Data, sets=NexusState.Sets)
+    nexus_state: ClassVar[Dict[str, NexusState]] = dict(
+        data=NexusState.Data, sets=NexusState.Sets
+    )
 
     def __init__(self) -> None:
         self.table = pd.DataFrame()
-        self.columns = ['seqid']
+        self.columns = ["seqid"]
         self.state: Optional[NexusState] = None
         self.todo: Set[NexusState] = {NexusState.Data, NexusState.Sets}
         self.ntax: Optional[int] = None
@@ -274,10 +296,10 @@ class NexusReader:
         Sets the state for the next block
         """
         try:
-           arg = next(args)
-           state = NexusReader.nexus_state[arg]
-           if state in self.todo:
-               self.state = state
+            arg = next(args)
+            state = NexusReader.nexus_state[arg]
+            if state in self.todo:
+                self.state = state
         except KeyError:
             pass
         except StopIteration:
@@ -299,17 +321,17 @@ class NexusReader:
         Returns an iterator over sequences in a matrix, if the command is 'matrix'
         """
         # for each command execute the corresponding method
-        if command == 'begin':
+        if command == "begin":
             self.begin_block(args)
-        elif command == 'format':
+        elif command == "format":
             self.configure_format(args)
-        elif command == 'dimensions':
+        elif command == "dimensions":
             self.read_dimensions(args)
-        elif command == 'end' or command == 'endblock':
+        elif command == "end" or command == "endblock":
             self.complete_block()
-        elif command == 'matrix':
+        elif command == "matrix":
             self.sequences(args)
-        elif command == 'charset':
+        elif command == "charset":
             self.add_charset(args)
 
     def configure_format(self, args: Iterator[str]) -> None:
@@ -318,18 +340,18 @@ class NexusReader:
         """
         # If the 'datatype' is DNA, RNA, Nucleotide or Protein, prepare for reading
         for arg in args:
-            if arg.casefold() == 'datatype':
-                if next(args) != '=':
+            if arg.casefold() == "datatype":
+                if next(args) != "=":
                     continue
-                if re.search(r'DNA|RNA|Nucleotide', next(args), flags=re.IGNORECASE):
+                if re.search(r"DNA|RNA|Nucleotide", next(args), flags=re.IGNORECASE):
                     self.read_matrix = True
-            elif arg.casefold() == 'interleave':
+            elif arg.casefold() == "interleave":
                 self.interleave = True
 
     def read_dimensions(self, args: Iterator[str]) -> None:
         for arg in args:
-            if arg.casefold() == 'ntax':
-                if next(args) != '=':
+            if arg.casefold() == "ntax":
+                if next(args) != "=":
                     continue
                 try:
                     self.ntax = int(next(args))
