@@ -16,16 +16,17 @@ from library.file_utils import make_binary, make_binary_in
 class FileType(Enum):
     """Types of files that can be processed by operations"""
 
-    TabFile = ("Tab file", ".tab")
-    NexusFile = ("NEXUS file", ".nex")
-    ConcatTabFile = ("Concatenated Tab file", ".tab")
-    ConcatFasta = ("Concatenated FASTA file", ".fas")
-    ConcatPhylip = ("Concatenated Phylip file", ".phy")
-    MultiFasta = ("Multifile FASTA archive", ".zip")
+    TabFile = ("Tab file", ".tab", False)
+    NexusFile = ("NEXUS file", ".nex", False)
+    ConcatTabFile = ("Concatenated Tab file", ".tab", False)
+    ConcatFasta = ("Concatenated FASTA file", ".fas", False)
+    ConcatPhylip = ("Concatenated Phylip file", ".phy", False)
+    MultiFasta = ("Multifile FASTA archive", ".zip", True)
 
-    def __init__(self, description: str, extension: str):
+    def __init__(self, description: str, extension: str, timestamp: bool):
         self.description = description
         self.extension = extension
+        self.timestamp = timestamp
 
 
 Parameter = Union[None, int, str]
@@ -122,6 +123,5 @@ def run_pipeline(
     for (infile, outfile), (operation, parameter) in zip(file_pairs, pipeline):
         operation.apply(parameter)(infile, outfile)
         infile.close()
-        outfile.flush()
         outfile.close()
     pass

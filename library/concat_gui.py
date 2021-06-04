@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import os
-from typing import Callable, TextIO, Tuple, List, cast
-import tempfile
+from datetime import datetime
+from typing import Callable, Tuple, List
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -200,18 +200,23 @@ class ConcatGUI(ttk.Frame):
         if newpath:
             self.output_dir.set(os.path.abspath(newpath))
 
-    def generate_output_extension(self) -> str:
+    def generate_output_suffix(self) -> str:
         if self.operations:
             last_op, last_param = self.operations[-1]
-            return last_op.output_type(last_param).extension
+            output_type = last_op.output_type(last_param)
+            ext = output_type.extension
+            if output_type.timestamp:
+                return "_" + datetime.utcnow().strftime("%Y%m%dT%H%M%S") + ext
+            else:
+                return ext
         else:
             _, ext = os.path.splitext(self.input_file.get())
             return ext
 
     def run(self) -> None:
         filename, _ = os.path.splitext(os.path.basename(self.input_file.get()))
-        out_ext = self.generate_output_extension()
-        output_file = os.path.join(self.output_dir.get(), filename + out_ext)
+        suffix = self.generate_output_suffix()
+        output_file = os.path.join(self.output_dir.get(), filename + suffix)
         try:
             with open(self.input_file.get(), mode="rb") as infile, open(
                 output_file, mode="wb"
