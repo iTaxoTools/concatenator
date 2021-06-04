@@ -3,6 +3,7 @@
 import os
 from datetime import datetime
 from typing import Callable, Tuple, List
+import logging
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -84,6 +85,19 @@ class Operator(ttk.Frame):
         tkmessagebox.showerror("Error", message)
 
 
+class TkWarnLogger(logging.Handler):
+    """docstring for TkWarnLogger."""
+
+    def __init__(self, level=logging.NOTSET):
+        logging.Handler.__init__(self, level)
+        self.addFilter(lambda record: record.levelno == logging.WARNING)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        tkmessagebox.showwarning("Warning", record.getMessage())
+        print(record.pathname, record.lineno, sep=": ")
+        print("Warning:", record.getMessage(), "\n")
+
+
 class ConcatGUI(ttk.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -104,6 +118,9 @@ class ConcatGUI(ttk.Frame):
         self.columnconfigure(0, weight=1)
 
         self.grid(row=0, column=0, sticky="nsew")
+        logger = logging.getLogger()
+        logger.addHandler(TkWarnLogger())
+        logger.setLevel(logging.WARNING)
 
     def make_button_frame(self) -> None:
         button_frame = ttk.Frame(self)
