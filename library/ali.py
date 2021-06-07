@@ -16,7 +16,7 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
     max_length = max_length_if_not_same(column[gene_name])
     if max_length:
         logging.warning(
-            f"Column 'sequence_{gene_name}' has sequences of unequal length.\n They will be padded with to the same length with '?'"
+            f"Column '{gene_name}' has sequences of unequal length.\n They will be padded with to the same length with '?'"
         )
         column[gene_name] = make_equal_length(
             column[gene_name], max_length, fillchar="?"
