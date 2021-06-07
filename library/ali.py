@@ -29,7 +29,7 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
     # write ali heading
     pos_num = len(column[gene_name].iat[0])
     otu_num = len(column)
-    missing_count = column[gene_name].str.count("?").sum()
+    missing_count = column[gene_name].str.count(r"\?").sum()
     missing_percent = missing_count / (pos_num * otu_num)
 
     print("#Number of positions:", pos_num, file=outfile)

@@ -23,6 +23,7 @@ class FileType(Enum):
     ConcatPhylip = ("Concatenated Phylip file", ".phy", False)
     MultiFasta = ("Multifile FASTA archive", ".zip", True)
     MultiPhylip = ("Multifile Phylip archive", ".zip", True)
+    MultiAli = ("Multifile Ali archive", ".zip", True)
 
     def __init__(self, description: str, extension: str, timestamp: bool):
         self.description = description
@@ -54,6 +55,7 @@ class Operation(Enum):
     )
     TabToMFasta = (FileType.TabFile, "Tabfile to multifile Fasta", None, None)
     TabToMPhylip = (FileType.TabFile, "Tabfile to multifile Phylip", None, None)
+    TabToMAli = (FileType.TabFile, "Tabfile to multifile Ali", None, None)
 
     def __init__(
         self,
@@ -89,6 +91,8 @@ class Operation(Enum):
             return FileType.MultiFasta
         elif self == Operation.TabToMPhylip:
             return FileType.MultiPhylip
+        elif self == Operation.TabToMAli:
+            return FileType.MultiAli
         else:
             assert False
 
@@ -108,6 +112,8 @@ class Operation(Enum):
             return make_binary_in(tab_to_multifile.process_fasta)
         elif self == Operation.TabToMPhylip:
             return make_binary_in(tab_to_multifile.process_phylip)
+        elif self == Operation.TabToMAli:
+            return make_binary_in(tab_to_multifile.process_ali)
         else:
             assert False
 
