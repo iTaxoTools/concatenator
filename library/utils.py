@@ -33,7 +33,9 @@ def max_length_if_not_same(column: pd.Series) -> Optional[int]:
         return None
 
 
-def make_equal_length(column: pd.Series, max_length=None) -> pd.Series:
+def make_equal_length(
+    column: pd.Series, max_length: Optional[int] = None, fillchar: str = "N"
+) -> pd.Series:
     """
     Pads strings in the ``column`` to ``max_length``.
 
@@ -42,6 +44,6 @@ def make_equal_length(column: pd.Series, max_length=None) -> pd.Series:
     if not max_length:
         max_length = column.str.len().max()
     if max_length:
-        return column.str.ljust(max_length, "N")
+        return column.str.ljust(max_length, fillchar)
     else:
         return column
