@@ -24,7 +24,7 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
 
     # do ali character translation
     trans_dict = str.maketrans("Nn-", "??*")
-    column[gene_name].str.translate(trans_dict)
+    column[gene_name] = column[gene_name].str.translate(trans_dict)
 
     # write ali heading
     pos_num = len(column[gene_name].iat[0])
