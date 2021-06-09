@@ -26,6 +26,9 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
     trans_dict = str.maketrans("Nn-", "??*")
     column[gene_name] = column[gene_name].str.translate(trans_dict)
 
+    # remove missing data
+    column = column.loc[column[gene_name].str.contains(r"[^?*]", regex=True)]
+
     # write ali heading
     pos_num = len(column[gene_name].iat[0])
     otu_num = len(column)
