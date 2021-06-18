@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
-from typing import TextIO
+from typing import TextIO, Iterator, List
 
 import pandas as pd
 
@@ -48,3 +48,45 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
 
 
 column_writer = ColumnWriter(".ali", write_column)
+
+
+def split_file(file: TextIO) -> Iterator[List[str]]:
+    """
+    Returns iterator that yield records as lists of lines
+    """
+    # find the beginning of the first record
+    line = " "
+    while line[0] != ">":
+        line = file.readline()
+
+    # chunk contains the already read lines of the current record
+    chunk = []
+    # put the first line of the first record into chunk
+    chunk.append(line.rstrip())
+
+    for line in file:
+        # skip the blank lines or comments
+        if line == "" or line[0] == "#" or line.isspace():
+            continue
+
+        # yield the chunk if the new record has begun
+        if line[0] == ">":
+            yield chunk
+            chunk = []
+
+        # put the first line of the new record into chunk
+        chunk.append(line.rstrip())
+
+    # yield the last record
+    yield chunk
+
+
+def column_reader(infile: TextIO) -> pd.Series:
+    return pd.Series(
+        {
+            chunk[0][1:].replace("@", "_"): "".join(
+                line.replace("*", "_") for line in chunk[1:]
+            )
+            for chunk in split_file(infile)
+        }
+    )
