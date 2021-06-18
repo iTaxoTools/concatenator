@@ -10,7 +10,8 @@ import library.tab_to_nexus as tab_to_nexus
 import library.nexus_to_tab as nexus_to_tab
 import library.dnaconvert as dnaconvert
 import library.tab_to_multifile as tab_to_multifile
-from library.file_utils import make_binary, make_binary_in
+import library.multifile_to_tab as multifile_to_tab
+from library.file_utils import make_binary, make_binary_in, make_binary_out
 
 
 class FileType(Enum):
@@ -56,6 +57,7 @@ class Operation(Enum):
     TabToMFasta = (FileType.TabFile, "Tabfile to multifile Fasta", None, None)
     TabToMPhylip = (FileType.TabFile, "Tabfile to multifile Phylip", None, None)
     TabToMAli = (FileType.TabFile, "Tabfile to multifile Ali", None, None)
+    MFastaToTab = (FileType.MultiFasta, "Multifile Fasta to tabfile", None, None)
 
     def __init__(
         self,
@@ -74,48 +76,38 @@ class Operation(Enum):
         self.parameter_type = parameter_type
 
     def output_type(self, parameter: Parameter) -> FileType:
-        if self == Operation.TabToNexus:
-            return FileType.NexusFile
-        elif self == Operation.NexusToTab:
-            return FileType.TabFile
-        elif self == Operation.ConcatTab:
-            return FileType.ConcatTabFile
-        elif self == Operation.DnaConvert:
-            if parameter == "fasta":
-                return FileType.ConcatFasta
-            elif parameter == "phylip":
-                return FileType.ConcatPhylip
-            else:
-                assert False
-        elif self == Operation.TabToMFasta:
-            return FileType.MultiFasta
-        elif self == Operation.TabToMPhylip:
-            return FileType.MultiPhylip
-        elif self == Operation.TabToMAli:
-            return FileType.MultiAli
-        else:
-            assert False
+        type = {
+            Operation.TabToNexus: FileType.NexusFile,
+            Operation.NexusToTab: FileType.TabFile,
+            Operation.ConcatTab: FileType.ConcatTabFile,
+            Operation.DnaConvert: FileType.ConcatFasta
+            if parameter == "fasta"
+            else FileType.ConcatPhylip
+            if parameter == "phylip"
+            else None,
+            Operation.TabToMFasta: FileType.MultiFasta,
+            Operation.TabToMPhylip: FileType.MultiPhylip,
+            Operation.TabToMAli: FileType.MultiAli,
+            Operation.MFastaToTab: FileType.TabFile,
+        }.get(self)
+        assert type is not None
+        return type
 
     def apply(self, parameter: Parameter) -> Callable[[BinaryIO, BinaryIO], None]:
-        if self == Operation.TabToNexus:
-            return make_binary(tab_to_nexus.process)
-        elif self == Operation.NexusToTab:
-            return make_binary(nexus_to_tab.process)
-        elif self == Operation.ConcatTab:
-            return make_binary(concat.process)
-        elif self == Operation.DnaConvert:
-            if type(parameter) is str:
-                return make_binary(dnaconvert_wrapper(parameter))
-            else:
-                assert False
-        elif self == Operation.TabToMFasta:
-            return make_binary_in(tab_to_multifile.process_fasta)
-        elif self == Operation.TabToMPhylip:
-            return make_binary_in(tab_to_multifile.process_phylip)
-        elif self == Operation.TabToMAli:
-            return make_binary_in(tab_to_multifile.process_ali)
-        else:
-            assert False
+        operation: Optional[Callable[[BinaryIO, BinaryIO], None]] = {
+            Operation.TabToNexus: make_binary(tab_to_nexus.process),
+            Operation.NexusToTab: make_binary(nexus_to_tab.process),
+            Operation.ConcatTab: make_binary(concat.process),
+            Operation.DnaConvert: make_binary(dnaconvert_wrapper(parameter))
+            if type(parameter) is str
+            else None,
+            Operation.TabToMFasta: make_binary_in(tab_to_multifile.process_fasta),
+            Operation.TabToMPhylip: make_binary_in(tab_to_multifile.process_phylip),
+            Operation.TabToMAli: make_binary_in(tab_to_multifile.process_ali),
+            Operation.MFastaToTab: make_binary_out(multifile_to_tab.process_fasta),
+        }.get(self)
+        assert operation is not None
+        return operation
 
 
 def run_pipeline(

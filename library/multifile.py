@@ -33,7 +33,7 @@ def write_zip(
 ColumnReader = Callable[[TextIO], pd.Series]
 
 
-def read_zip(column_reader: ColumnReader, in_archive: BinaryIO) -> Iterator[pd.Column]:
+def read_zip(column_reader: ColumnReader, in_archive: BinaryIO) -> Iterator[pd.Series]:
     archive = ZipInput(in_archive)
     for filename, file in archive.files():
         column = column_reader(file)
