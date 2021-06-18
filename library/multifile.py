@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 from typing import Iterator, BinaryIO, TextIO, Callable
+import os
 
 import pandas as pd
 
-from library.file_utils import ZipOutput
+from library.file_utils import ZipOutput, ZipInput
 
 
 class ColumnWriter:
@@ -27,3 +28,14 @@ def write_zip(
         gene_name = column.columns[-1]
         with zip_out.open(gene_name + column_writer.extension) as outfile:
             column_writer.write_column(column, gene_name, outfile)
+
+
+ColumnReader = Callable[[TextIO], pd.Series]
+
+
+def read_zip(column_reader: ColumnReader, in_archive: BinaryIO) -> Iterator[pd.Column]:
+    archive = ZipInput(in_archive)
+    for filename, file in archive.files():
+        column = column_reader(file)
+        column.name, _ = os.path.splitext(filename)
+        yield column
