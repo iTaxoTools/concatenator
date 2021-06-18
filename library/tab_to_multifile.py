@@ -11,14 +11,14 @@ import library.ali as ali
 
 def process_fasta(infile: TextIO, outfile: BinaryIO) -> None:
     columns = tabfile.read(infile)
-    multifile.write_zip(fasta.write_column, ".fas", columns, outfile)
+    multifile.write_zip(fasta.column_writer, columns, outfile)
 
 
 def process_phylip(infile: TextIO, outfile: BinaryIO) -> None:
     columns = tabfile.read(infile)
-    multifile.write_zip(phylip.write_column, ".phy", columns, outfile)
+    multifile.write_zip(phylip.column_writer, columns, outfile)
 
 
 def process_ali(infile: TextIO, outfile: BinaryIO) -> None:
     columns = tabfile.read(infile)
-    multifile.write_zip(ali.write_column, ".ali", columns, outfile)
+    multifile.write_zip(ali.column_writer, columns, outfile)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from library.multifile import ColumnWriter
 import logging
 from typing import TextIO
 
@@ -24,3 +25,6 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
         index=False, name=None
     ):
         print(seqid, sequence, file=outfile)
+
+
+column_writer = ColumnWriter(".phy", write_column)

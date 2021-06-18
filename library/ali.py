@@ -6,6 +6,7 @@ from typing import TextIO
 import pandas as pd
 
 from library.utils import *
+from library.multifile import ColumnWriter
 
 
 def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
@@ -44,3 +45,6 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
     ):
         print(">", seqid, sep="", file=outfile)
         print(sequence, file=outfile)
+
+
+column_writer = ColumnWriter(".ali", write_column)
