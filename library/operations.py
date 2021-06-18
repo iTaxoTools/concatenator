@@ -22,9 +22,12 @@ class FileType(Enum):
     ConcatTabFile = ("Concatenated Tab file", ".tab", False)
     ConcatFasta = ("Concatenated FASTA file", ".fas", False)
     ConcatPhylip = ("Concatenated Phylip file", ".phy", False)
-    MultiFasta = ("Multifile FASTA archive", ".zip", True)
-    MultiPhylip = ("Multifile Phylip archive", ".zip", True)
-    MultiAli = ("Multifile Ali archive", ".zip", True)
+    MultiFastaOutput = ("Multifile FASTA output archive", ".zip", True)
+    MultiPhylipOutput = ("Multifile Phylip output archive", ".zip", True)
+    MultiAliOutput = ("Multifile Ali output archive", ".zip", True)
+    MultiFastaInput = ("Multifile FASTA input archive", ".zip", True)
+    MultiPhylipInput = ("Multifile Phylip input archive", ".zip", True)
+    MultiAliInput = ("Multifile Ali input archive", ".zip", True)
 
     def __init__(self, description: str, extension: str, timestamp: bool):
         self.description = description
@@ -57,8 +60,8 @@ class Operation(Enum):
     TabToMFasta = (FileType.TabFile, "Tabfile to multifile Fasta", None, None)
     TabToMPhylip = (FileType.TabFile, "Tabfile to multifile Phylip", None, None)
     TabToMAli = (FileType.TabFile, "Tabfile to multifile Ali", None, None)
-    MFastaToTab = (FileType.MultiFasta, "Multifile Fasta to tabfile", None, None)
-    MAliToTab = (FileType.MultiAli, "Multifile Ali to tabfile", None, None)
+    MFastaToTab = (FileType.MultiFastaInput, "Multifile Fasta to tabfile", None, None)
+    MAliToTab = (FileType.MultiAliInput, "Multifile Ali to tabfile", None, None)
 
     def __init__(
         self,
@@ -86,9 +89,9 @@ class Operation(Enum):
             else FileType.ConcatPhylip
             if parameter == "phylip"
             else None,
-            Operation.TabToMFasta: FileType.MultiFasta,
-            Operation.TabToMPhylip: FileType.MultiPhylip,
-            Operation.TabToMAli: FileType.MultiAli,
+            Operation.TabToMFasta: FileType.MultiFastaOutput,
+            Operation.TabToMPhylip: FileType.MultiPhylipOutput,
+            Operation.TabToMAli: FileType.MultiAliOutput,
             Operation.MFastaToTab: FileType.TabFile,
             Operation.MAliToTab: FileType.TabFile,
         }.get(self)
