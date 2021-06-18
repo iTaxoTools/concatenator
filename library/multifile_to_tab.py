@@ -19,5 +19,5 @@ def process_fasta(infile: BinaryIO, outfile: TextIO) -> None:
 #     )
 
 
-# def process_ali(infile: BinaryIO, outfile: TextIO) -> None:
-#     tabfile.write_from_columns(multifile.read_zip(ali.column_reader, infile), outfile)
+def process_ali(infile: BinaryIO, outfile: TextIO) -> None:
+    tabfile.write_from_columns(multifile.read_zip(ali.column_reader, infile), outfile)
