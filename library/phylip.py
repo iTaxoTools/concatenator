@@ -41,7 +41,7 @@ def column_reader(infile: TextIO) -> pd.Series:
         if line == "" or line.isspace():
             continue
         # separate name and sequence
-        name, _, sequence = line.partition(" ")
+        name, _, sequence = line.rstrip().partition(" ")
         # return the record
         sequences[name] = sequence
     return pd.Series(sequences)

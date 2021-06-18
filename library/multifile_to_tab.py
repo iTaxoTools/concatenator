@@ -13,10 +13,10 @@ def process_fasta(infile: BinaryIO, outfile: TextIO) -> None:
     tabfile.write_from_columns(multifile.read_zip(fasta.column_reader, infile), outfile)
 
 
-# def process_phylip(infile: BinaryIO, outfile: TextIO) -> None:
-#     tabfile.write_from_columns(
-#         multifile.read_zip(phylip.column_reader, infile), outfile
-#     )
+def process_phylip(infile: BinaryIO, outfile: TextIO) -> None:
+    tabfile.write_from_columns(
+        multifile.read_zip(phylip.column_reader, infile), outfile
+    )
 
 
 def process_ali(infile: BinaryIO, outfile: TextIO) -> None:

@@ -62,6 +62,12 @@ class Operation(Enum):
     TabToMAli = (FileType.TabFile, "Tabfile to multifile Ali", None, None)
     MFastaToTab = (FileType.MultiFastaInput, "Multifile Fasta to tabfile", None, None)
     MAliToTab = (FileType.MultiAliInput, "Multifile Ali to tabfile", None, None)
+    MPhylipToTab = (
+        FileType.MultiPhylipInput,
+        "Multifile Phylip to tabfile",
+        None,
+        None,
+    )
 
     def __init__(
         self,
@@ -94,6 +100,7 @@ class Operation(Enum):
             Operation.TabToMAli: FileType.MultiAliOutput,
             Operation.MFastaToTab: FileType.TabFile,
             Operation.MAliToTab: FileType.TabFile,
+            Operation.MPhylipToTab: FileType.TabFile,
         }.get(self)
         assert type is not None
         return type
@@ -111,6 +118,7 @@ class Operation(Enum):
             Operation.TabToMAli: make_binary_in(tab_to_multifile.process_ali),
             Operation.MFastaToTab: make_binary_out(multifile_to_tab.process_fasta),
             Operation.MAliToTab: make_binary_out(multifile_to_tab.process_ali),
+            Operation.MPhylipToTab: make_binary_out(multifile_to_tab.process_phylip),
         }.get(self)
         assert operation is not None
         return operation
