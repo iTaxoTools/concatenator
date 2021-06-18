@@ -2,7 +2,7 @@
 
 from library.multifile import ColumnWriter
 import logging
-from typing import TextIO
+from typing import TextIO, Dict
 
 import pandas as pd
 
@@ -28,3 +28,20 @@ def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
 
 
 column_writer = ColumnWriter(".phy", write_column)
+
+
+def column_reader(infile: TextIO) -> pd.Series:
+    # skip the first line
+    infile.readline()
+
+    sequences: Dict[str, str] = {}
+
+    for line in infile:
+        # skip blank lines
+        if line == "" or line.isspace():
+            continue
+        # separate name and sequence
+        name, _, sequence = line.partition(" ")
+        # return the record
+        sequences[name] = sequence
+    return pd.Series(sequences)
