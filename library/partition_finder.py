@@ -73,6 +73,7 @@ def write(rows: Iterator[List[str]], output: BinaryIO) -> None:
                 position,
                 "-",
                 position + length - 1,
+                ";",
                 sep="",
                 file=charset_file,
             )
