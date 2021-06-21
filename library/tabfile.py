@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from typing import TextIO, Iterator
+from typing import TextIO, Iterator, TypeVar, List
 
 import pandas as pd
 
@@ -24,3 +24,51 @@ def write_from_columns(columns: Iterator[pd.Series], outfile: TextIO) -> None:
         table = table.join(column, how="outer")
     table.index.name = "seqid"
     table.to_csv(outfile, sep="\t", line_terminator="\n")
+
+
+T = TypeVar("T")
+
+
+def pop_many(l: List[T], indices: List[int]) -> List[T]:
+    """
+    Pops the elements of `l` at `indices` and returns the list of them.
+
+    Sorts `indices` in reverse order
+    """
+    indices.sort()
+    indices.reverse()
+    result = [l.pop(i) for i in indices]
+    result.reverse()
+    return result
+
+
+def read_rows(input: TextIO) -> Iterator[List[str]]:
+    for line in input:
+        yield line.rstrip().split("\t")
+
+
+def concat_sequences(rows: Iterator[List[str]]) -> Iterator[List[str]]:
+    # read the header
+    try:
+        header = next(rows)
+    except StopIteration:
+        return
+
+    # find the columns with description (i.e. not sequences) values
+    description_indices = [
+        i for i, column in enumerate(header) if "sequence" not in column.lower()
+    ]
+    description_columns = pop_many(header, description_indices)
+
+    yield description_columns + ["sequence"]
+
+    for row in rows:
+        # separate description and sequences
+        description_values = pop_many(row, description_indices)
+        # yield description and the sequence
+        yield description_values + [("".join(row))]
+
+
+def write_rows(rows: Iterator[List[str]], output: TextIO) -> None:
+    for row in rows:
+        print(*row, sep="\t", file=output)
