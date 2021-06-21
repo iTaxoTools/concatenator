@@ -2,7 +2,7 @@
 
 import io
 import zipfile
-from typing import TextIO, Callable, BinaryIO
+from typing import TextIO, Callable, BinaryIO, Iterator, Tuple
 
 
 def make_binary(
@@ -46,3 +46,16 @@ class ZipOutput:
         """Opens a file in the archive for writing"""
         file = self.archive.open(name, mode="w")
         return io.TextIOWrapper(file)
+
+
+class ZipInput:
+    """Class for reading input files from a zip archive"""
+
+    def __init__(self, file: BinaryIO):
+        self.archive = zipfile.ZipFile(file, mode="r")
+
+    def files(self) -> Iterator[Tuple[str, TextIO]]:
+        """Yields names and the files in the archive"""
+        for filename in self.archive.namelist():
+            with self.archive.open(filename, mode="r") as file:
+                yield (filename, io.TextIOWrapper(file, errors="replace"))
