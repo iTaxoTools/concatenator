@@ -39,10 +39,10 @@ def write(rows: Iterator[List[str]], output: BinaryIO) -> None:
     if len(row_table) < 1:
         raise ValueError("No data in input file")
     description_columns = [
-        column for column in row_table.columns if not column.starts_with("sequence")
+        column for column in row_table.columns if not column.startswith("sequence")
     ]
     sequence_columns = [
-        column for column in row_table.columns if column.starts_with("sequence")
+        column for column in row_table.columns if column.startswith("sequence")
     ]
 
     charset = {}
@@ -66,7 +66,7 @@ def write(rows: Iterator[List[str]], output: BinaryIO) -> None:
     with archive.open("partition_finder.cfg") as charset_file:
         print(CHARSET_START, file=charset_file)
         position = 1
-        for name, length in charset:
+        for name, length in charset.items():
             print(
                 name,
                 " = ",

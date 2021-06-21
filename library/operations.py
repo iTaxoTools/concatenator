@@ -11,6 +11,7 @@ import library.nexus_to_tab as nexus_to_tab
 import library.dnaconvert as dnaconvert
 import library.tab_to_multifile as tab_to_multifile
 import library.multifile_to_tab as multifile_to_tab
+import library.tab_to_partition_finder as tab_to_partition_finder
 from library.file_utils import make_binary, make_binary_in, make_binary_out
 
 
@@ -28,6 +29,7 @@ class FileType(Enum):
     MultiFastaInput = ("Multifile FASTA input archive", ".zip", True)
     MultiPhylipInput = ("Multifile Phylip input archive", ".zip", True)
     MultiAliInput = ("Multifile Ali input archive", ".zip", True)
+    PartitionFinderOutput = ("Partitionfinder archive", ".zip", True)
 
     def __init__(self, description: str, extension: str, timestamp: bool):
         self.description = description
@@ -68,6 +70,12 @@ class Operation(Enum):
         None,
         None,
     )
+    TabToPartition = (
+        FileType.TabFile,
+        "Tabfile to Partitionfinder archive",
+        None,
+        None,
+    )
 
     def __init__(
         self,
@@ -101,6 +109,7 @@ class Operation(Enum):
             Operation.MFastaToTab: FileType.TabFile,
             Operation.MAliToTab: FileType.TabFile,
             Operation.MPhylipToTab: FileType.TabFile,
+            Operation.TabToPartition: FileType.PartitionFinderOutput,
         }.get(self)
         assert type is not None
         return type
@@ -119,6 +128,7 @@ class Operation(Enum):
             Operation.MFastaToTab: make_binary_out(multifile_to_tab.process_fasta),
             Operation.MAliToTab: make_binary_out(multifile_to_tab.process_ali),
             Operation.MPhylipToTab: make_binary_out(multifile_to_tab.process_phylip),
+            Operation.TabToPartition: make_binary_in(tab_to_partition_finder.process),
         }.get(self)
         assert operation is not None
         return operation
