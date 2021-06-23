@@ -12,6 +12,7 @@ import library.dnaconvert as dnaconvert
 import library.tab_to_multifile as tab_to_multifile
 import library.multifile_to_tab as multifile_to_tab
 import library.tab_to_partition_finder as tab_to_partition_finder
+import library.nexus_to_partition_finder as nexus_to_partition_finder
 from library.file_utils import make_binary, make_binary_in, make_binary_out
 
 
@@ -76,6 +77,12 @@ class Operation(Enum):
         None,
         None,
     )
+    NexusToPartition = (
+        FileType.NexusFile,
+        "NEXUS file to Partitionfinder archive",
+        None,
+        None,
+    )
 
     def __init__(
         self,
@@ -110,6 +117,7 @@ class Operation(Enum):
             Operation.MAliToTab: FileType.TabFile,
             Operation.MPhylipToTab: FileType.TabFile,
             Operation.TabToPartition: FileType.PartitionFinderOutput,
+            Operation.NexusToPartition: FileType.PartitionFinderOutput,
         }.get(self)
         assert type is not None
         return type
@@ -129,6 +137,9 @@ class Operation(Enum):
             Operation.MAliToTab: make_binary_out(multifile_to_tab.process_ali),
             Operation.MPhylipToTab: make_binary_out(multifile_to_tab.process_phylip),
             Operation.TabToPartition: make_binary_in(tab_to_partition_finder.process),
+            Operation.NexusToPartition: make_binary_in(
+                nexus_to_partition_finder.process
+            ),
         }.get(self)
         assert operation is not None
         return operation
