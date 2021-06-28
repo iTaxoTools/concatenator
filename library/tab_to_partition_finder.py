@@ -7,4 +7,4 @@ import library.partition_finder as partition_finder
 
 def process(input: TextIO, output: BinaryIO) -> None:
     rows = tabfile.read_rows(input)
-    partition_finder.write(rows, output)
+    partition_finder.write_rows(rows, output)

@@ -33,9 +33,13 @@ search = greedy;
 """
 
 
-def write(rows: Iterator[List[str]], output: BinaryIO) -> None:
+def write_rows(rows: Iterator[List[str]], output: BinaryIO) -> None:
     header = next(rows)
     row_table = pd.DataFrame(rows, columns=header)
+    write_table(row_table, output)
+
+
+def write_table(row_table: pd.DataFrame, output: BinaryIO) -> None:
     if len(row_table) < 1:
         raise ValueError("No data in input file")
     description_columns = [
@@ -73,6 +77,7 @@ def write(rows: Iterator[List[str]], output: BinaryIO) -> None:
                 position,
                 "-",
                 position + length - 1,
+                ";",
                 sep="",
                 file=charset_file,
             )
