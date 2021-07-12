@@ -39,9 +39,13 @@ def random_codon(tables: Dict[int, Set[int]], table: int) -> int:
 
 def random_sequence(tables: Dict[int, Set[int]], table: int, length: int) -> str:
     """
-    Returns a random genetic sequence that doesn't contain a stop codon from the table, according to tables
+    Returns a random genetic sequence that doesn't contain a stop codon from the table or contain a stop codon at the end, according to tables
     """
-    return "".join(codons[random_codon(tables, table)] for _ in range(length))
+    seq = "".join(codons[random_codon(tables, table)] for _ in range(length))
+    if random.choice([True, False]):
+        stopcodon = random.choice(tuple(tables[table]))
+        seq = seq[:-3] + codons[stopcodon]
+    return seq
 
 
 def shift_frame(seq: str, frame: int) -> str:
