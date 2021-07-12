@@ -62,13 +62,15 @@ def test_table_detection() -> None:
     assert tables is not None
     tables_list = list(tables.keys())
     print()
-    for _ in range(16):
+    success_num = 0
+    num_tests = 128
+    for _ in range(num_tests):
         table = random.choice(tables_list)
         frame = random.choice([1, -1, 2, -2, 3, -3])
         print(
             f"Generating sequence for translation table {table} with reading frame {frame}..."
         )
-        seq = shift_frame(random_sequence(tables, table, 100), frame)
+        seq = shift_frame(random_sequence(tables, table, 200), frame)
         print(seq)
         print()
         print("Trying to detect the reading frame...")
@@ -77,6 +79,7 @@ def test_table_detection() -> None:
             if len(detected_frames) == 1:
                 detected_frame = detected_frames[0]
                 assert detected_frame == frame
+                success_num += 1
                 print("Detection successful")
             else:
                 print("Non-unique reading frame: ", detected_frames)
@@ -84,3 +87,4 @@ def test_table_detection() -> None:
             print("Cannot detect the reading frame")
         print()
         print()
+    print(f"Success rate {success_num / num_tests * 100}%")
