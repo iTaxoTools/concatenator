@@ -25,5 +25,5 @@ def split_charsets(columns: Iterator[pd.Series]) -> Iterator[pd.Series]:
 
 
 def process(infile: TextIO, outfile: TextIO) -> None:
-    columns = (gene_table.iat[:, -1] for gene_table in tabfile.read(infile))
+    columns = (gene_table.iloc[:, -1] for gene_table in tabfile.read(infile))
     tabfile.write_from_columns(split_charsets(columns), outfile)
