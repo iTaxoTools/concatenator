@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Dict, Set, Optional, List
 import json
 import random
-from library.gencode_detection import detect_reading_frame
+from library.codons import detect_reading_frame
 
 bases = "TCAG"
 
