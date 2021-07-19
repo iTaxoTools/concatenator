@@ -6,6 +6,8 @@ import sys
 import os
 import regex
 import itertools
+from collections import Counter
+import pandas as pd
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 stop_codons_path = os.path.join(resource_path, "data", "stop_codons.json")
@@ -104,3 +106,32 @@ def detect_reading_frame(sequence: str) -> Optional[List[int]]:
     )
     assert stop_codons is not None
     return choose_frame(allowed_translations(stops, stop_codons))
+
+
+def column_reading_frame(column: pd.Series) -> List[int]:
+    """
+    Returns the list of reading frames detected in `column`.
+
+    The result is ordered by decreasing occurences
+    """
+    frame_counter = Counter()
+    for _, seq in column.items():
+        frame_counter.update(detect_reading_frame(seq))
+    return [frame for frame, _ in frame_counter.most_common()]
+
+
+def split_codon_charsets(
+    column: pd.Series, frame: int
+) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    starts = {
+        1: (0, 1, 2),
+        2: (2, 0, 1),
+        3: (1, 2, 0),
+        -1: (-1, -2, -3),
+        -2: (-3, -1, -2),
+        -3: (-2, -3, -1),
+    }[frame]
+    if frame > 0:
+        return tuple([column.str[start::3] for start in starts])
+    else:
+        return tuple([column.str[start::-3] for start in starts])
