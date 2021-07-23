@@ -5,16 +5,16 @@ from enum import Enum
 import os
 import shutil
 
-import library.concat as concat
-import library.tab_to_nexus as tab_to_nexus
-import library.nexus_to_tab as nexus_to_tab
-import library.dnaconvert as dnaconvert
-import library.tab_to_multifile as tab_to_multifile
-import library.multifile_to_tab as multifile_to_tab
-import library.tab_to_partition_finder as tab_to_partition_finder
-import library.nexus_to_partition_finder as nexus_to_partition_finder
-import library.tab_to_codon_tab as tab_to_codon_tab
-from library.file_utils import make_binary, make_binary_in, make_binary_out
+from . import concat
+from . import tab_to_nexus
+from . import nexus_to_tab
+from . import dnaconvert
+from . import tab_to_multifile
+from . import multifile_to_tab
+from . import tab_to_partition_finder
+from . import nexus_to_partition_finder
+from . import tab_to_codon_tab
+from .file_utils import make_binary, make_binary_in, make_binary_out
 
 
 class FileType(Enum):

@@ -9,8 +9,9 @@ import itertools
 from collections import Counter
 import pandas as pd
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-stop_codons_path = os.path.join(resource_path, "data", "stop_codons.json")
+from .resources import get_resource
+
+stop_codons_path = get_resource("stop_codons.json")
 try:
     stop_codons: Optional[Dict[str, Set[int]]] = {
         codon: set(tables)
@@ -18,10 +19,11 @@ try:
     }
 except json.JSONDecodeError:
     stop_codons = None
+else:
+    assert stop_codons is not None
+    stop_codons_set = set(stop_codons.keys()) if stop_codons else None
 
-stop_codons_set = set(stop_codons.keys()) if stop_codons else None
-
-table_set = set(table for tables in stop_codons.values() for table in tables)
+    table_set = set(table for tables in stop_codons.values() for table in tables)
 
 
 def detect_stop_codons(

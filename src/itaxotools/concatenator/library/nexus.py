@@ -7,7 +7,7 @@ import re
 
 import pandas as pd
 
-from library.utils import *
+from .utils import *
 
 
 def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
@@ -21,7 +21,7 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
         output_fragment["seqid"] = into_seqids(gene.iloc[:, :-1].copy())
         output_fragment["sequence"] = gene.iloc[:, -1]
 
-        gene_name = gene.columns[-1][len("sequence_") :]
+        gene_name = gene.columns[-1][len("sequence_"):]
         gene_len = len(gene.iat[0, -1])
         charsets[gene_name] = gene_len
 

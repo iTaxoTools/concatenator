@@ -5,9 +5,9 @@ import logging
 
 import pandas as pd
 
-import library.phylip as phylip
-from library.utils import *
-from library.file_utils import ZipOutput
+from . import phylip
+from .utils import *
+from .file_utils import ZipOutput
 
 CHARSET_START = """
 ## ALIGNMENT FILE ##

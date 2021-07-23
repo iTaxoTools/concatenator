@@ -2,8 +2,9 @@
 
 from typing import TextIO
 
-import library.tabfile as tabfile
-import library.nexus as nexus
+from . import tabfile
+from . import nexus
+
 
 def process(input: TextIO, output: TextIO) -> None:
     nexus.write(tabfile.read(input), output)

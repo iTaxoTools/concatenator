@@ -5,7 +5,7 @@ import os
 
 import pandas as pd
 
-from library.file_utils import ZipOutput, ZipInput
+from .file_utils import ZipOutput, ZipInput
 
 
 class ColumnWriter:

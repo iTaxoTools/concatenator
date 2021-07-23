@@ -10,7 +10,7 @@ import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
-from library.operations import Operation, Parameter, FileType, run_pipeline
+from .operations import Operation, Parameter, FileType, run_pipeline
 
 
 class Operator(ttk.Frame):

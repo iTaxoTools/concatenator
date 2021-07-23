@@ -2,11 +2,11 @@
 
 from typing import TextIO, BinaryIO
 
-import library.tabfile as tabfile
-import library.multifile as multifile
-import library.fasta as fasta
-import library.phylip as phylip
-import library.ali as ali
+from . import tabfile
+from . import multifile
+from . import fasta
+from . import phylip
+from . import ali
 
 
 def process_fasta(infile: BinaryIO, outfile: TextIO) -> None:

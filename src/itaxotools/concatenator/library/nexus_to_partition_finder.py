@@ -2,8 +2,8 @@
 
 from typing import TextIO, BinaryIO
 
-import library.nexus as nexus
-import library.partition_finder as partition_finder
+from . import nexus
+from . import partition_finder
 
 
 def process(input: TextIO, output: BinaryIO) -> None:

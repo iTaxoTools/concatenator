@@ -4,8 +4,8 @@ from typing import TextIO, Iterator, List
 
 import pandas as pd
 
-from library.utils import *
-from library.multifile import ColumnWriter
+from .utils import *
+from .multifile import ColumnWriter
 
 
 def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:

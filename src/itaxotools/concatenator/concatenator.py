@@ -2,7 +2,7 @@
 
 import tkinter as tk
 
-from library.concat_gui import ConcatGUI
+from .library.concat_gui import ConcatGUI
 
 
 def gui_main() -> None:
@@ -24,5 +24,9 @@ def gui_main() -> None:
     root.quit()
 
 
-if __name__ == "__main__":
+def main() -> None:
     gui_main()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-from library.multifile import ColumnWriter
 import logging
 from typing import TextIO, Dict
 
 import pandas as pd
 
-from library.utils import *
+from .multifile import ColumnWriter
+from .utils import *
 
 
 def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:

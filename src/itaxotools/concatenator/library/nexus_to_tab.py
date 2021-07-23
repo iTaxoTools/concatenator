@@ -2,7 +2,8 @@
 
 from typing import TextIO
 
-import library.nexus as nexus
+from . import nexus
+
 
 def process(input: TextIO, output: TextIO) -> None:
     table = nexus.read(input)

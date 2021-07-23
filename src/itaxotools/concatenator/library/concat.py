@@ -2,7 +2,7 @@
 
 from typing import TextIO
 
-import library.tabfile as tabfile
+from . import tabfile
 
 
 def process(input: TextIO, output: TextIO) -> None:

@@ -5,8 +5,8 @@ import logging
 
 import pandas as pd
 
-import library.tabfile as tabfile
-import library.codons as codons
+from . import tabfile
+from . import codons
 
 
 def split_charsets(columns: Iterator[pd.Series]) -> Iterator[pd.Series]:
