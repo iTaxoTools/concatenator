@@ -13,6 +13,7 @@ import library.tab_to_multifile as tab_to_multifile
 import library.multifile_to_tab as multifile_to_tab
 import library.tab_to_partition_finder as tab_to_partition_finder
 import library.nexus_to_partition_finder as nexus_to_partition_finder
+import library.tab_to_codon_tab as tab_to_codon_tab
 from library.file_utils import make_binary, make_binary_in, make_binary_out
 
 
@@ -31,6 +32,7 @@ class FileType(Enum):
     MultiPhylipInput = ("Multifile Phylip input archive", ".zip", True)
     MultiAliInput = ("Multifile Ali input archive", ".zip", True)
     PartitionFinderOutput = ("Partitionfinder archive", ".zip", True)
+    CodonTab = ("Codon positions tab file", ".tab", False)
 
     def __init__(self, description: str, extension: str, timestamp: bool):
         self.description = description
@@ -83,6 +85,7 @@ class Operation(Enum):
         None,
         None,
     )
+    TabToCodons = (FileType.TabFile, "Split codon positions in tabfile", None, None)
 
     def __init__(
         self,
@@ -118,6 +121,7 @@ class Operation(Enum):
             Operation.MPhylipToTab: FileType.TabFile,
             Operation.TabToPartition: FileType.PartitionFinderOutput,
             Operation.NexusToPartition: FileType.PartitionFinderOutput,
+            Operation.TabToCodons: FileType.CodonTab,
         }.get(self)
         assert type is not None
         return type
@@ -140,6 +144,7 @@ class Operation(Enum):
             Operation.NexusToPartition: make_binary_in(
                 nexus_to_partition_finder.process
             ),
+            Operation.TabToCodons: make_binary(tab_to_codon_tab.process),
         }.get(self)
         assert operation is not None
         return operation
