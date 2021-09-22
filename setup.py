@@ -46,7 +46,6 @@ setup(
     package_dir={'': 'src'},
 
     packages=find_namespace_packages(
-        # exclude=('itaxotools.common*',),
         include=('itaxotools*',),
         where='src',
     ),
@@ -54,6 +53,9 @@ setup(
     python_requires='>=3.9, <4',
 
     install_requires=[
+        'pandas>=1.3.0',
+        'regex>=2021.8.28',
+        'DNAconvert>=0.1.0',
     ],
 
     extras_require={
