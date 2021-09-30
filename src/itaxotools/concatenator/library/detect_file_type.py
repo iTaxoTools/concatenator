@@ -4,6 +4,8 @@ from typing import Callable, Dict
 from enum import Enum, auto
 from pathlib import Path
 from re import fullmatch
+from zipfile import ZipFile, is_zipfile
+from zipp import Path as ZipPath # BUGFIX: backport from Python 3.9.1
 
 from .file_types import FileType
 
@@ -28,39 +30,74 @@ def test(test: TestType, type: FileType) -> CallableTest:
 
 
 @test(TestType.File, FileType.NexusFile)
-def isNexus(path: Path) -> bool:
-    with open(path) as file:
+def isNexusFile(path: Path) -> bool:
+    with path.open() as file:
         return bool(file.read(6) == '#NEXUS')
 
 
 @test(TestType.File, FileType.FastaFile)
-def isFasta(path: Path) -> bool:
-    with open(path) as file:
+def isFastaFile(path: Path) -> bool:
+    with path.open() as file:
         return bool(file.read(1) == '>')
 
 
 @test(TestType.File, FileType.PhylipFile)
-def isPhylip(path: Path) -> bool:
-    with open(path) as file:
+def isPhylipFile(path: Path) -> bool:
+    with path.open() as file:
         line = file.readline()
         return bool(fullmatch(r'\W*\d+\W+\d+\W*', line))
 
 
 @test(TestType.File, FileType.TabFile)
 def isTabFile(path: Path) -> bool:
-    with open(path) as file:
+    with path.open() as file:
         line = file.readline()
         return bool(fullmatch(r'.+\t.+\W*', line))
 
 
+# Can only be part of an archive
+def isAliFile(path: Path) -> bool:
+    with path.open() as file:
+        for line in file:
+            if line[0] in ['#', '\n']:
+                continue
+            return bool(line[0] == '>')
+
+
+def _archiveTest(path: Path, test: CallableTest) -> bool:
+    archive = ZipFile(path, 'r')
+    for name in archive.namelist():
+        path = ZipPath(archive, name)
+        if not path.is_file:
+            return False
+        if not test(path):
+            return False
+    return True
+
+
+@test(TestType.Archive, FileType.MultiFastaInput)
+def isFastaArchive(path: Path) -> bool:
+    return _archiveTest(path, isFastaFile)
+
+
+@test(TestType.Archive, FileType.MultiPhylipInput)
+def isPhylipArchive(path: Path) -> bool:
+    return _archiveTest(path, isPhylipFile)
+
+
+@test(TestType.Archive, FileType.MultiAliInput)
+def isPhylipArchive(path: Path) -> bool:
+    return _archiveTest(path, isAliFile)
+
+
 class UnknownFileType(Exception):
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.path = path
         super().__init__(f'Unknown file type for {str(path)}')
 
 
 class FileNotFound(Exception):
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.path = path
         super().__init__(f'File not found: {str(path)}')
 
@@ -73,7 +110,10 @@ def autodetect(path: Path) -> FileType:
     if path.is_dir():
         tests = TestType.Directory.tests
     elif path.is_file():
-        tests = TestType.File.tests
+        if is_zipfile(path):
+            tests = TestType.Archive.tests
+        else:
+            tests = TestType.File.tests
     for type, test in tests.items():
         if test(path):
             return type
