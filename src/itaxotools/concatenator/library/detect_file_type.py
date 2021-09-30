@@ -5,7 +5,7 @@ from enum import Enum, auto
 from pathlib import Path
 from re import fullmatch
 from zipfile import ZipFile, is_zipfile
-from zipp import Path as ZipPath # BUGFIX: backport from Python 3.9.1
+from zipp import Path as ZipPath  # BUGFIX: backport from Python 3.9.1
 
 from .file_types import FileType
 
@@ -86,7 +86,7 @@ def isPhylipArchive(path: Path) -> bool:
 
 
 @test(TestType.Archive, FileType.MultiAliInput)
-def isPhylipArchive(path: Path) -> bool:
+def isAliArchive(path: Path) -> bool:
     return _archiveTest(path, isAliFile)
 
 
