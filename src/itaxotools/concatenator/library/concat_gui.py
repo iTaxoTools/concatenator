@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 from datetime import datetime
@@ -10,7 +10,8 @@ import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
-from .operations import Operation, Parameter, FileType, run_pipeline
+from .operations import Operation, Parameter, run_pipeline
+from .file_types import FileType
 
 
 class Operator(ttk.Frame):
