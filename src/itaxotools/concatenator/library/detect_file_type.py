@@ -52,7 +52,7 @@ def isPhylipFile(path: Path) -> bool:
 def isTabFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
-        return bool(fullmatch(r'(\w+\t)+\w+\s*', line))
+        return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
 
 
 # Can only be part of an archive
