@@ -54,6 +54,7 @@ setup(
 
     install_requires=[
         'pandas>=1.3.0',
+        'zipp>=3.6.0',
         'regex>=2021.8.28',
         'DNAconvert>=0.1.0',
     ],

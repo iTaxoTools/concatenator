@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
+from pathlib import Path
 from datetime import datetime
 from typing import Callable, Tuple, List
 import logging
@@ -10,7 +11,9 @@ import tkinter.ttk as ttk
 import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
-from .operations import Operation, Parameter, FileType, run_pipeline
+from .operations import Operation, Parameter, run_pipeline
+from .detect_file_type import autodetect
+from .file_types import FileType
 
 
 class Operator(ttk.Frame):
@@ -210,6 +213,11 @@ class ConcatGUI(ttk.Frame):
     def browse_input(self) -> None:
         newpath = tkfiledialog.askopenfilename()
         if newpath:
+            try:
+                autodetect(Path(newpath))
+            except Exception as e:
+                tkmessagebox.showerror("Error", str(e))
+                raise
             self.input_file.set(os.path.abspath(newpath))
 
     def browse_output(self) -> None:
