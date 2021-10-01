@@ -45,14 +45,14 @@ def isFastaFile(path: Path) -> bool:
 def isPhylipFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
-        return bool(fullmatch(r'\W*\d+\W+\d+\W*', line))
+        return bool(fullmatch(r'\s*\d+\s+\d+\s*', line))
 
 
 @test(TestType.File, FileType.TabFile)
 def isTabFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
-        return bool(fullmatch(r'.+\t.+\W*', line))
+        return bool(fullmatch(r'(\w+\t)+\w+\s*', line))
 
 
 # Can only be part of an archive
