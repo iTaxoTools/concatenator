@@ -68,7 +68,7 @@ def _archiveTest(path: Path, test: CallableTest) -> bool:
     archive = ZipFile(path, 'r')
     for name in archive.namelist():
         path = ZipPath(archive, name)
-        if not path.is_file:
+        if not path.is_file():
             return False
         if not test(path):
             return False
