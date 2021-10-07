@@ -10,7 +10,7 @@ import pandas as pd
 from .file_types import FileType
 from .detect_file_type import autodetect
 
-from .file_reader import (
+from .file_readers import (
     type_readers, dataframe_from_path,
     readAliSeries, readFastaSeries, readPhylipSeries
     )

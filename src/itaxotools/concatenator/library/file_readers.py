@@ -66,27 +66,19 @@ def readPhylipSeries(path: Path) -> pd.Series:
     return _readSeries(path, phylip_reader)
 
 
-def _readData(
-    path: Path,
-    func: Callable[[TextIO], pd.Series]
-) -> pd.DataFrame:
-    series = _readSeries(path, func)
-    return pd.DataFrame(series)
-
-
-# @reader(FileType.AliFile)
-# def readAliFile(path: Path) -> pd.DataFrame:
-#     return _readData(path, ali_reader)
+@type_reader(FileType.AliFile)
+def readAliFile(path: Path) -> pd.DataFrame:
+    return pd.DataFrame(readAliSeries(path))
 
 
 @type_reader(FileType.FastaFile)
 def readFastaFile(path: Path) -> pd.DataFrame:
-    return _readData(path, fasta_reader)
+    return pd.DataFrame(readFastaSeries(path))
 
 
 @type_reader(FileType.PhylipFile)
 def readPhylipFile(path: Path) -> pd.DataFrame:
-    return _readData(path, phylip_reader)
+    return pd.DataFrame(readPhylipSeries(path))
 
 
 class ReaderNotFound(Exception):

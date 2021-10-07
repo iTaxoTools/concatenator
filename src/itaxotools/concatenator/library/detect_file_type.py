@@ -55,7 +55,7 @@ def isTabFile(path: Path) -> bool:
         return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
 
 
-# Can only be part of an archive
+@test(TestType.File, FileType.AliFile)
 def isAliFile(path: Path) -> bool:
     with path.open() as file:
         for line in file:

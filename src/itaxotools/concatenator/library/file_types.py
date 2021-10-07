@@ -7,6 +7,7 @@ class FileType(Enum):
     """Types of files that can be processed by operations"""
 
     TabFile = ("Tab file", ".tab", False)
+    AliFile = ("Ali file", ".ali", False)
     NexusFile = ("NEXUS file", ".nex", False)
     FastaFile = ("Fasta file", ".fas", False)
     PhylipFile = ("Phylip file", ".phy", False)
