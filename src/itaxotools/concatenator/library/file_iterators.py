@@ -21,7 +21,8 @@ CallableIterator = Callable[[Path], Iterator[pd.Series]]
 type_iterators: Dict[FileType, CallableIterator] = dict()
 
 
-def type_iterator(type: FileType) -> CallableIterator:
+CallableIteratorDecorator = Callable[[CallableIterator], CallableIterator]
+def type_iterator(type: FileType) -> CallableIteratorDecorator:
     def decorator(func: CallableIterator) -> CallableIterator:
         type_iterators[type] = func
         return func

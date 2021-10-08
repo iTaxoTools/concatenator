@@ -17,7 +17,8 @@ CallableReader = Callable[[Path], pd.DataFrame]
 type_readers: Dict[FileType, CallableReader] = dict()
 
 
-def type_reader(type: FileType) -> CallableReader:
+CallableReaderDecorator = Callable[[CallableReader], CallableReader]
+type_reader(type: FileType) -> CallableReaderDecorator:
     def decorator(func: CallableReader) -> CallableReader:
         type_readers[type] = func
         return func
