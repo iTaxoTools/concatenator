@@ -11,6 +11,7 @@ from .file_types import FileType
 
 
 CallableTest = Callable[[Path], bool]
+CallableTestDecorator = Callable[[CallableTest], CallableTest]
 
 
 class TestType(Enum):
@@ -22,7 +23,7 @@ class TestType(Enum):
         self.tests: Dict[FileType, CallableTest] = dict()
 
 
-def test(test: TestType, type: FileType) -> CallableTest:
+def test(test: TestType, type: FileType) -> CallableTestDecorator:
     def decorator(func: CallableTest) -> CallableTest:
         test.tests[type] = func
         return func
