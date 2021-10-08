@@ -1,96 +1,78 @@
 
-from typing import Callable, Dict, TextIO
+from typing import Callable, Dict
 from pathlib import Path
 
 import pandas as pd
 
-from .file_types import FileFormat
+from .utils import removeprefix
+from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
-from .nexus import read as nexus_read
-from .ali import column_reader as ali_reader
-from .fasta import column_reader as fasta_reader
-from .phylip import column_reader as phylip_reader
+
+from .file_iterators import (
+    file_iterators, iterator_from_path,
+    readAliSeries, readFastaSeries, readPhylipSeries,
+    readNexusFile as _readNexusFile,
+    )
 
 
 CallableReader = Callable[[Path], pd.DataFrame]
+CallableReaderDecorator = Callable[[CallableReader], CallableReader]
 
-type_readers: Dict[FileFormat, CallableReader] = dict()
+file_readers: Dict[FileType, Dict[FileFormat, CallableReader]] = {
+    type: dict() for type in FileType}
 
 
-def type_reader(type: FileFormat) -> CallableReader:
+def file_reader(
+    type: FileType, format: FileFormat
+) -> CallableReaderDecorator:
     def decorator(func: CallableReader) -> CallableReader:
-        type_readers[type] = func
+        file_readers[type][format] = func
         return func
     return decorator
 
 
-@type_reader(FileFormat.TabFile)
+@file_reader(FileType.File, FileFormat.Tab)
 def readTabFile(path: Path) -> pd.DataFrame:
     data = pd.read_csv(path, sep='\t', dtype=str, keep_default_na=False)
     data.drop(columns=['specimen-voucher', 'locality'], inplace=True)
-    data.set_index(data.loc[:, 'species'])
-    data.drop(columns=['species'], inplace=True)
-    data.columns = [c.removeprefix('sequence_') for c in data.columns]
-    return data
-
-
-@type_reader(FileFormat.NexusFile)
-def readNexusFile(path: Path) -> pd.DataFrame:
-    with path.open() as file:
-        data = nexus_read(file)
-    data.set_index('seqid', inplace=True)
+    data.set_index('species', inplace=True)
     data.index.name = None
+    data.columns = [removeprefix(col, 'sequence_') for col in data.columns]
     return data
 
 
-def _readSeries(
-    path: Path,
-    func: Callable[[TextIO], pd.Series]
-) -> pd.Series:
-    with path.open() as file:
-        series = func(file)
-    series.name = path.stem
-    return series
+@file_reader(FileType.File, FileFormat.Nexus)
+def readNexusFile(path: Path) -> pd.DataFrame:
+    return _readNexusFile(path)
 
 
-def readAliSeries(path: Path) -> pd.Series:
-    series = _readSeries(path, ali_reader)
-    return series.str.replace('_', '-', regex=False)
-
-
-def readFastaSeries(path: Path) -> pd.Series:
-    return _readSeries(path, fasta_reader)
-
-
-def readPhylipSeries(path: Path) -> pd.Series:
-    return _readSeries(path, phylip_reader)
-
-
-@type_reader(FileFormat.AliFile)
+@file_reader(FileType.File, FileFormat.Ali)
 def readAliFile(path: Path) -> pd.DataFrame:
     return pd.DataFrame(readAliSeries(path))
 
 
-@type_reader(FileFormat.FastaFile)
+@file_reader(FileType.File, FileFormat.Fasta)
 def readFastaFile(path: Path) -> pd.DataFrame:
     return pd.DataFrame(readFastaSeries(path))
 
 
-@type_reader(FileFormat.PhylipFile)
+@file_reader(FileType.File, FileFormat.Phylip)
 def readPhylipFile(path: Path) -> pd.DataFrame:
     return pd.DataFrame(readPhylipSeries(path))
 
 
 class ReaderNotFound(Exception):
-    def __init__(self, type: FileFormat):
+    def __init__(self, type: FileType, format: FileFormat):
         self.type = type
-        super().__init__(f'No reader for FileFormat: {str(type)}')
+        self.format = format
+        super().__init__(f'No reader for {str(type)} and {str(format)}')
 
 
 def dataframe_from_path(path: Path) -> pd.DataFrame:
     """Species as index, sequences as columns"""
-    type = autodetect(path)
-    if type not in type_readers:
-        raise ReaderNotFound(type)
-    data = type_readers[type](path)
-    return data
+    type, format = autodetect(path)
+    if format in file_readers[type]:
+        return file_readers[type][format](path)
+    elif format in file_iterators[type]:
+        return pd.concat(iterator_from_path(path), axis=1)
+    raise ReaderNotFound(type)

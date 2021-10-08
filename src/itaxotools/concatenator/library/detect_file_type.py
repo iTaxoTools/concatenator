@@ -1,113 +1,109 @@
 #!/usr/bin/env python3
 
-from typing import Callable, Dict
-from enum import Enum, auto
+from typing import Callable, Dict, Tuple, Iterator
 from pathlib import Path
 from re import fullmatch
-from zipfile import ZipFile, is_zipfile
-from zipp import Path as ZipPath  # BUGFIX: backport from Python 3.9.1
+from zipfile import is_zipfile
 
-from .file_types import FileFormat
+from .file_types import FileFormat, FileType
+from .file_utils import iterateZipArchive
 
 
 CallableTest = Callable[[Path], bool]
 
-
-class TestType(Enum):
-    File = auto()
-    Directory = auto()
-    Archive = auto()
-
-    def __init__(self, value: int):
-        self.tests: Dict[FileFormat, CallableTest] = dict()
+tests: Dict[FileType, Dict[FileFormat, CallableTest]] = {
+    type: dict() for type in FileType}
 
 
-def test(test: TestType, type: FileFormat) -> CallableTest:
+def test(type: FileType, format: FileFormat) -> CallableTest:
     def decorator(func: CallableTest) -> CallableTest:
-        test.tests[type] = func
+        tests[type][format] = func
         return func
     return decorator
 
 
-@test(TestType.File, FileFormat.NexusFile)
+@test(FileType.File, FileFormat.Nexus)
 def isNexusFile(path: Path) -> bool:
     with path.open() as file:
         return bool(file.read(6) == '#NEXUS')
 
 
-@test(TestType.File, FileFormat.FastaFile)
+@test(FileType.File, FileFormat.Fasta)
 def isFastaFile(path: Path) -> bool:
     with path.open() as file:
         return bool(file.read(1) == '>')
 
 
-@test(TestType.File, FileFormat.PhylipFile)
+@test(FileType.File, FileFormat.Phylip)
 def isPhylipFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
         return bool(fullmatch(r'\s*\d+\s+\d+\s*', line))
 
 
-@test(TestType.File, FileFormat.TabFile)
+@test(FileType.File, FileFormat.Tab)
 def isTabFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
         return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
 
 
-@test(TestType.File, FileFormat.AliFile)
+@test(FileType.File, FileFormat.Ali)
 def isAliFile(path: Path) -> bool:
+    # Also catches Fasta format, check this last
     with path.open() as file:
         for line in file:
             if line[0] in ['#', '\n']:
                 continue
             return bool(line[0] == '>')
+    return False
 
 
-def _archiveTest(path: Path, test: CallableTest) -> bool:
-    archive = ZipFile(path, 'r')
-    for name in archive.namelist():
-        path = ZipPath(archive, name)
-        if not path.is_file():
+def _containerTest(
+    parts: Iterator[Path],
+    test: CallableTest,
+) -> bool:
+    for part in parts:
+        if not part.is_file():
             return False
-        if not test(path):
+        if not test(part):
             return False
     return True
 
 
-@test(TestType.Archive, FileFormat.MultiFastaInput)
-def isFastaArchive(path: Path) -> bool:
-    return _archiveTest(path, isFastaFile)
+def _register_multifile_test(
+    format: FileFormat,
+    tester: CallableTest
+) -> None:
+
+    @test(FileType.ZipArchive, format)
+    def _testMultifileZip(path: Path) -> bool:
+        return _containerTest(iterateZipArchive(path), tester)
 
 
-@test(TestType.Archive, FileFormat.MultiPhylipInput)
-def isPhylipArchive(path: Path) -> bool:
-    return _archiveTest(path, isPhylipFile)
+for format, tester in {
+    FileFormat.Fasta: isFastaFile,
+    FileFormat.Phylip: isPhylipFile,
+    FileFormat.Ali: isAliFile,
+}.items():
+    _register_multifile_test(format, tester)
 
 
-@test(TestType.Archive, FileFormat.MultiAliInput)
-def isAliArchive(path: Path) -> bool:
-    return _archiveTest(path, isAliFile)
+isAliZip = tests[FileType.ZipArchive][FileFormat.Ali]
+isFastaZip = tests[FileType.ZipArchive][FileFormat.Fasta]
+isPhylipZip = tests[FileType.ZipArchive][FileFormat.Phylip]
 
 
-# def _directoryTest(directory: Path, test: CallableTest) -> bool:
-#     for path in directory.glob('*'):
-#         if not path.is_file():
-#             return False
-#         if not test(path):
-#             return False
-#     return True
-#
-#
-# @test(TestType.Directory, FileFormat.MultiFasta)
-# def isFastaDirectory(path: Path) -> bool:
-#     return _directoryTest(path, isFastaFile)
+class UnknownFileType(Exception):
+    def __init__(self, path: Path):
+        self.path = path
+        super().__init__(f'Unknown FileType for {str(path)}')
 
 
 class UnknownFileFormat(Exception):
     def __init__(self, path: Path):
         self.path = path
-        super().__init__(f'Unknown file type for {str(path)}')
+        super().__init__(f'Unknown FileFormat for {str(path)}')
 
 
 class FileNotFound(Exception):
@@ -116,19 +112,28 @@ class FileNotFound(Exception):
         super().__init__(f'File not found: {str(path)}')
 
 
-def autodetect(path: Path) -> FileFormat:
+def autodetect_type(path: Path) -> FileType:
+    if path.is_dir():
+        return FileType.Directory
+    elif path.is_file():
+        if is_zipfile(path):
+            return FileType.ZipArchive
+        else:
+            return FileType.File
+    raise UnknownFileType(path)
+
+
+def autodetect_format(path: Path, type: FileType) -> FileFormat:
+    for format in tests[type]:
+        if tests[type][format](path):
+            return format
+    raise UnknownFileFormat(path)
+
+
+def autodetect(path: Path) -> Tuple[FileType, FileFormat]:
     """Attempt to automatically determine sequence file type"""
     if not path.exists():
         raise FileNotFound(path)
-    tests = {}
-    if path.is_dir():
-        tests = TestType.Directory.tests
-    elif path.is_file():
-        if is_zipfile(path):
-            tests = TestType.Archive.tests
-        else:
-            tests = TestType.File.tests
-    for type, test in tests.items():
-        if test(path):
-            return type
-    raise UnknownFileFormat(path)
+    type = autodetect_type(path)
+    format = autodetect_format(path, type)
+    return (type, format)

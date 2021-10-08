@@ -6,6 +6,12 @@ from enum import Enum, auto
 class FileFormat(Enum):
     """Supported file formats supported by oprations"""
 
+    Tab = ("Tab", ".tab", False)
+    Nexus = ("NEXUS", ".nex", False)
+    Ali = ("Ali", ".ali", False)
+    Fasta = ("Fasta", ".fas", False)
+    Phylip = ("Phylip", ".phy", False)
+
     TabFile = ("Tab file", ".tab", False)
     AliFile = ("Ali file", ".ali", False)
     NexusFile = ("NEXUS file", ".nex", False)
@@ -14,7 +20,6 @@ class FileFormat(Enum):
     ConcatTabFile = ("Concatenated Tab file", ".tab", False)
     ConcatFasta = ("Concatenated FASTA file", ".fas", False)
     ConcatPhylip = ("Concatenated Phylip file", ".phy", False)
-    MultiFastaDirectory = ("Multifile FASTA directory", "", True)
     MultiFastaArchive = ("Multifile FASTA archive", ".zip", True)
     MultiFastaOutput = ("Multifile FASTA output archive", ".zip", True)
     MultiPhylipOutput = ("Multifile Phylip output archive", ".zip", True)
@@ -34,6 +39,6 @@ class FileFormat(Enum):
 class FileType(Enum):
     """File type, describing how a file format is stored"""
 
-    SingleFile = auto()
-    MultiFileZip = auto()
-    MultiFileDir = auto()
+    File = auto()
+    Directory = auto()
+    ZipArchive = auto()

@@ -2,7 +2,21 @@
 
 import io
 import zipfile
+from pathlib import Path
+from zipfile import ZipFile
+from zipp import Path as ZipPath
 from typing import TextIO, Callable, BinaryIO, Iterator, Tuple
+
+
+def iterateZipArchive(archive: Path) -> Iterator[ZipPath]:
+    archive = ZipFile(archive)
+    for part in archive.namelist():
+        yield ZipPath(archive, part)
+
+
+def iterateDirectory(directory: Path) -> Iterator[Path]:
+    for path in directory.glob('*'):
+        yield path
 
 
 def make_binary(
