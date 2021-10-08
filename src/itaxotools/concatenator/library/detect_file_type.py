@@ -10,12 +10,13 @@ from .file_utils import iterateZipArchive
 
 
 CallableTest = Callable[[Path], bool]
+CallableTestDecorator = Callable[[CallableTest], CallableTest]
 
 tests: Dict[FileType, Dict[FileFormat, CallableTest]] = {
     type: dict() for type in FileType}
 
 
-def test(type: FileType, format: FileFormat) -> CallableTest:
+def test(type: FileType, format: FileFormat) -> CallableTestDecorator:
     def decorator(func: CallableTest) -> CallableTest:
         tests[type][format] = func
         return func
