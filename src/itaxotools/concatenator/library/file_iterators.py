@@ -6,7 +6,7 @@ import pandas as pd
 
 from .utils import removeprefix
 from .file_types import FileFormat, FileType
-from .file_utils import iterateZipArchive
+from .file_utils import iterateZipArchive, iterateDirectory
 from .detect_file_type import autodetect
 
 from .nexus import read as nexus_read
@@ -77,6 +77,11 @@ def _register_multifile_iterator(
     @file_iterator(FileType.File, format)
     def _iterateSingleFile(path: Path) -> Iterator[pd.Series]:
         yield reader(path)
+
+    @file_iterator(FileType.Directory, format)
+    def _iterateMultifileDir(path: Path) -> Iterator[pd.Series]:
+        for part in iterateDirectory(path):
+            yield reader(part)
 
     @file_iterator(FileType.ZipArchive, format)
     def _iterateMultifileZip(path: Path) -> Iterator[pd.Series]:

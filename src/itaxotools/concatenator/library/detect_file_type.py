@@ -6,7 +6,7 @@ from re import fullmatch
 from zipfile import is_zipfile
 
 from .file_types import FileFormat, FileType
-from .file_utils import iterateZipArchive
+from .file_utils import iterateZipArchive, iterateDirectory
 
 
 CallableTest = Callable[[Path], bool]
@@ -76,6 +76,10 @@ def _register_multifile_test(
     format: FileFormat,
     tester: CallableTest
 ) -> None:
+
+    @test(FileType.Directory, format)
+    def _testMultifileDir(path: Path) -> bool:
+        return _containerTest(iterateDirectory(path), tester)
 
     @test(FileType.ZipArchive, format)
     def _testMultifileZip(path: Path) -> bool:

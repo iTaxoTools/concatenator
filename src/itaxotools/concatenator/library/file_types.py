@@ -4,13 +4,15 @@ from enum import Enum, auto
 
 
 class FileFormat(Enum):
-    """Supported file formats supported by oprations"""
+    """Supported file formats supported by operations"""
 
     Tab = ("Tab", ".tab", False)
     Nexus = ("NEXUS", ".nex", False)
     Ali = ("Ali", ".ali", False)
     Fasta = ("Fasta", ".fas", False)
     Phylip = ("Phylip", ".phy", False)
+
+    # Pending cleanup
 
     TabFile = ("Tab file", ".tab", False)
     AliFile = ("Ali file", ".ali", False)
