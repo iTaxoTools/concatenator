@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from enum import Enum, auto
-
+from enum import Enum
+from typing import Optional
 
 class FileFormat(Enum):
     """Supported file formats supported by operations"""
@@ -41,6 +41,10 @@ class FileFormat(Enum):
 class FileType(Enum):
     """File type, describing how a file format is stored"""
 
-    File = auto()
-    Directory = auto()
-    ZipArchive = auto()
+    File = ('Single File', None)
+    Directory = ('Directory', '')
+    ZipArchive = ('Zip Archive', '.zip')
+
+    def __init__(self, description: str, extension: Optional[str]):
+        self.description = description
+        self.extension = extension
