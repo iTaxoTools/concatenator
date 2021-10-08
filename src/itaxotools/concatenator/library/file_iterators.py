@@ -17,11 +17,11 @@ from .file_readers import (
 
 
 CallableIterator = Callable[[Path], Iterator[pd.Series]]
+CallableIteratorDecorator = Callable[[CallableIterator], CallableIterator]
 
 type_iterators: Dict[FileType, CallableIterator] = dict()
 
 
-CallableIteratorDecorator = Callable[[CallableIterator], CallableIterator]
 def type_iterator(type: FileType) -> CallableIteratorDecorator:
     def decorator(func: CallableIterator) -> CallableIterator:
         type_iterators[type] = func

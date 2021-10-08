@@ -13,12 +13,12 @@ from .phylip import column_reader as phylip_reader
 
 
 CallableReader = Callable[[Path], pd.DataFrame]
+CallableReaderDecorator = Callable[[CallableReader], CallableReader]
 
 type_readers: Dict[FileType, CallableReader] = dict()
 
 
-CallableReaderDecorator = Callable[[CallableReader], CallableReader]
-type_reader(type: FileType) -> CallableReaderDecorator:
+def type_reader(type: FileType) -> CallableReaderDecorator:
     def decorator(func: CallableReader) -> CallableReader:
         type_readers[type] = func
         return func
