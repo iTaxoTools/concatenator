@@ -38,8 +38,8 @@ def readTabFile(path: Path) -> pd.DataFrame:
 def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file)
-    data.set_index(data.loc[:, 'seqid'])
-    data.drop(columns=['seqid'], inplace=True)
+    data.set_index('seqid', inplace=True)
+    data.index.name = None
     return data
 
 
