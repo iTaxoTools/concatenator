@@ -62,6 +62,7 @@ def isAliFile(path: Path) -> bool:
             if line[0] in ['#', '\n']:
                 continue
             return bool(line[0] == '>')
+    return False
 
 
 def _archiveTest(path: Path, test: CallableTest) -> bool:
