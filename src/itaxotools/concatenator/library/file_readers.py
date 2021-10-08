@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .utils import removeprefix
 from .file_types import FileType
 from .detect_file_type import autodetect
 from .nexus import read as nexus_read
@@ -31,7 +32,7 @@ def readTabFile(path: Path) -> pd.DataFrame:
     data.drop(columns=['specimen-voucher', 'locality'], inplace=True)
     data.set_index(data.loc[:, 'species'])
     data.drop(columns=['species'], inplace=True)
-    data.columns = [c.removeprefix('sequence_') for c in data.columns]
+    data.columns = [removeprefix(c, 'sequence_') for c in data.columns]
     return data
 
 

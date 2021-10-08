@@ -5,6 +5,13 @@ from typing import Optional
 import pandas as pd
 
 
+# For Python 3.8 compatibility
+def removeprefix(text: str, prefix: str) -> str:
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+
 def into_seqids(table: pd.DataFrame) -> pd.Series:
     """
     Concatenates a collection of string columns into a column of seqids.
@@ -23,7 +30,8 @@ def into_seqids(table: pd.DataFrame) -> pd.Series:
 
 def max_length_if_not_same(column: pd.Series) -> Optional[int]:
     """
-    Returns length of the longest string in the ``column``, if the strings have different length
+    Returns length of the longest string in the ``column``,
+    if the strings have different length
     """
     max_length = column.str.len().max()
     min_length = column.str.len().min()

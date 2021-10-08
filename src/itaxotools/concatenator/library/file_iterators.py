@@ -7,6 +7,7 @@ from zipp import Path as ZipPath  # BUGFIX: backport from Python 3.9.1
 
 import pandas as pd
 
+from .utils import removeprefix
 from .file_types import FileType
 from .detect_file_type import autodetect
 
@@ -72,7 +73,7 @@ def iterateTabFile(path: Path) -> Iterator[pd.Series]:
             data = table.join(index)
             data.set_index('species', inplace=True)
             series = pd.Series(data.iloc[:, 0])
-            series.name = sequence.removeprefix('sequence_')
+            series.name = removeprefix(sequence, 'sequence_')
             series.index.name = None
             yield series
 
