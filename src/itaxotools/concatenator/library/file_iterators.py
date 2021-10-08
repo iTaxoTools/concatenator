@@ -7,7 +7,7 @@ from zipp import Path as ZipPath  # BUGFIX: backport from Python 3.9.1
 
 import pandas as pd
 
-from .file_types import FileType
+from .file_types import FileFormat
 from .detect_file_type import autodetect
 
 from .file_readers import (
@@ -18,10 +18,10 @@ from .file_readers import (
 
 CallableIterator = Callable[[Path], Iterator[pd.Series]]
 
-type_iterators: Dict[FileType, CallableIterator] = dict()
+type_iterators: Dict[FileFormat, CallableIterator] = dict()
 
 
-def type_iterator(type: FileType) -> CallableIterator:
+def type_iterator(type: FileFormat) -> CallableIterator:
     def decorator(func: CallableIterator) -> CallableIterator:
         type_iterators[type] = func
         return func
@@ -38,25 +38,25 @@ def _iterateZipFile(
         yield func(part_path)
 
 
-@type_iterator(FileType.MultiAliInput)
+@type_iterator(FileFormat.MultiAliInput)
 def iterateMultiAli(path: Path) -> Iterator[pd.Series]:
     for series in _iterateZipFile(path, readAliSeries):
         yield series
 
 
-@type_iterator(FileType.MultiFastaInput)
+@type_iterator(FileFormat.MultiFastaInput)
 def iterateMultiFasta(path: Path) -> Iterator[pd.Series]:
     for series in _iterateZipFile(path, readFastaSeries):
         yield series
 
 
-@type_iterator(FileType.MultiPhylipInput)
+@type_iterator(FileFormat.MultiPhylipInput)
 def iterateMultiPhylip(path: Path) -> Iterator[pd.Series]:
     for series in _iterateZipFile(path, readPhylipSeries):
         yield series
 
 
-@type_iterator(FileType.TabFile)
+@type_iterator(FileFormat.TabFile)
 def iterateTabFile(path: Path) -> Iterator[pd.Series]:
     with path.open() as file:
         columns = file.readline().rstrip().split("\t")
@@ -77,9 +77,9 @@ def iterateTabFile(path: Path) -> Iterator[pd.Series]:
 
 
 class IteratorNotFound(Exception):
-    def __init__(self, type: FileType):
+    def __init__(self, type: FileFormat):
         self.type = type
-        super().__init__(f'No iterator for FileType: {str(type)}')
+        super().__init__(f'No iterator for FileFormat: {str(type)}')
 
 
 def iterator_from_path(path: Path) -> Iterator[pd.Series]:

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from enum import Enum
+from enum import Enum, auto
 
 
-class FileType(Enum):
-    """Types of files that can be processed by operations"""
+class FileFormat(Enum):
+    """Supported file formats supported by oprations"""
 
     TabFile = ("Tab file", ".tab", False)
     AliFile = ("Ali file", ".ali", False)
@@ -14,6 +14,8 @@ class FileType(Enum):
     ConcatTabFile = ("Concatenated Tab file", ".tab", False)
     ConcatFasta = ("Concatenated FASTA file", ".fas", False)
     ConcatPhylip = ("Concatenated Phylip file", ".phy", False)
+    MultiFastaDirectory = ("Multifile FASTA directory", "", True)
+    MultiFastaArchive = ("Multifile FASTA archive", ".zip", True)
     MultiFastaOutput = ("Multifile FASTA output archive", ".zip", True)
     MultiPhylipOutput = ("Multifile Phylip output archive", ".zip", True)
     MultiAliOutput = ("Multifile Ali output archive", ".zip", True)
@@ -27,3 +29,11 @@ class FileType(Enum):
         self.description = description
         self.extension = extension
         self.timestamp = timestamp
+
+
+class FileType(Enum):
+    """File type, describing how a file format is stored"""
+
+    SingleFile = auto()
+    MultiFileZip = auto()
+    MultiFileDir = auto()

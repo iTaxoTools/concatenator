@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .file_types import FileType
+from .file_types import FileFormat
 from .detect_file_type import autodetect
 from .nexus import read as nexus_read
 from .ali import column_reader as ali_reader
@@ -14,17 +14,17 @@ from .phylip import column_reader as phylip_reader
 
 CallableReader = Callable[[Path], pd.DataFrame]
 
-type_readers: Dict[FileType, CallableReader] = dict()
+type_readers: Dict[FileFormat, CallableReader] = dict()
 
 
-def type_reader(type: FileType) -> CallableReader:
+def type_reader(type: FileFormat) -> CallableReader:
     def decorator(func: CallableReader) -> CallableReader:
         type_readers[type] = func
         return func
     return decorator
 
 
-@type_reader(FileType.TabFile)
+@type_reader(FileFormat.TabFile)
 def readTabFile(path: Path) -> pd.DataFrame:
     data = pd.read_csv(path, sep='\t', dtype=str, keep_default_na=False)
     data.drop(columns=['specimen-voucher', 'locality'], inplace=True)
@@ -34,7 +34,7 @@ def readTabFile(path: Path) -> pd.DataFrame:
     return data
 
 
-@type_reader(FileType.NexusFile)
+@type_reader(FileFormat.NexusFile)
 def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file)
@@ -66,25 +66,25 @@ def readPhylipSeries(path: Path) -> pd.Series:
     return _readSeries(path, phylip_reader)
 
 
-@type_reader(FileType.AliFile)
+@type_reader(FileFormat.AliFile)
 def readAliFile(path: Path) -> pd.DataFrame:
     return pd.DataFrame(readAliSeries(path))
 
 
-@type_reader(FileType.FastaFile)
+@type_reader(FileFormat.FastaFile)
 def readFastaFile(path: Path) -> pd.DataFrame:
     return pd.DataFrame(readFastaSeries(path))
 
 
-@type_reader(FileType.PhylipFile)
+@type_reader(FileFormat.PhylipFile)
 def readPhylipFile(path: Path) -> pd.DataFrame:
     return pd.DataFrame(readPhylipSeries(path))
 
 
 class ReaderNotFound(Exception):
-    def __init__(self, type: FileType):
+    def __init__(self, type: FileFormat):
         self.type = type
-        super().__init__(f'No reader for FileType: {str(type)}')
+        super().__init__(f'No reader for FileFormat: {str(type)}')
 
 
 def dataframe_from_path(path: Path) -> pd.DataFrame:

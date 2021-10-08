@@ -7,7 +7,7 @@ from re import fullmatch
 from zipfile import ZipFile, is_zipfile
 from zipp import Path as ZipPath  # BUGFIX: backport from Python 3.9.1
 
-from .file_types import FileType
+from .file_types import FileFormat
 
 
 CallableTest = Callable[[Path], bool]
@@ -19,43 +19,43 @@ class TestType(Enum):
     Archive = auto()
 
     def __init__(self, value: int):
-        self.tests: Dict[FileType, CallableTest] = dict()
+        self.tests: Dict[FileFormat, CallableTest] = dict()
 
 
-def test(test: TestType, type: FileType) -> CallableTest:
+def test(test: TestType, type: FileFormat) -> CallableTest:
     def decorator(func: CallableTest) -> CallableTest:
         test.tests[type] = func
         return func
     return decorator
 
 
-@test(TestType.File, FileType.NexusFile)
+@test(TestType.File, FileFormat.NexusFile)
 def isNexusFile(path: Path) -> bool:
     with path.open() as file:
         return bool(file.read(6) == '#NEXUS')
 
 
-@test(TestType.File, FileType.FastaFile)
+@test(TestType.File, FileFormat.FastaFile)
 def isFastaFile(path: Path) -> bool:
     with path.open() as file:
         return bool(file.read(1) == '>')
 
 
-@test(TestType.File, FileType.PhylipFile)
+@test(TestType.File, FileFormat.PhylipFile)
 def isPhylipFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
         return bool(fullmatch(r'\s*\d+\s+\d+\s*', line))
 
 
-@test(TestType.File, FileType.TabFile)
+@test(TestType.File, FileFormat.TabFile)
 def isTabFile(path: Path) -> bool:
     with path.open() as file:
         line = file.readline()
         return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
 
 
-@test(TestType.File, FileType.AliFile)
+@test(TestType.File, FileFormat.AliFile)
 def isAliFile(path: Path) -> bool:
     with path.open() as file:
         for line in file:
@@ -75,22 +75,36 @@ def _archiveTest(path: Path, test: CallableTest) -> bool:
     return True
 
 
-@test(TestType.Archive, FileType.MultiFastaInput)
+@test(TestType.Archive, FileFormat.MultiFastaInput)
 def isFastaArchive(path: Path) -> bool:
     return _archiveTest(path, isFastaFile)
 
 
-@test(TestType.Archive, FileType.MultiPhylipInput)
+@test(TestType.Archive, FileFormat.MultiPhylipInput)
 def isPhylipArchive(path: Path) -> bool:
     return _archiveTest(path, isPhylipFile)
 
 
-@test(TestType.Archive, FileType.MultiAliInput)
+@test(TestType.Archive, FileFormat.MultiAliInput)
 def isAliArchive(path: Path) -> bool:
     return _archiveTest(path, isAliFile)
 
 
-class UnknownFileType(Exception):
+# def _directoryTest(directory: Path, test: CallableTest) -> bool:
+#     for path in directory.glob('*'):
+#         if not path.is_file():
+#             return False
+#         if not test(path):
+#             return False
+#     return True
+#
+#
+# @test(TestType.Directory, FileFormat.MultiFasta)
+# def isFastaDirectory(path: Path) -> bool:
+#     return _directoryTest(path, isFastaFile)
+
+
+class UnknownFileFormat(Exception):
     def __init__(self, path: Path):
         self.path = path
         super().__init__(f'Unknown file type for {str(path)}')
@@ -102,7 +116,7 @@ class FileNotFound(Exception):
         super().__init__(f'File not found: {str(path)}')
 
 
-def autodetect(path: Path) -> FileType:
+def autodetect(path: Path) -> FileFormat:
     """Attempt to automatically determine sequence file type"""
     if not path.exists():
         raise FileNotFound(path)
@@ -117,4 +131,4 @@ def autodetect(path: Path) -> FileType:
     for type, test in tests.items():
         if test(path):
             return type
-    raise UnknownFileType(path)
+    raise UnknownFileFormat(path)
