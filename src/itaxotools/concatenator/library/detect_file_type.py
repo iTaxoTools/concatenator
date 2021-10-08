@@ -11,6 +11,7 @@ from .file_types import FileType
 
 
 CallableTest = Callable[[Path], bool]
+CallableTestDecorator = Callable[[CallableTest], CallableTest]
 
 
 class TestType(Enum):
@@ -22,7 +23,7 @@ class TestType(Enum):
         self.tests: Dict[FileType, CallableTest] = dict()
 
 
-def test(test: TestType, type: FileType) -> CallableTest:
+def test(test: TestType, type: FileType) -> CallableTestDecorator:
     def decorator(func: CallableTest) -> CallableTest:
         test.tests[type] = func
         return func
@@ -55,13 +56,14 @@ def isTabFile(path: Path) -> bool:
         return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
 
 
-# Can only be part of an archive
+@test(TestType.File, FileType.AliFile)
 def isAliFile(path: Path) -> bool:
     with path.open() as file:
         for line in file:
             if line[0] in ['#', '\n']:
                 continue
             return bool(line[0] == '>')
+    return False
 
 
 def _archiveTest(path: Path, test: CallableTest) -> bool:
