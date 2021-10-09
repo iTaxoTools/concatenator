@@ -1,19 +1,16 @@
 
 from typing import Callable, Dict, Iterator, TextIO
 from pathlib import Path
-from os import mkdir
 
 import pandas as pd
 
-from .utils import removeprefix
 from .file_utils import createDirectory, createZipArchive, PathLike
 from .file_types import FileType, FileFormat
-from .detect_file_type import autodetect
 
 from .fasta import fasta_writer
 from .phylip import phylip_writer
 from .ali import ali_writer
-
+from .nexus import write_from_series
 
 CallableWriter = Callable[[Iterator[pd.Series], Path], None]
 CallableWriterDecorator = Callable[[CallableWriter], CallableWriter]
@@ -23,6 +20,7 @@ file_writers: Dict[FileType, Dict[FileFormat, CallableWriter]] = {
 
 
 # Pending filters
+# merge multi-index
 # Fasta: remove empty
 # Phylip: remove empty, replace Nn- with ?, pad with ?
 # Ali: remove empty, pad with N
@@ -97,6 +95,14 @@ for type, creator in {
         FileFormat.Ali: filtered_ali_writer,
     }.items():
         _register_multifile_writer(type, format, creator, writer)
+
+
+@file_writer(FileType.File, FileFormat.Nexus)
+def writeNexusFile(iterator: Iterator[pd.Series], path: Path) -> None:
+    data = pd.concat(iterator, axis=1)
+    generator = (data[col] for col in data)
+    with path.open('w') as file:
+        write_from_series(generator, file)
 
 
 class WriterNotFound(Exception):

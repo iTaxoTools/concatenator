@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from enum import Enum
 from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict
+from enum import Enum
 import tempfile
 import re
 
@@ -68,6 +68,46 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
 
     print("\nend;", file=output)
     buf.close()
+
+
+def write_from_series(iterator: Iterator[pd.Series], out: TextIO) -> None:
+    buffer = tempfile.TemporaryFile(mode="w+")
+    charsets = {}
+    ntax = 0
+
+    for series in iterator:
+        assert has_uniform_length(series)
+        assert isinstance(series.index, pd.core.indexes.base.Index)
+
+        charsets[series.name] = len(series.iat[0])
+        index_len = series.index.str.len().max()
+        for index, sequence in series.iteritems():
+            buffer.write(f'{index.ljust(index_len)}\t{sequence}\n')
+        buffer.write('\n')
+        ntax = len(series)
+
+    nchar = sum(charsets.values())
+
+    out.write('#NEXUS\n\n')
+    out.write('begin data;\n\n')
+    out.write('format datatype=DNA missing=N missing=? Gap=- ')
+    out.write('Interleave=yes;\n\n')
+    out.write(f'dimensions Nchar={nchar} Ntax={ntax};\n\n')
+    out.write('matrix\n\n')
+
+    buffer.seek(0)
+    for line in buffer:
+        out.write(line)
+    out.write(';\nend;\n\n\n')
+    out.write('begin sets;\n\n')
+    buffer.close()
+
+    position = 1
+    for name, length in charsets.items():
+        position_end = position + length - 1
+        out.write(f'charset {name} = {position}-{position_end};\n')
+        position += length
+    out.write('\nend;\n')
 
 
 def read(input: TextIO) -> pd.DataFrame:

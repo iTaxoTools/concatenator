@@ -103,7 +103,8 @@ def iterateTabFile(path: Path) -> Iterator[pd.Series]:
         columns = file.readline().rstrip().split("\t")
         sequences = [col for col in columns if col.startswith("sequence_")]
         file.seek(0)
-        index_columns = ['species', 'specimen-voucher', 'locality']
+        # index_columns = ['species', 'specimen-voucher', 'locality']
+        index_columns = ['species']
         index = pd.read_table(
             file, usecols=index_columns, dtype=str, na_filter=False)
         for sequence in sequences:

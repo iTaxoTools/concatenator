@@ -34,7 +34,8 @@ def file_reader(
 @file_reader(FileType.File, FileFormat.Tab)
 def readTabFile(path: Path) -> pd.DataFrame:
     data = pd.read_csv(path, sep='\t', dtype=str, keep_default_na=False)
-    index_columns = ['species', 'specimen-voucher', 'locality']
+    # index_columns = ['species', 'specimen-voucher', 'locality']
+    index_columns = ['species']
     data.set_index(index_columns, inplace=True)
     data.index.name = None
     data.columns = [removeprefix(col, 'sequence_') for col in data.columns]

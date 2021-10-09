@@ -3,11 +3,12 @@
 from enum import Enum
 from typing import Optional
 
-class FileFormat(Enum):
-    """Supported file formats supported by operations"""
 
-    Tab = ("Tab", ".tab", False)
-    Nexus = ("NEXUS", ".nex", False)
+class FileFormat(Enum):
+    """File formats supported by operations"""
+
+    Tab = ("Tab-separated Table", ".tab", False)
+    Nexus = ("Interleaved NEXUS", ".nex", False)
     Ali = ("Ali", ".ali", False)
     Fasta = ("Fasta", ".fas", False)
     Phylip = ("Phylip", ".phy", False)
@@ -22,7 +23,6 @@ class FileFormat(Enum):
     ConcatTabFile = ("Concatenated Tab file", ".tab", False)
     ConcatFasta = ("Concatenated FASTA file", ".fas", False)
     ConcatPhylip = ("Concatenated Phylip file", ".phy", False)
-    MultiFastaArchive = ("Multifile FASTA archive", ".zip", True)
     MultiFastaOutput = ("Multifile FASTA output archive", ".zip", True)
     MultiPhylipOutput = ("Multifile Phylip output archive", ".zip", True)
     MultiAliOutput = ("Multifile Ali output archive", ".zip", True)
@@ -39,7 +39,7 @@ class FileFormat(Enum):
 
 
 class FileType(Enum):
-    """File type, describing how a file format is stored"""
+    """Containers for file formats"""
 
     File = ('Single File', None)
     Directory = ('Directory', '')
