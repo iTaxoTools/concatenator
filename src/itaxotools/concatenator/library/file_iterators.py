@@ -10,9 +10,9 @@ from .file_utils import iterateZipArchive, iterateDirectory
 from .detect_file_type import autodetect
 
 from .nexus import read as nexus_read
-from .ali import column_reader as ali_reader
-from .fasta import column_reader as fasta_reader
-from .phylip import column_reader as phylip_reader
+from .ali import ali_reader
+from .fasta import fasta_reader
+from .phylip import phylip_reader
 
 
 CallableIterator = Callable[[Path], Iterator[pd.Series]]

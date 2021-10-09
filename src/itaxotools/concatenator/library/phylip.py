@@ -41,7 +41,31 @@ def column_reader(infile: TextIO) -> pd.Series:
         if line == "" or line.isspace():
             continue
         # separate name and sequence
-        name, _, sequence = line.rstrip().partition(" ")
+        name, sequence = line.rstrip().rsplit(' ', 1)
+        name = name.strip()
         # return the record
         sequences[name] = sequence
     return pd.Series(sequences)
+
+
+class UnequalLengths(Exception):
+    def __init__(self, name: str):
+        self.name = name
+        super().__init__((f'Unequal lengths for series: {str(name)}'))
+
+
+phylip_reader = column_reader
+
+
+def phylip_writer(series: pd.Series, outfile: TextIO) -> None:
+    if not has_uniform_length(series):
+        raise UnequalLengths(series.name)
+    seq_length = len(series.iat[0])
+    outfile.write(f'{len(series)} {seq_length}\n')
+    for index, sequence in series.iteritems():
+        if isinstance(index, tuple):
+            index = '_'.join([str(x) for x in index if x is not None])
+        if len(index) > 10:
+            logging.warning(f'Phylip sequence ID {repr(index)} is too long')
+        index = index.ljust(10)
+        outfile.write(f'{index} {sequence}\n')

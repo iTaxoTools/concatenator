@@ -54,3 +54,14 @@ def split_file(file: TextIO) -> Iterator[List[str]]:
 
 def column_reader(infile: TextIO) -> pd.Series:
     return pd.Series({chunk[0][1:]: "".join(chunk[1:]) for chunk in split_file(infile)})
+
+
+fasta_reader = column_reader
+
+
+def fasta_writer(series: pd.Series, outfile: TextIO) -> None:
+    for index, sequence in series.iteritems():
+        if isinstance(index, tuple):
+            index = '_'.join([str(x) for x in index if x is not None])
+        outfile.write('>' + index + '\n')
+        outfile.write(sequence + '\n')

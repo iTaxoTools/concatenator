@@ -55,3 +55,9 @@ def make_equal_length(
         return column.str.ljust(max_length, fillchar)
     else:
         return column
+
+
+def has_uniform_length(series: pd.Series) -> bool:
+    max_length = series.str.len().max()
+    min_length = series.str.len().min()
+    return (max_length == min_length)

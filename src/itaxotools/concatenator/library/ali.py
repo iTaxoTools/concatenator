@@ -90,3 +90,33 @@ def column_reader(infile: TextIO) -> pd.Series:
             for chunk in split_file(infile)
         }
     )
+
+
+class UnequalLengths(Exception):
+    def __init__(self, name: str):
+        self.name = name
+        super().__init__((f'Unequal lengths for series: {str(name)}'))
+
+
+ali_reader = column_reader
+
+
+def ali_writer(series: pd.Series, outfile: TextIO) -> None:
+    if not has_uniform_length(series):
+        raise UnequalLengths(series.name)
+
+    pos_num = len(series.iat[0])
+    otu_num = len(series)
+    missing_count = series.str.count(r"\?").sum()
+    missing_percent = missing_count / (pos_num * otu_num) * 100
+
+    outfile.write(f'#Number of positions: {pos_num}\n')
+    outfile.write(f'#Number of OTUs: {otu_num}\n')
+    outfile.write(f'#Percent of ?: {missing_percent}\n')
+    outfile.write(f'#\n')
+
+    for index, sequence in series.iteritems():
+        if isinstance(index, tuple):
+            index = '_'.join([str(x) for x in index if x is not None])
+        outfile.write('>' + index + '\n')
+        outfile.write(sequence + '\n')
