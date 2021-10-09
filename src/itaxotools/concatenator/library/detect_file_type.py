@@ -6,7 +6,7 @@ from re import fullmatch
 from zipfile import is_zipfile
 
 from .file_types import FileFormat, FileType
-from .file_utils import iterateZipArchive, iterateDirectory
+from .file_utils import iterateZipArchive, iterateDirectory, PathLike
 
 
 CallableTest = Callable[[Path], bool]
@@ -61,7 +61,7 @@ def isAliFile(path: Path) -> bool:
 
 
 def _containerTest(
-    parts: Iterator[Path],
+    parts: Iterator[PathLike],
     test: CallableTest,
 ) -> bool:
     for part in parts:
@@ -73,30 +73,27 @@ def _containerTest(
 
 
 def _register_multifile_test(
+    type: FileType,
     format: FileFormat,
-    tester: CallableTest
+    iterator: Callable[[Path], Iterator[PathLike]],
+    tester: CallableTest,
 ) -> None:
 
-    @test(FileType.Directory, format)
-    def _testMultifileDir(path: Path) -> bool:
-        return _containerTest(iterateDirectory(path), tester)
-
-    @test(FileType.ZipArchive, format)
-    def _testMultifileZip(path: Path) -> bool:
-        return _containerTest(iterateZipArchive(path), tester)
+    @test(type, format)
+    def _testMultifile(path: Path) -> bool:
+        return _containerTest(iterator(path), tester)
 
 
-for format, tester in {
-    FileFormat.Fasta: isFastaFile,
-    FileFormat.Phylip: isPhylipFile,
-    FileFormat.Ali: isAliFile,
+for type, iterator in {
+    FileType.Directory: iterateDirectory,
+    FileType.ZipArchive: iterateZipArchive,
 }.items():
-    _register_multifile_test(format, tester)
-
-
-isAliZip = tests[FileType.ZipArchive][FileFormat.Ali]
-isFastaZip = tests[FileType.ZipArchive][FileFormat.Fasta]
-isPhylipZip = tests[FileType.ZipArchive][FileFormat.Phylip]
+    for format, tester in {
+        FileFormat.Fasta: isFastaFile,
+        FileFormat.Phylip: isPhylipFile,
+        FileFormat.Ali: isAliFile,
+    }.items():
+        _register_multifile_test(type, format, iterator, tester)
 
 
 class UnknownFileType(Exception):

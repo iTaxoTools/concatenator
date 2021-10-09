@@ -5,7 +5,10 @@ import zipfile
 from pathlib import Path
 from zipfile import ZipFile
 from zipp import Path as ZipPath
-from typing import TextIO, Callable, BinaryIO, Iterator, Tuple
+from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union
+
+
+PathLike = Union[Path, ZipPath]
 
 
 def iterateZipArchive(archive: Path) -> Iterator[ZipPath]:
