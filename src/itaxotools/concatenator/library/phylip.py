@@ -48,18 +48,12 @@ def column_reader(infile: TextIO) -> pd.Series:
     return pd.Series(sequences)
 
 
-class UnequalLengths(Exception):
-    def __init__(self, name: str):
-        self.name = name
-        super().__init__((f'Unequal lengths for series: {str(name)}'))
-
-
 phylip_reader = column_reader
 
 
 def phylip_writer(series: pd.Series, outfile: TextIO) -> None:
-    if not has_uniform_length(series):
-        raise UnequalLengths(series.name)
+    assert has_uniform_length(series)
+    
     seq_length = len(series.iat[0])
     outfile.write(f'{len(series)} {seq_length}\n')
     for index, sequence in series.iteritems():

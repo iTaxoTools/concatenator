@@ -92,18 +92,11 @@ def column_reader(infile: TextIO) -> pd.Series:
     )
 
 
-class UnequalLengths(Exception):
-    def __init__(self, name: str):
-        self.name = name
-        super().__init__((f'Unequal lengths for series: {str(name)}'))
-
-
 ali_reader = column_reader
 
 
 def ali_writer(series: pd.Series, outfile: TextIO) -> None:
-    if not has_uniform_length(series):
-        raise UnequalLengths(series.name)
+    assert has_uniform_length(series)
 
     pos_num = len(series.iat[0])
     otu_num = len(series)
