@@ -22,6 +22,11 @@ def iterateDirectory(directory: Path) -> Iterator[Path]:
         yield path
 
 
+def createDirectory(path: Path) -> Path:
+    path.mkdir(exist_ok=True)
+    return path
+
+
 def make_binary(
     process: Callable[[TextIO, TextIO], None]
 ) -> Callable[[BinaryIO, BinaryIO], None]:

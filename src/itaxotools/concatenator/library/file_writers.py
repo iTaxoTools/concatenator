@@ -1,10 +1,12 @@
 
 from typing import Callable, Dict, Iterator, TextIO
 from pathlib import Path
+from os import mkdir
 
 import pandas as pd
 
 from .utils import removeprefix
+from .file_utils import createDirectory, PathLike
 from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
 
@@ -60,6 +62,35 @@ for format, (writer, filters) in {
     FileFormat.Ali: (ali_writer, []),
 }.items():
     _register_concatenated_writer(format, writer, filters)
+
+
+def _register_multifile_writer(
+    type: FileType,
+    format: FileFormat,
+    creator: Callable[[Path], PathLike],
+    writer: Callable[[pd.Series, TextIO], None],
+) -> None:
+
+    @file_writer(type, format)
+    def _writeMultifile(iterator: Iterator[pd.Series], path: Path) -> None:
+        container = creator(path)
+        for series in iterator:
+            name = format_file_name(series.name, FileType.File, format)
+            part = container / name
+            with part.open('w') as file:
+                writer(series, file)
+
+
+for type, creator in {
+    FileType.Directory: createDirectory,
+    # FileType.ZipArchive: createZipArchive,
+}.items():
+    for format, writer in {
+        FileFormat.Fasta: fasta_writer,
+        FileFormat.Phylip: phylip_writer,
+        FileFormat.Ali: ali_writer,
+    }.items():
+        _register_multifile_writer(type, format, creator, writer)
 
 
 class WriterNotFound(Exception):
