@@ -11,15 +11,20 @@ from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union
 PathLike = Union[Path, ZipPath]
 
 
-def iterateZipArchive(archive: Path) -> Iterator[ZipPath]:
-    archive = ZipFile(archive)
+def iterateZipArchive(path: Path) -> Iterator[ZipPath]:
+    archive = ZipFile(path)
     for part in archive.namelist():
         yield ZipPath(archive, part)
 
 
-def iterateDirectory(directory: Path) -> Iterator[Path]:
-    for path in directory.glob('*'):
-        yield path
+def iterateDirectory(path: Path) -> Iterator[Path]:
+    for part in directory.glob('*'):
+        yield part
+
+
+def createZipArchive(path: Path) -> ZipPath:
+    archive = ZipFile(path, 'w')
+    return ZipPath(archive)
 
 
 def createDirectory(path: Path) -> Path:

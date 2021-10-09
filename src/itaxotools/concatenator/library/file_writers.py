@@ -6,7 +6,7 @@ from os import mkdir
 import pandas as pd
 
 from .utils import removeprefix
-from .file_utils import createDirectory, PathLike
+from .file_utils import createDirectory, createZipArchive, PathLike
 from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
 
@@ -20,6 +20,15 @@ CallableWriterDecorator = Callable[[CallableWriter], CallableWriter]
 
 file_writers: Dict[FileType, Dict[FileFormat, CallableWriter]] = {
     type: dict() for type in FileType}
+
+
+# Pending filters
+# Fasta: remove empty
+# Phylip: remove empty, replace Nn- with ?, pad with ?
+# Ali: remove empty, pad with N
+filtered_fasta_writer = fasta_writer
+filtered_phylip_writer = phylip_writer
+filtered_ali_writer = ali_writer
 
 
 def file_writer(
@@ -54,12 +63,9 @@ def _register_concatenated_writer(
 
 
 for format, (writer, filters) in {
-    # Pending filters: remove empty
-    FileFormat.Fasta: (fasta_writer, []),
-    # Pending filters: remove empty, replace Nn- with ?, pad with ?
-    FileFormat.Phylip: (phylip_writer, []),
-    # Pending filters: remove empty, pad with N
-    FileFormat.Ali: (ali_writer, []),
+    FileFormat.Fasta: (filtered_fasta_writer, []),
+    FileFormat.Phylip: (filtered_phylip_writer, []),
+    FileFormat.Ali: (filtered_ali_writer, []),
 }.items():
     _register_concatenated_writer(format, writer, filters)
 
@@ -83,12 +89,12 @@ def _register_multifile_writer(
 
 for type, creator in {
     FileType.Directory: createDirectory,
-    # FileType.ZipArchive: createZipArchive,
+    FileType.ZipArchive: createZipArchive,
 }.items():
     for format, writer in {
-        FileFormat.Fasta: fasta_writer,
-        FileFormat.Phylip: phylip_writer,
-        FileFormat.Ali: ali_writer,
+        FileFormat.Fasta: filtered_fasta_writer,
+        FileFormat.Phylip: filtered_phylip_writer,
+        FileFormat.Ali: filtered_ali_writer,
     }.items():
         _register_multifile_writer(type, format, creator, writer)
 
