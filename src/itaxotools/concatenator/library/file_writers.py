@@ -1,5 +1,5 @@
 
-from typing import Callable, Dict, Iterator
+from typing import Callable, Dict, Iterator, TextIO
 from pathlib import Path
 
 import pandas as pd
@@ -29,31 +29,37 @@ def file_writer(
     return decorator
 
 
-@file_writer(FileType.File, FileFormat.Fasta)
-def writeFastaFile(iterator: Iterator[pd.Series], path: Path) -> None:
+def _writeConcatenatedFormat(
+    iterator: Iterator[pd.Series],
+    path: Path,
+    writer: Callable[[pd.Series, TextIO], None]
+) -> None:
+    joined = pd.concat(iterator, axis=1)
+    data = joined.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
+    with path.open('w') as file:
+        writer(data, file)
+
+
+def _register_concatenated_writer(
+    format: FileFormat,
+    writer: Callable[[pd.Series, TextIO], None],
+    filters: Callable[[Iterator[pd.Series]], Iterator[pd.Series]] = list(),
+) -> None:
+
+    @file_writer(FileType.File, format)
+    def _writeConcatenatedFile(it: Iterator[pd.Series], path: Path) -> None:
+        _writeConcatenatedFormat(it, path, writer)
+
+
+for format, (writer, filters) in {
     # Pending filters: remove empty
-    joined = pd.concat(iterator, axis=1)
-    data = joined.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
-    with path.open('w') as file:
-        fasta_writer(data, file)
-
-
-@file_writer(FileType.File, FileFormat.Phylip)
-def writePhylipFile(iterator: Iterator[pd.Series], path: Path) -> None:
+    FileFormat.Fasta: (fasta_writer, []),
     # Pending filters: remove empty, replace Nn- with ?, pad with ?
-    joined = pd.concat(iterator, axis=1)
-    data = joined.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
-    with path.open('w') as file:
-        phylip_writer(data, file)
-
-
-@file_writer(FileType.File, FileFormat.Ali)
-def writeAliFile(iterator: Iterator[pd.Series], path: Path) -> None:
+    FileFormat.Phylip: (phylip_writer, []),
     # Pending filters: remove empty, pad with N
-    joined = pd.concat(iterator, axis=1)
-    data = joined.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
-    with path.open('w') as file:
-        ali_writer(data, file)
+    FileFormat.Ali: (ali_writer, []),
+}.items():
+    _register_concatenated_writer(format, writer, filters)
 
 
 class WriterNotFound(Exception):
