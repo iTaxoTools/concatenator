@@ -15,6 +15,8 @@ from .ali import ali_reader
 from .fasta import fasta_reader
 from .phylip import phylip_reader
 
+from . import SPECIES, SEQUENCE_PREFIX
+
 
 CallableIterator = Callable[[Path], Iterator[pd.Series]]
 CallableIteratorDecorator = Callable[[CallableIterator], CallableIterator]
@@ -36,8 +38,8 @@ def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file)
     data.set_index('seqid', inplace=True)
-    data.index.name = 'species'
-    return data
+    data.index.name = SPECIES
+    return index_to_multi(data)
 
 
 @file_iterator(FileType.File, FileFormat.Nexus)
@@ -54,7 +56,7 @@ def _readSeries(
     with path.open() as file:
         series = func(file)
     series.name = path.stem
-    series.index.name = 'species'
+    series.index.name = SPECIES
     return index_to_multi(series)
 
 
@@ -102,22 +104,20 @@ for format, reader in {
 def iterateTabFile(path: Path) -> Iterator[pd.Series]:
     with path.open() as file:
         columns = file.readline().rstrip().split("\t")
-        sequences = [col for col in columns if col.startswith("sequence_")]
+        sequences = [col for col in columns if col.startswith(SEQUENCE_PREFIX)]
+        indices = [x for x in columns if not x.startswith(SEQUENCE_PREFIX)]
         file.seek(0)
-        # index_columns = ['species', 'specimen-voucher', 'locality']
-        index_columns = ['species']
         index = pd.read_table(
-            file, usecols=index_columns, dtype=str, na_filter=False)
+            file, usecols=indices, dtype=str, na_filter=False)
         for sequence in sequences:
             file.seek(0)
             table = pd.read_table(
                 file, usecols=[sequence], dtype=str, na_filter=False)
             data = table.join(index)
-            data.set_index(index_columns, inplace=True)
+            data.set_index(indices, inplace=True)
             series = pd.Series(data.iloc[:, 0])
-            series.name = removeprefix(sequence, 'sequence_')
-            series.index.name = None
-            yield series
+            series.name = removeprefix(sequence, SEQUENCE_PREFIX)
+            yield index_to_multi(series)
 
 
 class IteratorNotFound(Exception):

@@ -7,12 +7,15 @@ import pandas as pd
 from .utils import removeprefix
 from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
-
+from .operators import index_to_multi
+from .filters import join
 from .file_iterators import (
     file_iterators, iterator_from_path,
     readAliSeries, readFastaSeries, readPhylipSeries,
     readNexusFile as _readNexusFile,
     )
+
+from . import SEQUENCE_PREFIX
 
 
 CallableReader = Callable[[Path], pd.DataFrame]
@@ -34,12 +37,10 @@ def file_reader(
 @file_reader(FileType.File, FileFormat.Tab)
 def readTabFile(path: Path) -> pd.DataFrame:
     data = pd.read_csv(path, sep='\t', dtype=str, keep_default_na=False)
-    # index_columns = ['species', 'specimen-voucher', 'locality']
-    index_columns = ['species']
-    data.set_index(index_columns, inplace=True)
-    data.index.name = None
-    data.columns = [removeprefix(col, 'sequence_') for col in data.columns]
-    return data
+    indices = [x for x in data.columns if not x.startswith(SEQUENCE_PREFIX)]
+    data.set_index(indices, inplace=True)
+    data.columns = [removeprefix(col, SEQUENCE_PREFIX) for col in data.columns]
+    return index_to_multi(data)
 
 
 @file_reader(FileType.File, FileFormat.Nexus)
@@ -75,5 +76,5 @@ def dataframe_from_path(path: Path) -> pd.DataFrame:
     if format in file_readers[type]:
         return file_readers[type][format](path)
     elif format in file_iterators[type]:
-        return pd.concat(iterator_from_path(path), axis=1)
+        return pd.concat(join(iterator_from_path(path)), axis=1)
     raise ReaderNotFound(type)

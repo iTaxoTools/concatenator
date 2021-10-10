@@ -8,6 +8,8 @@ import pandas as pd
 from .utils import *
 from .multifile import ColumnWriter
 
+from . import SPECIES
+
 
 class AliTuple(NamedTuple):
     species: str
@@ -102,7 +104,7 @@ def chunk_reader(infile: TextIO) -> Iterator[AliTuple]:
     for chunk in split_file(infile):
         parts = chunk[0].split('@')
         yield AliTuple(
-            species=parts[0],
+            species=parts[0][1:],
             ali_tag=''.join(parts[1:]),
             sequence=chunk[1].replace('*', '-'),)
 
@@ -110,7 +112,7 @@ def chunk_reader(infile: TextIO) -> Iterator[AliTuple]:
 def ali_reader(infile: TextIO) -> pd.Series:
     series = pd.Series({
         (x.species, x.ali_tag): x.sequence for x in chunk_reader(infile)})
-    series.index.names = ['species', 'ali_tag']
+    series.index.names = [SPECIES, 'ali_tag']
     if series.index.to_frame()['ali_tag'].eq('').all():
         series.reset_index(level='ali_tag', drop=True, inplace=True)
     return series
@@ -127,7 +129,7 @@ def ali_writer(series: pd.Series, outfile: TextIO) -> None:
     outfile.write(f'#Number of positions: {pos_num}\n')
     outfile.write(f'#Number of OTUs: {otu_num}\n')
     outfile.write(f'#Percent of ?: {missing_percent}\n')
-    outfile.write(f'#\n')
+    outfile.write('#\n')
 
     for index, sequence in series.iteritems():
         if isinstance(index, tuple):

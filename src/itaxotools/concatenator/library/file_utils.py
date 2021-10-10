@@ -18,7 +18,7 @@ def iterateZipArchive(path: Path) -> Iterator[ZipPath]:
 
 
 def iterateDirectory(path: Path) -> Iterator[Path]:
-    for part in directory.glob('*'):
+    for part in path.glob('*'):
         yield part
 
 

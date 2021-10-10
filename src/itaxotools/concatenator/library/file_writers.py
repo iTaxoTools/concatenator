@@ -12,6 +12,9 @@ from .phylip import phylip_writer
 from .ali import ali_writer
 from .nexus import write_from_series
 
+from . import SPECIES, SEQUENCE_PREFIX
+
+
 CallableWriter = Callable[[Iterator[pd.Series], Path], None]
 CallableWriterDecorator = Callable[[CallableWriter], CallableWriter]
 
@@ -108,8 +111,8 @@ def writeNexusFile(iterator: Iterator[pd.Series], path: Path) -> None:
 @file_writer(FileType.File, FileFormat.Tab)
 def writeTabFile(iterator: Iterator[pd.Series], path: Path) -> None:
     data = pd.concat(iterator, axis=1)
-    data.columns = ['sequence_' + col for col in data.columns]
-    data.index.name = 'species'
+    data.columns = [SEQUENCE_PREFIX + col for col in data.columns]
+    data.index.name = SPECIES
     with path.open('w') as file:
         data.to_csv(file, sep="\t", line_terminator="\n")
 

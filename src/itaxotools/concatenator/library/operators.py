@@ -1,10 +1,14 @@
 
-from typing import Callable, Dict, Iterator, List
-from functools import reduce
+from typing import Callable, Union
 
 import pandas as pd
 
-from .utils import Filter, Stream, Translation, removeprefix
+from .utils import Filter, Stream, Translation
+
+from . import SPECIES
+
+
+IndexedData = Union[pd.DataFrame, pd.Series]
 
 
 class Operator:
@@ -29,7 +33,6 @@ def operator(func: Callable[[pd.Series], pd.Series]) -> Operator:
 class InvalidSeries(Exception):
     def __init__(self, series: pd.Series, error: str):
         self.series = series
-        print(series)
         super().__init__(error)
 
 
@@ -41,17 +44,27 @@ def check_valid(series: pd.Series) -> pd.Series:
         raise InvalidSeries(series, 'Missing series name')
     if not isinstance(series.index, pd.MultiIndex):
         raise InvalidSeries(series, 'Series must have MultiIndex')
-    if series.index.names[0] != 'species':
-        raise InvalidSeries(series, 'Missing "species" index')
+    if SPECIES not in series.index.names:
+        raise InvalidSeries(series, f'Missing "{SPECIES}" index')
+    if series.index.names[0] != SPECIES:
+        raise InvalidSeries(series, f'"{SPECIES}" index must be first')
     return series
 
 
 @operator
-def index_to_multi(series: pd.Series) -> pd.Series:
+def index_to_multi(series: IndexedData) -> IndexedData:
     if not isinstance(series.index, pd.MultiIndex):
         series.index = pd.MultiIndex.from_arrays(
             [series.index], names=[series.index.name])
     return series
+
+
+@operator
+def species_to_front(series: IndexedData) -> IndexedData:
+    ordered = list(series.index.names)
+    ordered.remove(SPECIES)
+    ordered = [SPECIES] + ordered
+    return series.reorder_levels(ordered)
 
 
 def translate(translation: Translation) -> Filter:
