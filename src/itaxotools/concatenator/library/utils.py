@@ -1,8 +1,15 @@
 #!/usr/bin/env python
 
-from typing import Optional
+from typing import Callable, Dict, Iterator, Optional
 
 import pandas as pd
+
+
+Stream = Iterator[pd.Series]
+Filter = Callable[[Stream], Stream]
+
+# Such as returned by str.maketrans
+Translation = Dict[int, int]
 
 
 # For Python 3.8 compatibility

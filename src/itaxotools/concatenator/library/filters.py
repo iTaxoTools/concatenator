@@ -4,42 +4,8 @@ from functools import reduce
 
 import pandas as pd
 
-from .utils import removeprefix
-
-
-Stream = Iterator[pd.Series]
-Filter = Callable[[Stream], Stream]
-
-# Such as returned by str.maketrans
-Translation = Dict[int, int]
-
-
-class InvalidSeries(Exception):
-    def __init__(self, series: pd.Series, error: str):
-        self.series = series
-        print(series)
-        super().__init__(error)
-
-
-def check_valid(stream: Stream) -> Stream:
-    for series in stream:
-        if not isinstance(series, pd.Series):
-            raise InvalidSeries(series, 'Not a pandas.Series!')
-        if not series.name:
-            raise InvalidSeries(series, 'Missing series name')
-        if not isinstance(series.index, pd.MultiIndex):
-            raise InvalidSeries(series, 'Series must have MultiIndex')
-        if series.index.names[0] != 'species':
-            raise InvalidSeries(series, 'Missing "species" index')
-        yield series
-
-
-def index_to_multi(stream: Stream) -> Stream:
-    for series in stream:
-        if not isinstance(series.index, pd.MultiIndex):
-            series.index = pd.MultiIndex.from_arrays(
-                [series.index], names=[series.index.name])
-        yield series
+from .utils import Stream, Filter, removeprefix
+from .operators import index_to_multi
 
 
 def _join_species(stream: Stream) -> Stream:
@@ -68,15 +34,8 @@ def _join_species(stream: Stream) -> Stream:
 
 
 def join(stream: Stream) -> Stream:
-    for series in index_to_multi(_join_species(stream)):
+    for series in index_to_multi.to_filter(_join_species(stream)):
         yield series
-
-
-def translate(translation: Translation) -> Filter:
-    def _translate(stream: Stream) -> Stream:
-        for series in stream:
-            yield series.str.translate(translation)
-    return _translate
 
 
 def chain(filters: List[Filter]) -> Filter:
