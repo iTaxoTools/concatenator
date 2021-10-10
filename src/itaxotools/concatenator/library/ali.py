@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 
 import logging
-from typing import TextIO, Iterator, List
+from typing import TextIO, Iterator, List, NamedTuple
 
 import pandas as pd
 
 from .utils import *
 from .multifile import ColumnWriter
+
+
+class AliTuple(NamedTuple):
+    species: str
+    ali_tag: str
+    sequence: str
 
 
 def write_column(column: pd.DataFrame, gene_name: str, outfile: TextIO) -> None:
@@ -92,7 +98,22 @@ def column_reader(infile: TextIO) -> pd.Series:
     )
 
 
-ali_reader = column_reader
+def chunk_reader(infile: TextIO) -> Iterator[AliTuple]:
+    for chunk in split_file(infile):
+        parts = chunk[0].split('@')
+        yield AliTuple(
+            species=parts[0],
+            ali_tag=''.join(parts[1:]),
+            sequence=chunk[1].replace('*', '-'),)
+
+
+def ali_reader(infile: TextIO) -> pd.Series:
+    series = pd.Series({
+        (x.species, x.ali_tag): x.sequence for x in chunk_reader(infile)})
+    series.index.names = ['species', 'ali_tag']
+    if series.index.to_frame()['ali_tag'].eq('').all():
+        series.reset_index(level='ali_tag', drop=True, inplace=True)
+    return series
 
 
 def ali_writer(series: pd.Series, outfile: TextIO) -> None:

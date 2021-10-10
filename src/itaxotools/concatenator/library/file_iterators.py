@@ -8,6 +8,7 @@ from .utils import removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import iterateZipArchive, iterateDirectory
 from .detect_file_type import autodetect
+from .operators import check_valid, index_to_multi
 
 from .nexus import read as nexus_read
 from .ali import ali_reader
@@ -35,7 +36,7 @@ def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file)
     data.set_index('seqid', inplace=True)
-    data.index.name = None
+    data.index.name = 'species'
     return data
 
 
@@ -53,12 +54,12 @@ def _readSeries(
     with path.open() as file:
         series = func(file)
     series.name = path.stem
-    return series
+    series.index.name = 'species'
+    return index_to_multi(series)
 
 
 def readAliSeries(path: Path) -> pd.Series:
-    series = _readSeries(path, ali_reader)
-    return series.str.replace('_', '-', regex=False)  # to be filtered
+    return _readSeries(path, ali_reader)
 
 
 def readFastaSeries(path: Path) -> pd.Series:
@@ -131,6 +132,6 @@ def iterator_from_path(path: Path) -> Iterator[pd.Series]:
     type, format = autodetect(path)
     if format in file_iterators[type]:
         for series in file_iterators[type][format](path):
-            yield series
+            yield check_valid(series)
         return
     raise IteratorNotFound(type, format)
