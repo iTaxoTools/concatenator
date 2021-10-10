@@ -1,9 +1,9 @@
 
-from typing import Callable, Union
+from typing import Callable, List, Iterator, Union
 
 import pandas as pd
 
-from .utils import Filter, Stream, Translation
+from .utils import Filter, Stream, Translation, removeprefix
 
 from . import SPECIES
 
@@ -72,3 +72,34 @@ def translate(translation: Translation) -> Filter:
     def _translate(series: pd.Series) -> pd.Series:
         return series.str.translate(translation)
     return _translate
+
+
+def join_any(stream: Stream) -> pd.DataFrame:
+    """Outer join for any MultiIndex"""
+    sentinel = '\u0000'
+    all_keys = set()
+
+    def guarded(names: Iterator[str]) -> List[str]:
+        return [name for name in names if name.startswith(sentinel)]
+
+    def guard(names: Iterator[str]) -> List[str]:
+        return [sentinel + name for name in names]
+
+    def unguard(names: Iterator[str]) -> List[str]:
+        return [removeprefix(name, sentinel) for name in names]
+
+    def fold_keys(stream: Stream) -> Iterator[pd.DataFrame]:
+        for series in stream:
+            series.index.names = guard(series.index.names)
+            keys = series.index.names
+            all_keys.update(keys)
+            yield series.reset_index(keys)
+
+    species = fold_keys(stream)
+    all = pd.DataFrame(next(species))
+    for series in species:
+        merge_keys = set(guarded(series.columns)) & all_keys
+        all = pd.merge(all, series, how='outer', on=list(merge_keys))
+    all.set_index(list(all_keys), inplace=True)
+    all.index.names = unguard(all.index.names)
+    return species_to_front(index_to_multi(all))

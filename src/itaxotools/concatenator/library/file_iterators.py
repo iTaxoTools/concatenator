@@ -108,11 +108,11 @@ def iterateTabFile(path: Path) -> Iterator[pd.Series]:
         indices = [x for x in columns if not x.startswith(SEQUENCE_PREFIX)]
         file.seek(0)
         index = pd.read_table(
-            file, usecols=indices, dtype=str, na_filter=False)
+            file, usecols=indices, dtype=str)
         for sequence in sequences:
             file.seek(0)
             table = pd.read_table(
-                file, usecols=[sequence], dtype=str, na_filter=False)
+                file, usecols=[sequence], dtype=str)
             data = table.join(index)
             data.set_index(indices, inplace=True)
             series = pd.Series(data.iloc[:, 0])
