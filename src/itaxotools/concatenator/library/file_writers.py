@@ -105,6 +105,15 @@ def writeNexusFile(iterator: Iterator[pd.Series], path: Path) -> None:
         write_from_series(generator, file)
 
 
+@file_writer(FileType.File, FileFormat.Tab)
+def writeTabFile(iterator: Iterator[pd.Series], path: Path) -> None:
+    data = pd.concat(iterator, axis=1)
+    data.columns = ['sequence_' + col for col in data.columns]
+    data.index.name = 'species'
+    with path.open('w') as file:
+        data.to_csv(file, sep="\t", line_terminator="\n")
+
+
 class WriterNotFound(Exception):
     def __init__(self, type: FileType, format: FileFormat):
         self.type = type
