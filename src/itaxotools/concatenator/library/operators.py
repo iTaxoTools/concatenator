@@ -3,7 +3,7 @@ from typing import Callable, List, Iterator, Union
 
 import pandas as pd
 
-from .utils import Filter, Stream, Translation, removeprefix
+from .utils import Filter, Stream, Translation, removeprefix, make_equal_length
 
 from . import SPECIES
 
@@ -67,7 +67,34 @@ def species_to_front(series: IndexedData) -> IndexedData:
     return series.reorder_levels(ordered)
 
 
-def translate(translation: Translation) -> Filter:
+def index_merge(glue: str = '_') -> Operator:
+    @operator
+    def _index_merge(series: IndexedData) -> IndexedData:
+        series.index = series.index.to_frame().apply(glue.join, axis=1)
+        return series
+    return _index_merge
+
+
+@operator
+def index_species_only(series: IndexedData) -> IndexedData:
+    series.index = series.index.to_frame()[SPECIES]
+    return series
+
+
+@operator
+def drop_empty(series: IndexedData) -> IndexedData:
+    series.dropna(inplace=True)
+    return series[series.str.len() > 0]
+
+
+def pad_right(fillchar: str = '-') -> Operator:
+    @operator
+    def _pad_right(series: pd.Series) -> pd.Series:
+        return make_equal_length(series.dropna(), fillchar=fillchar)
+    return _pad_right
+
+
+def translate(translation: Translation) -> Operator:
     @operator
     def _translate(series: pd.Series) -> pd.Series:
         return series.str.translate(translation)

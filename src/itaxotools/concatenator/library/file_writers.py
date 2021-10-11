@@ -1,11 +1,12 @@
 
-from typing import Callable, Dict, Iterator, TextIO
+from typing import Callable, Dict, Iterator, List, TextIO
 from pathlib import Path
 
 import pandas as pd
 
 from .file_utils import createDirectory, createZipArchive, PathLike
 from .file_types import FileType, FileFormat
+from .utils import Filter
 
 from .fasta import fasta_writer
 from .phylip import phylip_writer
@@ -17,16 +18,13 @@ from . import SPECIES, SEQUENCE_PREFIX
 
 CallableWriter = Callable[[Iterator[pd.Series], Path], None]
 CallableWriterDecorator = Callable[[CallableWriter], CallableWriter]
+PartWriter = Callable[[pd.Series, TextIO], None]
 
 file_writers: Dict[FileType, Dict[FileFormat, CallableWriter]] = {
     type: dict() for type in FileType}
 
 
 # Pending filters
-# merge multi-index
-# Fasta: remove empty
-# Phylip: remove empty, replace Nn- with ?, pad with ?
-# Ali: remove empty, pad with N
 filtered_fasta_writer = fasta_writer
 filtered_phylip_writer = phylip_writer
 filtered_ali_writer = ali_writer
@@ -44,7 +42,7 @@ def file_writer(
 def _writeConcatenatedFormat(
     iterator: Iterator[pd.Series],
     path: Path,
-    writer: Callable[[pd.Series, TextIO], None]
+    writer: PartWriter,
 ) -> None:
     joined = pd.concat(iterator, axis=1)
     data = joined.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
@@ -54,8 +52,8 @@ def _writeConcatenatedFormat(
 
 def _register_concatenated_writer(
     format: FileFormat,
-    writer: Callable[[pd.Series, TextIO], None],
-    filters: Callable[[Iterator[pd.Series]], Iterator[pd.Series]] = list(),
+    writer: PartWriter,
+    filters: List[Filter] = list(),
 ) -> None:
 
     @file_writer(FileType.File, format)
@@ -75,7 +73,7 @@ def _register_multifile_writer(
     type: FileType,
     format: FileFormat,
     creator: Callable[[Path], PathLike],
-    writer: Callable[[pd.Series, TextIO], None],
+    writer: PartWriter,
 ) -> None:
 
     @file_writer(type, format)

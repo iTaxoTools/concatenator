@@ -1,13 +1,16 @@
 
-from typing import List
+from typing import Callable, List, TypeVar
 from functools import reduce
 
-from .utils import Stream, Filter
+from .utils import Stream
 from .operators import join_any
 
 
-def chain(filters: List[Filter]) -> Filter:
-    return reduce(lambda f, g: lambda x: f(g(x)), filters)
+T = TypeVar('T')
+
+
+def chain(funcs: List[Callable[[T], T]]) -> Callable[[T], T]:
+    return reduce(lambda f, g: lambda x: f(g(x)), funcs)
 
 
 def join_any_to_stream(stream: Stream) -> Stream:
