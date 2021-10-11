@@ -8,8 +8,8 @@ from .utils import ConfigurableCallable, removeprefix
 from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
 from .operators import OpIndexToMulti, join_any
-from .file_iterators import (
-    file_iterators, iterate_path,
+from .file_readers import (
+    file_readers, read_from_path,
     readAliSeries, readFastaSeries, readPhylipSeries,
     readNexusFile as _readNexusFile,
     )
@@ -81,6 +81,6 @@ def load_from_path(path: Path) -> pd.DataFrame:
     type, format = autodetect(path)
     if format in file_loaders[type]:
         return file_loaders[type][format]()(path)
-    elif format in file_iterators[type]:
+    elif format in file_readers[type]:
         return join_any(iterate_path(path))
     raise LoaderNotFound(type)

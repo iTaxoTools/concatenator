@@ -18,20 +18,20 @@ from .phylip import phylip_reader
 from . import SPECIES, SEQUENCE_PREFIX
 
 
-class CallableIterator(ConfigurableCallable):
+class FileReader(ConfigurableCallable):
     def call(self, path: Path) -> Iterator[pd.Series]:
         raise NotImplementedError
 
 
-file_iterators: Dict[FileType, Dict[FileFormat, CallableIterator]] = {
+file_readers: Dict[FileType, Dict[FileFormat, FileReader]] = {
     type: dict() for type in FileType}
 
 
-def file_iterator(
+def file_reader(
     type: FileType, format: FileFormat
-) -> Callable[[CallableIterator], CallableIterator]:
-    def decorator(callable: CallableIterator) -> CallableIterator:
-        file_iterators[type][format] = callable
+) -> Callable[[FileReader], FileReader]:
+    def decorator(callable: FileReader) -> FileReader:
+        file_readers[type][format] = callable
         return callable
     return decorator
 
@@ -44,8 +44,8 @@ def readNexusFile(path: Path) -> pd.DataFrame:
     return OpIndexToMulti()(data)
 
 
-@file_iterator(FileType.File, FileFormat.Nexus)
-class NexusIterator(CallableIterator):
+@file_reader(FileType.File, FileFormat.Nexus)
+class NexusIterator(FileReader):
     def call(self, path: Path) -> Iterator[pd.Series]:
         data = readNexusFile(path)
         for col in data:
@@ -54,10 +54,10 @@ class NexusIterator(CallableIterator):
 
 def _readSeries(
     path: Path,
-    func: Callable[[TextIO], pd.Series]
+    part_reader: Callable[[TextIO], pd.Series]
 ) -> pd.Series:
     with path.open() as file:
-        series = func(file)
+        series = part_reader(file)
     series.name = path.stem
     series.index.name = SPECIES
     return OpIndexToMulti()(series)
@@ -75,24 +75,24 @@ def readPhylipSeries(path: Path) -> pd.Series:
     return _readSeries(path, phylip_reader)
 
 
-def _register_multifile_iterator(
+def _register_multifile_reader(
     format: FileFormat,
     reader: Callable[[Path], pd.Series]
 ) -> None:
 
-    @file_iterator(FileType.File, format)
-    class _SingleFileIterator(CallableIterator):
+    @file_reader(FileType.File, format)
+    class _SingleFileIterator(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
             yield reader(path)
 
-    @file_iterator(FileType.Directory, format)
-    class _MultiDirIterator(CallableIterator):
+    @file_reader(FileType.Directory, format)
+    class _MultiDirIterator(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
             for part in iterateDirectory(path):
                 yield reader(part)
 
-    @file_iterator(FileType.ZipArchive, format)
-    class _MultiZipIterator(CallableIterator):
+    @file_reader(FileType.ZipArchive, format)
+    class _MultiZipIterator(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
             for part in iterateZipArchive(path):
                 yield reader(part)
@@ -103,11 +103,11 @@ for format, reader in {
     FileFormat.Phylip: readPhylipSeries,
     FileFormat.Ali: readAliSeries,
 }.items():
-    _register_multifile_iterator(format, reader)
+    _register_multifile_reader(format, reader)
 
 
-@file_iterator(FileType.File, FileFormat.Tab)
-class TabFileIterator(CallableIterator):
+@file_reader(FileType.File, FileFormat.Tab)
+class TabFileIterator(FileReader):
     def call(self, path: Path) -> Iterator[pd.Series]:
         with path.open() as file:
             columns = file.readline().rstrip().split("\t")
@@ -134,10 +134,10 @@ class IteratorNotFound(Exception):
         super().__init__((f'No iterator for {str(type)} and {str(format)}'))
 
 
-def iterate_path(path: Path) -> Iterator[pd.Series]:
+def read_from_path(path: Path) -> Iterator[pd.Series]:
     type, format = autodetect(path)
-    if format in file_iterators[type]:
-        iterator = file_iterators[type][format]()
+    if format in file_readers[type]:
+        iterator = file_readers[type][format]()
         for series in iterator(path):
             yield OpCheckValid()(series)
         return

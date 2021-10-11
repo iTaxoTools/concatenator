@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from itaxotools.concatenator.library.file_types import FileType, FileFormat
-from itaxotools.concatenator.library.file_iterators import iterate_path
+from itaxotools.concatenator.library.file_readers import read_from_path
 from itaxotools.concatenator.library.detect_file_type import autodetect
 from itaxotools.concatenator.library.file_writers import write_from_iterator, format_file_name
 
@@ -20,7 +20,7 @@ def convert(
     in_type, in_format = autodetect(source)
     print(f'Input: {source.name}: {in_type.description}, {in_format.description}')
     to_path = dest / format_file_name(name, to_type, to_format)
-    write_from_iterator(iterate_path(source), to_path, to_type, to_format)
+    write_from_iterator(read_from_path(source), to_path, to_type, to_format)
     print(f'Output: {to_path.name}: {to_type.description}, {to_format.description}')
 
 if __name__ == '__main__':
