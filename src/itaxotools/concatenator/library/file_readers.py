@@ -7,7 +7,7 @@ import pandas as pd
 from .utils import removeprefix
 from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
-from .operators import index_to_multi, join_any
+from .operators import OpIndexToMulti, join_any
 from .file_iterators import (
     file_iterators, iterator_from_path,
     readAliSeries, readFastaSeries, readPhylipSeries,
@@ -39,7 +39,7 @@ def readTabFile(path: Path) -> pd.DataFrame:
     indices = [x for x in data.columns if not x.startswith(SEQUENCE_PREFIX)]
     data.set_index(indices, inplace=True)
     data.columns = [removeprefix(col, SEQUENCE_PREFIX) for col in data.columns]
-    return index_to_multi(data)
+    return OpIndexToMulti()(data)
 
 
 @file_reader(FileType.File, FileFormat.Nexus)

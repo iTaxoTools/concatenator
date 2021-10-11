@@ -8,7 +8,7 @@ from .utils import removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import iterateZipArchive, iterateDirectory
 from .detect_file_type import autodetect
-from .operators import check_valid, index_to_multi
+from .operators import OpCheckValid, OpIndexToMulti
 
 from .nexus import read as nexus_read
 from .ali import ali_reader
@@ -39,7 +39,7 @@ def readNexusFile(path: Path) -> pd.DataFrame:
         data = nexus_read(file)
     data.set_index('seqid', inplace=True)
     data.index.name = SPECIES
-    return index_to_multi(data)
+    return OpIndexToMulti()(data)
 
 
 @file_iterator(FileType.File, FileFormat.Nexus)
@@ -57,7 +57,7 @@ def _readSeries(
         series = func(file)
     series.name = path.stem
     series.index.name = SPECIES
-    return index_to_multi(series)
+    return OpIndexToMulti()(series)
 
 
 def readAliSeries(path: Path) -> pd.Series:
@@ -117,7 +117,7 @@ def iterateTabFile(path: Path) -> Iterator[pd.Series]:
             data.set_index(indices, inplace=True)
             series = pd.Series(data.iloc[:, 0])
             series.name = removeprefix(sequence, SEQUENCE_PREFIX)
-            yield index_to_multi(series)
+            yield OpIndexToMulti()(series)
 
 
 class IteratorNotFound(Exception):
@@ -132,6 +132,6 @@ def iterator_from_path(path: Path) -> Iterator[pd.Series]:
     type, format = autodetect(path)
     if format in file_iterators[type]:
         for series in file_iterators[type][format](path):
-            yield check_valid(series)
+            yield OpCheckValid()(series)
         return
     raise IteratorNotFound(type, format)
