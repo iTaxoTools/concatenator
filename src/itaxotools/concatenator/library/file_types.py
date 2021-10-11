@@ -37,6 +37,9 @@ class FileFormat(Enum):
         self.extension = extension
         self.timestamp = timestamp
 
+    def __str__(self):
+        return self.description
+
 
 class FileType(Enum):
     """Containers for file formats"""
@@ -48,3 +51,6 @@ class FileType(Enum):
     def __init__(self, description: str, extension: Optional[str]):
         self.description = description
         self.extension = extension
+
+    def __str__(self):
+        return self.description

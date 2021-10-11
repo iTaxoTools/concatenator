@@ -1,5 +1,5 @@
 
-from typing import Callable, Dict, Iterator, TextIO
+from typing import Callable, Dict, TextIO
 from pathlib import Path
 
 import pandas as pd
@@ -158,8 +158,8 @@ def format_file_name(
     return base + type.extension
 
 
-def write_from_iterator(
-    series: Iterator[pd.Series],
+def write_from_stream(
+    series: Stream,
     path: Path,
     type: FileType,
     format: FileFormat,
