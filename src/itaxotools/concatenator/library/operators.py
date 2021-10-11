@@ -61,6 +61,8 @@ class OpIndexToMulti(Operator):
 class OpSpeciesToFront(Operator):
     def call(self, series: pd.Series) -> pd.Series:
         ordered = list(series.index.names)
+        if SPECIES not in ordered:
+            return series
         ordered.remove(SPECIES)
         ordered = [SPECIES] + ordered
         return series.reorder_levels(ordered)
@@ -70,7 +72,9 @@ class OpIndexMerge(Operator):
     glue: str = Param('_')
 
     def call(self, series: pd.Series) -> pd.Series:
-        series.index = series.index.to_frame().apply(self.glue.join, axis=1)
+        series.index = pd.Index(
+            series.index.to_frame().apply(self.glue.join, axis=1),
+            name='merged')
         return series
 
 
@@ -91,10 +95,12 @@ class OpDropEmpty(Operator):
 
 
 class OpPadRight(Operator):
-    fill: str = Param('-')
+    padding: str = Param('-')
 
     def call(self, series: pd.Series) -> pd.Series:
-        return make_equal_length(series.dropna(), fillchar=self.fill)
+        if not self.padding:
+            return series
+        return make_equal_length(series.fillna(''), fillchar=self.padding)
 
 
 class OpTranslate(Operator):

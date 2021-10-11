@@ -1,27 +1,32 @@
 
-from typing import Callable, Dict, Iterator, List, TextIO
+from typing import Callable, Dict, Iterator, TextIO
 from pathlib import Path
 
 import pandas as pd
 
 from .file_utils import createDirectory, createZipArchive, PathLike
-from .operators import OpIndexMerge, OpPadRight, join_any
 from .file_types import FileType, FileFormat
-from .utils import Filter
+from .utils import Stream, ConfigurableCallable, Param
+from .operators import (
+    OpIndexMerge, OpPadRight, OpIndexToMulti, OpDropEmpty, join_any, chain)
 
 from .fasta import fasta_writer
 from .phylip import phylip_writer
 from .ali import ali_writer
 from .nexus import write_from_series
 
-from . import SPECIES, SEQUENCE_PREFIX
+from . import SEQUENCE_PREFIX
 
 
-CallableWriter = Callable[[Iterator[pd.Series], Path], None]
-CallableWriterDecorator = Callable[[CallableWriter], CallableWriter]
 PartWriter = Callable[[pd.Series, TextIO], None]
 
-file_writers: Dict[FileType, Dict[FileFormat, CallableWriter]] = {
+
+class FileWriter(ConfigurableCallable):
+    def call(self, stream: Stream, path: Path) -> None:
+        raise NotImplementedError
+
+
+file_writers: Dict[FileType, Dict[FileFormat, FileWriter]] = {
     type: dict() for type in FileType}
 
 
@@ -33,19 +38,19 @@ filtered_ali_writer = ali_writer
 
 def file_writer(
     type: FileType, format: FileFormat
-) -> CallableWriterDecorator:
-    def decorator(func: CallableWriter) -> CallableWriter:
-        file_writers[type][format] = func
-        return func
+) -> Callable[[FileWriter], FileWriter]:
+    def decorator(writer: FileWriter) -> FileWriter:
+        file_writers[type][format] = writer
+        return writer
     return decorator
 
 
 def _writeConcatenatedFormat(
-    iterator: Iterator[pd.Series],
+    stream: Stream,
     path: Path,
     writer: PartWriter,
 ) -> None:
-    joined = pd.concat(iterator, axis=1)
+    joined = join_any(stream)
     data = joined.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
     with path.open('w') as file:
         writer(data, file)
@@ -54,12 +59,19 @@ def _writeConcatenatedFormat(
 def _register_concatenated_writer(
     format: FileFormat,
     writer: PartWriter,
-    filters: List[Filter] = list(),
 ) -> None:
 
     @file_writer(FileType.File, format)
-    def _writeConcatenatedFile(it: Iterator[pd.Series], path: Path) -> None:
-        _writeConcatenatedFormat(it, path, writer)
+    class _ConcatenatedFileWriter(FileWriter):
+        padding = Param('-')
+
+        def call(self, stream: Stream, path: Path) -> None:
+            filters = chain([
+                OpIndexMerge().to_filter,
+                OpIndexToMulti().to_filter,
+                OpPadRight(self.padding).to_filter,
+                ])
+            _writeConcatenatedFormat(filters(stream), path, writer)
 
 
 for format, (writer, filters) in {
@@ -67,7 +79,7 @@ for format, (writer, filters) in {
     FileFormat.Phylip: (filtered_phylip_writer, []),
     FileFormat.Ali: (filtered_ali_writer, []),
 }.items():
-    _register_concatenated_writer(format, writer, filters)
+    _register_concatenated_writer(format, writer)
 
 
 def _register_multifile_writer(
@@ -78,13 +90,22 @@ def _register_multifile_writer(
 ) -> None:
 
     @file_writer(type, format)
-    def _writeMultifile(iterator: Iterator[pd.Series], path: Path) -> None:
-        container = creator(path)
-        for series in iterator:
-            name = format_file_name(series.name, FileType.File, format)
-            part = container / name
-            with part.open('w') as file:
-                writer(series, file)
+    class _MultiFileWriter(FileWriter):
+        padding = Param('-')
+
+        def call(self, stream: Stream, path: Path) -> None:
+            container = creator(path)
+            for series in stream:
+                name = format_file_name(series.name, FileType.File, format)
+                part = container / name
+                operator = chain([
+                    OpDropEmpty(),
+                    OpIndexMerge(),
+                    OpIndexToMulti(),
+                    OpPadRight(self.padding),
+                    ])
+                with part.open('w') as file:
+                    writer(operator(series), file)
 
 
 for type, creator in {
@@ -100,19 +121,24 @@ for type, creator in {
 
 
 @file_writer(FileType.File, FileFormat.Nexus)
-def writeNexusFile(iterator: Iterator[pd.Series], path: Path) -> None:
-    data = OpIndexMerge()(join_any(iterator))
-    generator = (data[col].fillna('') for col in data)
-    with path.open('w') as file:
-        write_from_series(OpPadRight().to_filter(generator), file)
+class NexusFileWriter(FileWriter):
+    padding = Param('*')
+
+    def call(self, stream: Stream, path: Path) -> None:
+        data = OpIndexMerge()(join_any(stream))
+        generator = (data[col].fillna('') for col in data)
+        with path.open('w') as file:
+            write_from_series(
+                OpPadRight(self.padding).to_filter(generator), file)
 
 
 @file_writer(FileType.File, FileFormat.Tab)
-def writeTabFile(iterator: Iterator[pd.Series], path: Path) -> None:
-    data = join_any(iterator)
-    data.columns = [SEQUENCE_PREFIX + col for col in data.columns]
-    with path.open('w') as file:
-        data.to_csv(file, sep="\t", line_terminator="\n")
+class TabFileWriter(FileWriter):
+    def call(self, stream: Stream, path: Path) -> None:
+        data = join_any(stream)
+        data.columns = [SEQUENCE_PREFIX + col for col in data.columns]
+        with path.open('w') as file:
+            data.to_csv(file, sep="\t", line_terminator="\n")
 
 
 class WriterNotFound(Exception):
@@ -141,4 +167,4 @@ def write_from_iterator(
     """Species as index, sequences as columns"""
     if format not in file_writers[type]:
         raise WriterNotFound(type)
-    return file_writers[type][format](series, path)
+    return file_writers[type][format]()(series, path)

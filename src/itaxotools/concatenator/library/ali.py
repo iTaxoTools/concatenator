@@ -121,6 +121,9 @@ def ali_reader(infile: TextIO) -> pd.Series:
 def ali_writer(series: pd.Series, outfile: TextIO) -> None:
     assert has_uniform_length(series)
 
+    trans_dict = str.maketrans("Nn-", "??*")
+    series = series.str.translate(trans_dict)
+
     pos_num = len(series.iat[0])
     otu_num = len(series)
     missing_count = series.str.count(r"\?").sum()
