@@ -77,7 +77,7 @@ def write_from_series(iterator: Iterator[pd.Series], out: TextIO) -> None:
 
     for series in iterator:
         assert has_uniform_length(series)
-        assert isinstance(series.index, pd.core.indexes.base.Index)
+        assert not isinstance(series.index, pd.MultiIndex)
 
         charsets[series.name] = len(series.iat[0])
         index_len = series.index.str.len().max()

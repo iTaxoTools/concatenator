@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from .file_utils import createDirectory, createZipArchive, PathLike
+from .operators import OpIndexMerge, OpPadRight, join_any
 from .file_types import FileType, FileFormat
 from .utils import Filter
 
@@ -100,17 +101,16 @@ for type, creator in {
 
 @file_writer(FileType.File, FileFormat.Nexus)
 def writeNexusFile(iterator: Iterator[pd.Series], path: Path) -> None:
-    data = pd.concat(iterator, axis=1)
-    generator = (data[col] for col in data)
+    data = OpIndexMerge()(join_any(iterator))
+    generator = (data[col].fillna('') for col in data)
     with path.open('w') as file:
-        write_from_series(generator, file)
+        write_from_series(OpPadRight().to_filter(generator), file)
 
 
 @file_writer(FileType.File, FileFormat.Tab)
 def writeTabFile(iterator: Iterator[pd.Series], path: Path) -> None:
-    data = pd.concat(iterator, axis=1)
+    data = join_any(iterator)
     data.columns = [SEQUENCE_PREFIX + col for col in data.columns]
-    data.index.name = SPECIES
     with path.open('w') as file:
         data.to_csv(file, sep="\t", line_terminator="\n")
 

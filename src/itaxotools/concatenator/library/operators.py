@@ -103,8 +103,11 @@ class OpIndexSpeciesOnly(Operator):
 
 
 class OpDropEmpty(Operator):
+    missing: str = ''
     def op(self, series: pd.Series) -> pd.Series:
         series.dropna(inplace=True)
+        if self.missing:
+            series = series[~ series.str.fullmatch(f'[{self.missing}]+')]
         return series[series.str.len() > 0]
 
 
