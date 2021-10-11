@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import removeprefix
+from .utils import ConfigurableCallable, removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import iterateZipArchive, iterateDirectory
 from .detect_file_type import autodetect
@@ -18,8 +18,10 @@ from .phylip import phylip_reader
 from . import SPECIES, SEQUENCE_PREFIX
 
 
-CallableIterator = Callable[[Path], Iterator[pd.Series]]
-CallableIteratorDecorator = Callable[[CallableIterator], CallableIterator]
+class CallableIterator(ConfigurableCallable):
+    def call(path: Path) -> Iterator[pd.Series]:
+        raise NotImplementedError
+
 
 file_iterators: Dict[FileType, Dict[FileFormat, CallableIterator]] = {
     type: dict() for type in FileType}
@@ -27,10 +29,10 @@ file_iterators: Dict[FileType, Dict[FileFormat, CallableIterator]] = {
 
 def file_iterator(
     type: FileType, format: FileFormat
-) -> CallableIteratorDecorator:
-    def decorator(func: CallableIterator) -> CallableIterator:
-        file_iterators[type][format] = func
-        return func
+) -> Callable[[CallableIterator], CallableIterator]:
+    def decorator(callable: CallableIterator) -> CallableIterator:
+        file_iterators[type][format] = callable
+        return callable
     return decorator
 
 
@@ -43,10 +45,11 @@ def readNexusFile(path: Path) -> pd.DataFrame:
 
 
 @file_iterator(FileType.File, FileFormat.Nexus)
-def iterateNexus(path: Path) -> Iterator[pd.Series]:
-    data = readNexusFile(path)
-    for col in data:
-        yield data[col]
+class NexusIterator(CallableIterator):
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        data = readNexusFile(path)
+        for col in data:
+            yield data[col]
 
 
 def _readSeries(
@@ -78,18 +81,21 @@ def _register_multifile_iterator(
 ) -> None:
 
     @file_iterator(FileType.File, format)
-    def _iterateSingleFile(path: Path) -> Iterator[pd.Series]:
-        yield reader(path)
+    class _SingleFileIterator(CallableIterator):
+        def call(self, path: Path) -> Iterator[pd.Series]:
+            yield reader(path)
 
     @file_iterator(FileType.Directory, format)
-    def _iterateMultifileDir(path: Path) -> Iterator[pd.Series]:
-        for part in iterateDirectory(path):
-            yield reader(part)
+    class _MultiDirIterator(CallableIterator):
+        def call(self, path: Path) -> Iterator[pd.Series]:
+            for part in iterateDirectory(path):
+                yield reader(part)
 
     @file_iterator(FileType.ZipArchive, format)
-    def _iterateMultifileZip(path: Path) -> Iterator[pd.Series]:
-        for part in iterateZipArchive(path):
-            yield reader(part)
+    class _MultiZipIterator(CallableIterator):
+        def call(self, path: Path) -> Iterator[pd.Series]:
+            for part in iterateZipArchive(path):
+                yield reader(part)
 
 
 for format, reader in {
@@ -101,23 +107,24 @@ for format, reader in {
 
 
 @file_iterator(FileType.File, FileFormat.Tab)
-def iterateTabFile(path: Path) -> Iterator[pd.Series]:
-    with path.open() as file:
-        columns = file.readline().rstrip().split("\t")
-        sequences = [col for col in columns if col.startswith(SEQUENCE_PREFIX)]
-        indices = [x for x in columns if not x.startswith(SEQUENCE_PREFIX)]
-        file.seek(0)
-        index = pd.read_table(
-            file, usecols=indices, dtype=str)
-        for sequence in sequences:
+class TabFileIterator(CallableIterator):
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        with path.open() as file:
+            columns = file.readline().rstrip().split("\t")
+            sequences = [x for x in columns if x.startswith(SEQUENCE_PREFIX)]
+            indices = [x for x in columns if not x.startswith(SEQUENCE_PREFIX)]
             file.seek(0)
-            table = pd.read_table(
-                file, usecols=[sequence], dtype=str)
-            data = table.join(index)
-            data.set_index(indices, inplace=True)
-            series = pd.Series(data.iloc[:, 0])
-            series.name = removeprefix(sequence, SEQUENCE_PREFIX)
-            yield OpIndexToMulti()(series)
+            index = pd.read_table(
+                file, usecols=indices, dtype=str)
+            for sequence in sequences:
+                file.seek(0)
+                table = pd.read_table(
+                    file, usecols=[sequence], dtype=str)
+                data = table.join(index)
+                data.set_index(indices, inplace=True)
+                series = pd.Series(data.iloc[:, 0])
+                series.name = removeprefix(sequence, SEQUENCE_PREFIX)
+                yield OpIndexToMulti()(series)
 
 
 class IteratorNotFound(Exception):
@@ -127,11 +134,11 @@ class IteratorNotFound(Exception):
         super().__init__((f'No iterator for {str(type)} and {str(format)}'))
 
 
-def iterator_from_path(path: Path) -> Iterator[pd.Series]:
-    """Species as index, sequence as name"""
+def iterate_path(path: Path) -> Iterator[pd.Series]:
     type, format = autodetect(path)
     if format in file_iterators[type]:
-        for series in file_iterators[type][format](path):
+        iterator = file_iterators[type][format]()
+        for series in iterator(path):
             yield OpCheckValid()(series)
         return
     raise IteratorNotFound(type, format)

@@ -120,8 +120,9 @@ def join_any(stream: Stream) -> pd.DataFrame:
 
     def fold_keys(stream: Stream) -> Iterator[pd.DataFrame]:
         for series in stream:
-            series.index.names = guard(series.index.names)
-            keys = series.index.names
+            keys = guard(list(series.index.names))
+            series.index = pd.MultiIndex.from_frame(
+                series.index.to_frame(), names=keys)
             all_keys.update(keys)
             yield series.reset_index(keys)
 

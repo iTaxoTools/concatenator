@@ -9,7 +9,7 @@ from .file_types import FileType, FileFormat
 from .detect_file_type import autodetect
 from .operators import OpIndexToMulti, join_any
 from .file_iterators import (
-    file_iterators, iterator_from_path,
+    file_iterators, iterate_path,
     readAliSeries, readFastaSeries, readPhylipSeries,
     readNexusFile as _readNexusFile,
     )
@@ -75,5 +75,5 @@ def dataframe_from_path(path: Path) -> pd.DataFrame:
     if format in file_readers[type]:
         return file_readers[type][format](path)
     elif format in file_iterators[type]:
-        return join_any(iterator_from_path(path))
+        return join_any(iterate_path(path))
     raise ReaderNotFound(type)
