@@ -19,7 +19,7 @@ from . import SPECIES, SEQUENCE_PREFIX
 
 
 class CallableIterator(ConfigurableCallable):
-    def call(path: Path) -> Iterator[pd.Series]:
+    def call(self, path: Path) -> Iterator[pd.Series]:
         raise NotImplementedError
 
 
