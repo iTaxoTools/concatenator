@@ -1,5 +1,6 @@
 
-from typing import Callable, List, Iterator, Union
+from typing import Callable, List, Iterator, TypeVar, Union
+from functools import reduce
 
 import pandas as pd
 
@@ -9,6 +10,11 @@ from . import SPECIES
 
 
 IndexedData = Union[pd.DataFrame, pd.Series]
+T = TypeVar('T')
+
+
+def chain(funcs: List[Callable[[T], T]]) -> Callable[[T], T]:
+    return reduce(lambda f, g: lambda x: f(g(x)), funcs)
 
 
 class _Operator_meta(type):
@@ -143,3 +149,8 @@ def join_any(stream: Stream) -> pd.DataFrame:
     all.set_index(list(all_keys), inplace=True)
     all.index.names = unguard(all.index.names)
     return OpSpeciesToFront()(OpIndexToMulti()(all))
+
+
+def join_any_to_stream(stream: Stream) -> Stream:
+    for series in join_any(stream):
+        yield series
