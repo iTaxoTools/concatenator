@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from typing import Callable, Dict, Iterator, Optional
+from typing import Callable, Dict, Iterator, Optional, Any
 
 import pandas as pd
 
@@ -10,6 +10,40 @@ Filter = Callable[[Stream], Stream]
 
 # Such as returned by str.maketrans
 Translation = Dict[int, int]
+
+
+class Param:
+    def __init__(self, default: Any = None):
+        self.default = default
+
+
+class _ConfigurableCallable_meta(type):
+    def __new__(cls, name, bases, classdict):
+        result = type.__new__(cls, name, bases, classdict)
+        result._params_ = [
+            x for x in classdict if isinstance(classdict[x], Param)]
+        for param in result._params_:
+            setattr(result, param, classdict[param].default)
+        return result
+
+
+class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
+    def __init__(self, *args, **kwargs):
+        members = self._params_.copy()
+        for arg in args:
+            if not members:
+                raise TypeError('Too many arguments')
+            setattr(self, members.pop(0), arg)
+        for kwarg in kwargs:
+            if kwarg not in members:
+                raise TypeError(f'Unexpected keyword: {kwarg}')
+            setattr(self, kwarg, kwargs[kwarg])
+
+    def __call__(self, *args, **kwargs) -> Any:
+        return self.call(*args, **kwargs)
+
+    def call(self, *args, **kwargs) -> Any:
+        raise NotImplementedError()
 
 
 # For Python 3.8 compatibility
