@@ -6,7 +6,7 @@ import pandas as pd
 
 from .utils import ConfigurableCallable, removeprefix
 from .file_types import FileType, FileFormat
-from .detect_file_type import autodetect
+from .file_identify import autodetect
 from .operators import OpIndexToMulti, join_any
 from .file_readers import (
     file_readers, read_from_path,

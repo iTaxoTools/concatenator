@@ -12,7 +12,7 @@ import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
 from .operations import Operation, Parameter, run_pipeline
-from .detect_file_type import autodetect
+from .file_identify import autodetect
 from .file_types import FileFormat
 
 

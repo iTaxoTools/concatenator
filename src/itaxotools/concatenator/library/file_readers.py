@@ -7,7 +7,7 @@ import pandas as pd
 from .utils import ConfigurableCallable, removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import iterateZipArchive, iterateDirectory
-from .detect_file_type import autodetect
+from .file_identify import autodetect
 from .operators import OpCheckValid, OpIndexToMulti
 
 from .nexus import read as nexus_read

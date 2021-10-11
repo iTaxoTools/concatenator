@@ -2,7 +2,7 @@
 
 from itaxotools.concatenator.library.file_types import FileType, FileFormat
 from itaxotools.concatenator.library.file_readers import read_from_path
-from itaxotools.concatenator.library.detect_file_type import autodetect
+from itaxotools.concatenator.library.file_identify import autodetect
 from itaxotools.concatenator.library.file_writers import write_from_iterator, format_file_name
 
 from pathlib import Path
