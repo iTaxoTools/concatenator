@@ -53,13 +53,13 @@ phylip_reader = column_reader
 
 def phylip_writer(series: pd.Series, outfile: TextIO) -> None:
     assert has_uniform_length(series)
-    
+
     seq_length = len(series.iat[0])
     outfile.write(f'{len(series)} {seq_length}\n')
     for index, sequence in series.iteritems():
         if isinstance(index, tuple):
             index = '_'.join([str(x) for x in index if x is not None])
-        if len(index) > 10:
-            logging.warning(f'Phylip sequence ID {repr(index)} is too long')
+        # if len(index) > 10:
+        #     logging.warning(f'Phylip sequence ID {repr(index)} is too long')
         index = index.ljust(10)
         outfile.write(f'{index} {sequence}\n')
