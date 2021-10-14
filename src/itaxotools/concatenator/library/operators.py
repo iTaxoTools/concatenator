@@ -1,5 +1,5 @@
 
-from typing import Callable, List, Iterator, TypeVar, Union
+from typing import Callable, List, Iterator, TypeVar, Set, Union
 from functools import reduce
 
 import pandas as pd
@@ -25,7 +25,9 @@ class Operator(ConfigurableCallable):
     def to_filter(self) -> Filter:
         def _filter(stream: Stream) -> Stream:
             for series in stream:
-                yield self(series)
+                result = self(series)
+                if result is not None:
+                    yield result
         return _filter
 
 
@@ -108,6 +110,15 @@ class OpTranslate(Operator):
 
     def call(self, series: pd.Series) -> pd.Series:
         return series.str.translate(self.translation)
+
+
+class OpFilterSequences(Operator):
+    filter: Set = Param(set())
+
+    def call(self, series: pd.Series) -> pd.Series:
+        if series.name not in self.filter:
+            return None
+        return series
 
 
 def join_any(stream: Stream) -> pd.DataFrame:
