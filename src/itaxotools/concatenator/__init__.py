@@ -7,6 +7,7 @@ from .concatenator import main  # noqa
 from .library.file_types import FileType, FileFormat
 from .library.file_identify import autodetect
 from .library.file_readers import read_from_path
+from .library.file_loaders import load_from_path
 from .library.file_writers import write_from_stream, format_file_name
 
 
