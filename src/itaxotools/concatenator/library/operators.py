@@ -55,6 +55,7 @@ class OpCheckValid(Operator):
 class OpIndexToMulti(Operator):
     def call(self, series: pd.Series) -> pd.Series:
         if not isinstance(series.index, pd.MultiIndex):
+            series = series.copy(deep=False)
             series.index = pd.MultiIndex.from_arrays(
                 [series.index], names=[series.index.name])
         return series
@@ -67,6 +68,7 @@ class OpSpeciesToFront(Operator):
             return series
         ordered.remove(SPECIES)
         ordered = [SPECIES] + ordered
+        series = series.copy(deep=False)
         return series.reorder_levels(ordered)
 
 
@@ -74,6 +76,7 @@ class OpIndexMerge(Operator):
     glue: str = Param('_')
 
     def call(self, series: pd.Series) -> pd.Series:
+        series = series.copy(deep=False)
         series.index = pd.Index(
             series.index.to_frame().apply(self.glue.join, axis=1),
             name='merged')
@@ -82,6 +85,7 @@ class OpIndexMerge(Operator):
 
 class OpIndexSpeciesOnly(Operator):
     def call(self, series: pd.Series) -> pd.Series:
+        series = series.copy(deep=False)
         series.index = series.index.to_frame()[SPECIES]
         return series
 
@@ -90,7 +94,7 @@ class OpDropEmpty(Operator):
     missing: str = Param('')
 
     def call(self, series: pd.Series) -> pd.Series:
-        series.dropna(inplace=True)
+        series = series.dropna(inplace=False)
         if self.missing:
             series = series[~ series.str.fullmatch(f'[{self.missing}]+')]
         return series[series.str.len() > 0]
@@ -102,7 +106,8 @@ class OpPadRight(Operator):
     def call(self, series: pd.Series) -> pd.Series:
         if not self.padding:
             return series
-        return make_equal_length(series.fillna(''), fillchar=self.padding)
+        series = series.fillna('', inplace=False)
+        return make_equal_length(series, fillchar=self.padding)
 
 
 class OpTranslate(Operator):
