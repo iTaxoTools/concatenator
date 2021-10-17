@@ -36,14 +36,13 @@ filtered_phylip_writer = phylip_writer
 filtered_ali_writer = ali_writer
 
 
-def format_name(
-    base: str,
+def get_extension(
     type: FileType,
     format: FileFormat,
 ) -> str:
     if type.extension is None:
-        return base + format.extension
-    return base + type.extension
+        return format.extension
+    return type.extension
 
 
 def file_writer(
@@ -106,7 +105,7 @@ def _register_multifile_writer(
         def call(self, stream: Stream, path: Path) -> None:
             container = creator(path)
             for series in stream:
-                name = format_name(series.name, FileType.File, format)
+                name = series.name + get_Extension(FileType.File, format)
                 part = container / name
                 operator = chain([
                     OpDropEmpty(),
