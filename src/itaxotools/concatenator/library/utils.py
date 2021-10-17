@@ -7,6 +7,7 @@ import pandas as pd
 
 Stream = Iterator[pd.Series]
 Filter = Callable[[Stream], Stream]
+MultiFilter = Callable[[Iterator[Stream]], Stream]
 
 # Such as returned by str.maketrans
 Translation = Dict[int, int]

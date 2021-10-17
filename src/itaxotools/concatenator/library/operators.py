@@ -5,7 +5,7 @@ from functools import reduce
 import pandas as pd
 
 from .utils import (
-    Filter, Stream, Translation, ConfigurableCallable, Param,
+    Stream, Filter, MultiFilter, Translation, ConfigurableCallable, Param,
     removeprefix, make_equal_length,
     )
 
@@ -28,6 +28,16 @@ class Operator(ConfigurableCallable):
                 result = self(series)
                 if result is not None:
                     yield result
+        return _filter
+
+    @property
+    def multi_filter(self) -> MultiFilter:
+        def _filter(streams: Iterator[Stream]) -> Stream:
+            for stream in streams:
+                for series in stream:
+                    result = self(series)
+                    if result is not None:
+                        yield result
         return _filter
 
 
@@ -123,6 +133,22 @@ class OpFilterSequences(Operator):
     def call(self, series: pd.Series) -> pd.Series:
         if series.name not in self.filter:
             return None
+        return series
+
+
+class OpChainSequences(Operator):
+    allow_duplicates: bool = Param(False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._memory = set()
+
+    def call(self, series: pd.Series) -> pd.Series:
+        if self.allow_duplicates:
+            return series
+        if series.name in self._memory:
+            return None
+        self._memory.add(series.name)
         return series
 
 
