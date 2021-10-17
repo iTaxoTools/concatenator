@@ -152,6 +152,15 @@ class OpChainSequences(Operator):
         return series
 
 
+class OpApply(Operator):
+    func: Callable[[pd.Series], pd.Series] = Param(None)
+
+    def call(self, series: pd.Series) -> pd.Series:
+        if self.func is None:
+            return series
+        return self.func(series)
+
+
 def join_any(stream: Stream) -> pd.DataFrame:
     """Outer join for any MultiIndex"""
     sentinel = '\u0000'
