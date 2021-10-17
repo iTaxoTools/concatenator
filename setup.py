@@ -17,7 +17,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 setup(
     name='concatenator',
 
-    version='0.1.0',
+    version='0.2.dev0',
 
     description='concatenator description',
 
