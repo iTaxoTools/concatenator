@@ -6,10 +6,10 @@ from .concatenator import main  # noqa
 
 from .library.file_types import FileType, FileFormat
 from .library.file_identify import autodetect
-from .library.file_readers import read_from_path
+from .library.file_readers import read_from_path, get_reader
+from .library.file_writers import write_to_path, get_writer, format_name
 from .library.file_loaders import load_from_path
-from .library.file_writers import write_from_stream, format_file_name
-
+from .library import operators
 
 def convert(
     source: Path,
@@ -20,6 +20,6 @@ def convert(
 ) -> None:
     in_type, in_format = autodetect(source)
     print(f'Input: {source.name}: {str(in_type)}, {str(in_format)}')
-    to_path = dest / format_file_name(name, to_type, to_format)
-    write_from_stream(read_from_path(source), to_path, to_type, to_format)
+    to_path = dest / format_name(name, to_type, to_format)
+    write_to_path(read_from_path(source), to_path, to_type, to_format)
     print(f'Output: {to_path.name}: {str(to_type)}, {str(to_format)}')

@@ -127,18 +127,22 @@ class TabFileIterator(FileReader):
                 yield OpIndexToMulti()(series)
 
 
-class IteratorNotFound(Exception):
+class ReaderNotFound(Exception):
     def __init__(self, type: FileType, format: FileFormat):
         self.type = type
         self.format = format
         super().__init__((f'No iterator for {str(type)} and {str(format)}'))
 
 
+def get_reader(type: FileType, format: FileFormat):
+    if format not in file_readers[type]:
+        raise ReaderNotFound(type, format)
+    return file_readers[type][format]
+
+
 def read_from_path(path: Path) -> Iterator[pd.Series]:
     type, format = autodetect(path)
     if format in file_readers[type]:
-        iterator = file_readers[type][format]()
-        for series in iterator(path):
+        reader = get_reader(type, format)
+        for series in reader()(path):
             yield OpCheckValid()(series)
-        return
-    raise IteratorNotFound(type, format)

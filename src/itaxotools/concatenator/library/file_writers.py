@@ -36,6 +36,16 @@ filtered_phylip_writer = phylip_writer
 filtered_ali_writer = ali_writer
 
 
+def format_name(
+    base: str,
+    type: FileType,
+    format: FileFormat,
+) -> str:
+    if type.extension is None:
+        return base + format.extension
+    return base + type.extension
+
+
 def file_writer(
     type: FileType, format: FileFormat
 ) -> Callable[[FileWriter], FileWriter]:
@@ -96,7 +106,7 @@ def _register_multifile_writer(
         def call(self, stream: Stream, path: Path) -> None:
             container = creator(path)
             for series in stream:
-                name = format_file_name(series.name, FileType.File, format)
+                name = format_name(series.name, FileType.File, format)
                 part = container / name
                 operator = chain([
                     OpDropEmpty(),
@@ -148,23 +158,17 @@ class WriterNotFound(Exception):
         super().__init__(f'No writer for {str(type)} and {str(format)}')
 
 
-def format_file_name(
-    base: str,
-    type: FileType,
-    format: FileFormat,
-) -> str:
-    if type.extension is None:
-        return base + format.extension
-    return base + type.extension
+def get_writer(type: FileType, format: FileFormat):
+    if format not in file_writers[type]:
+        raise WriterNotFound(type, format)
+    return file_writers[type][format]
 
 
-def write_from_stream(
+def write_to_path(
     series: Stream,
     path: Path,
     type: FileType,
     format: FileFormat,
 ) -> None:
-    """Species as index, sequences as columns"""
-    if format not in file_writers[type]:
-        raise WriterNotFound(type)
-    return file_writers[type][format]()(series, path)
+    writer = get_writer(type, format)
+    return writer()(series, path)
