@@ -1,5 +1,5 @@
 
-from typing import Callable, List, Iterator, TypeVar, Set, Union
+from typing import Callable, Dict, List, Iterator, TypeVar, Set, Union
 from functools import reduce
 
 import pandas as pd
@@ -121,14 +121,14 @@ class OpPadRight(Operator):
         return make_equal_length(series, fillchar=self.padding)
 
 
-class OpTranslate(Operator):
+class OpTranslateSequences(Operator):
     translation: Translation = Param({})
 
     def call(self, series: pd.Series) -> pd.Series:
         return series.str.translate(self.translation)
 
 
-class OpFilterSequences(Operator):
+class OpFilterCharsets(Operator):
     filter: Set = Param(set())
 
     def call(self, series: pd.Series) -> pd.Series:
@@ -137,7 +137,19 @@ class OpFilterSequences(Operator):
         return series
 
 
-class OpChainSequences(Operator):
+class OpTranslateCharsets(Operator):
+    translation: Dict = Param(dict())
+
+    def call(self, series: pd.Series) -> pd.Series:
+        if series.name in self.translation:
+            if self.translation[series.name] is None:
+                return None
+            series = series.copy(deep=False)
+            series.name = self.translation[series.name]
+        return series
+
+
+class OpChainCharsets(Operator):
     allow_duplicates: bool = Param(False)
 
     def __init__(self, *args, **kwargs):
