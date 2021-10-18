@@ -87,8 +87,9 @@ class OpIndexMerge(Operator):
 
     def call(self, series: pd.Series) -> pd.Series:
         series = series.copy(deep=False)
+        indices = series.index.to_frame().fillna('', inplace=False)
         series.index = pd.Index(
-            series.index.to_frame().apply(self.glue.join, axis=1),
+            indices.apply(self.glue.join, axis=1),
             name='merged')
         return series
 
