@@ -136,7 +136,7 @@ for type, creator in {
 
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusFileWriter(FileWriter):
-    padding = Param('*')
+    padding = Param('-')
 
     def call(self, stream: Stream, path: Path) -> None:
         data = OpIndexMerge()(join_any(stream))
