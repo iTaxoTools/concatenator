@@ -4,17 +4,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import ConfigurableCallable, removeprefix
+from .utils import ConfigurableCallable
 from .file_types import FileType, FileFormat
 from .file_identify import autodetect
-from .operators import OpIndexToMulti, join_any
+from .operators import join_any
 from .file_readers import (
-    file_readers, read_from_path,
+    file_readers, read_from_path, readNexusFile, readTab,
     readAliSeries, readFastaSeries, readPhylipSeries,
-    readNexusFile as _readNexusFile,
     )
-
-from . import SEQUENCE_PREFIX
 
 
 class FileLoader(ConfigurableCallable):
@@ -38,18 +35,13 @@ def file_loader(
 @file_loader(FileType.File, FileFormat.Tab)
 class TabFileLoader(FileLoader):
     def call(self, path: Path) -> pd.DataFrame:
-        data = pd.read_csv(path, sep='\t', dtype=str)
-        indices = [x for x in data.columns if not x.startswith(SEQUENCE_PREFIX)]
-        data.set_index(indices, inplace=True)
-        data.columns = [
-            removeprefix(col, SEQUENCE_PREFIX) for col in data.columns]
-        return OpIndexToMulti()(data)
+        return readTab(path)
 
 
 @file_loader(FileType.File, FileFormat.Nexus)
 class NexusFileLoader(FileLoader):
     def call(self, path: Path) -> pd.DataFrame:
-        return _readNexusFile(path)
+        return readNexusFile(path)
 
 
 @file_loader(FileType.File, FileFormat.Ali)
@@ -82,5 +74,5 @@ def load_from_path(path: Path) -> pd.DataFrame:
     if format in file_loaders[type]:
         return file_loaders[type][format]()(path)
     elif format in file_readers[type]:
-        return join_any(iterate_path(path))
+        return join_any(read_from_path(path))
     raise LoaderNotFound(type)

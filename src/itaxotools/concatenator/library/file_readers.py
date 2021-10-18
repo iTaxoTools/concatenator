@@ -132,6 +132,24 @@ class TabFileReaderSlow(FileReader):
                 yield OpIndexToMulti()(series)
 
 
+def readTab(path: Path) -> pd.DataFrame:
+    data = pd.read_csv(path, sep='\t', dtype=str)
+    indices = [x for x in data.columns if not x.startswith(SEQUENCE_PREFIX)]
+    data.set_index(indices, inplace=True)
+    data.columns = [
+        removeprefix(col, SEQUENCE_PREFIX) for col in data.columns]
+    return OpIndexToMulti()(data)
+
+
+# Defined last takes precedence
+@file_reader(FileType.File, FileFormat.Tab)
+class TabFileReader(FileReader):
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        data = readTab(path)
+        for col in data:
+            yield data[col]
+
+
 class ReaderNotFound(Exception):
     def __init__(self, type: FileType, format: FileFormat):
         self.type = type
