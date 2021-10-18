@@ -19,6 +19,9 @@ from . import SPECIES, SEQUENCE_PREFIX
 
 
 class FileReader(ConfigurableCallable):
+    type: FileType = None
+    format: FileFormat = None
+
     def call(self, path: Path) -> Iterator[pd.Series]:
         raise NotImplementedError
 
@@ -30,8 +33,10 @@ file_readers: Dict[FileType, Dict[FileFormat, FileReader]] = {
 def file_reader(
     type: FileType, format: FileFormat
 ) -> Callable[[FileReader], FileReader]:
-    def decorator(callable: FileReader) -> FileReader:
-        file_readers[type][format] = callable
+    def decorator(reader: FileReader) -> FileReader:
+        file_readers[type][format] = reader
+        reader.type = type
+        reader.format = format
         return callable
     return decorator
 
@@ -45,7 +50,7 @@ def readNexusFile(path: Path) -> pd.DataFrame:
 
 
 @file_reader(FileType.File, FileFormat.Nexus)
-class NexusIterator(FileReader):
+class NexusReader(FileReader):
     def call(self, path: Path) -> Iterator[pd.Series]:
         data = readNexusFile(path)
         for col in data:
@@ -81,18 +86,18 @@ def _register_multifile_reader(
 ) -> None:
 
     @file_reader(FileType.File, format)
-    class _SingleFileIterator(FileReader):
+    class _SingleFileReader(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
             yield reader(path)
 
     @file_reader(FileType.Directory, format)
-    class _MultiDirIterator(FileReader):
+    class _MultiDirReader(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
             for part in iterateDirectory(path):
                 yield reader(part)
 
     @file_reader(FileType.ZipArchive, format)
-    class _MultiZipIterator(FileReader):
+    class _MultiZipReader(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
             for part in iterateZipArchive(path):
                 yield reader(part)
@@ -107,7 +112,7 @@ for format, reader in {
 
 
 @file_reader(FileType.File, FileFormat.Tab)
-class TabFileIterator(FileReader):
+class TabFileReaderSlow(FileReader):
     def call(self, path: Path) -> Iterator[pd.Series]:
         with path.open() as file:
             columns = file.readline().rstrip().split("\t")

@@ -22,6 +22,9 @@ PartWriter = Callable[[pd.Series, TextIO], None]
 
 
 class FileWriter(ConfigurableCallable):
+    type: FileType = None
+    format: FileFormat = None
+
     def call(self, stream: Stream, path: Path) -> None:
         raise NotImplementedError
 
@@ -50,6 +53,8 @@ def file_writer(
 ) -> Callable[[FileWriter], FileWriter]:
     def decorator(writer: FileWriter) -> FileWriter:
         file_writers[type][format] = writer
+        writer.type = type
+        writer.format = format
         return writer
     return decorator
 
@@ -105,7 +110,7 @@ def _register_multifile_writer(
         def call(self, stream: Stream, path: Path) -> None:
             container = creator(path)
             for series in stream:
-                name = series.name + get_Extension(FileType.File, format)
+                name = series.name + get_extension(FileType.File, format)
                 part = container / name
                 operator = chain([
                     OpDropEmpty(),
