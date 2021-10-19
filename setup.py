@@ -17,7 +17,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 setup(
     name='concatenator',
 
-    version='0.1.0',
+    version='0.2.dev0',
 
     description='concatenator description',
 
@@ -39,6 +39,7 @@ setup(
         # that you indicate you support Python 3. These classifiers are *not*
         # checked by 'pip install'. See instead 'python_requires' below.
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
     ],
@@ -50,13 +51,13 @@ setup(
         where='src',
     ),
 
-    python_requires='>=3.9, <4',
+    python_requires='>=3.8, <4',
 
     install_requires=[
+        'zipp>=3.6.0',  # BUGFIX: backport from Python 3.9.1
         'pandas>=1.3.0',
-        'zipp>=3.6.0',
         'regex>=2021.8.28',
-        'DNAconvert>=0.1.0',
+        'DNAconvert>=0.1.dev1',
     ],
 
     extras_require={

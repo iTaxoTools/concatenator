@@ -1,63 +1,75 @@
 
-from typing import Callable, Dict, TextIO
+from typing import Callable, Dict, Iterator, TextIO
 from pathlib import Path
 
 import pandas as pd
 
-from .utils import removeprefix
-from .file_types import FileType
-from .detect_file_type import autodetect
+from .utils import ConfigurableCallable, removeprefix
+from .file_types import FileFormat, FileType
+from .file_utils import iterateZipArchive, iterateDirectory
+from .file_identify import autodetect
+from .operators import OpCheckValid, OpIndexToMulti
+
 from .nexus import read as nexus_read
-from .ali import column_reader as ali_reader
-from .fasta import column_reader as fasta_reader
-from .phylip import column_reader as phylip_reader
+from .ali import ali_reader
+from .fasta import fasta_reader
+from .phylip import phylip_reader
+
+from . import SPECIES, SEQUENCE_PREFIX
 
 
-CallableReader = Callable[[Path], pd.DataFrame]
-CallableReaderDecorator = Callable[[CallableReader], CallableReader]
+class FileReader(ConfigurableCallable):
+    type: FileType = None
+    format: FileFormat = None
 
-type_readers: Dict[FileType, CallableReader] = dict()
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        raise NotImplementedError
 
 
-def type_reader(type: FileType) -> CallableReaderDecorator:
-    def decorator(func: CallableReader) -> CallableReader:
-        type_readers[type] = func
-        return func
+file_readers: Dict[FileType, Dict[FileFormat, FileReader]] = {
+    type: dict() for type in FileType}
+
+
+def file_reader(
+    type: FileType, format: FileFormat
+) -> Callable[[FileReader], FileReader]:
+    def decorator(reader: FileReader) -> FileReader:
+        file_readers[type][format] = reader
+        reader.type = type
+        reader.format = format
+        return callable
     return decorator
 
 
-@type_reader(FileType.TabFile)
-def readTabFile(path: Path) -> pd.DataFrame:
-    data = pd.read_csv(path, sep='\t', dtype=str, keep_default_na=False)
-    data.drop(columns=['specimen-voucher', 'locality'], inplace=True)
-    data.set_index(data.loc[:, 'species'])
-    data.drop(columns=['species'], inplace=True)
-    data.columns = [removeprefix(c, 'sequence_') for c in data.columns]
-    return data
-
-
-@type_reader(FileType.NexusFile)
 def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file)
     data.set_index('seqid', inplace=True)
-    data.index.name = None
-    return data
+    data.index.name = SPECIES
+    return OpIndexToMulti()(data)
+
+
+@file_reader(FileType.File, FileFormat.Nexus)
+class NexusReader(FileReader):
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        data = readNexusFile(path)
+        for col in data:
+            yield data[col]
 
 
 def _readSeries(
     path: Path,
-    func: Callable[[TextIO], pd.Series]
+    part_reader: Callable[[TextIO], pd.Series]
 ) -> pd.Series:
     with path.open() as file:
-        series = func(file)
+        series = part_reader(file)
     series.name = path.stem
-    return series
+    series.index.name = SPECIES
+    return OpIndexToMulti()(series)
 
 
 def readAliSeries(path: Path) -> pd.Series:
-    series = _readSeries(path, ali_reader)
-    return series.str.replace('_', '-', regex=False)
+    return _readSeries(path, ali_reader)
 
 
 def readFastaSeries(path: Path) -> pd.Series:
@@ -68,31 +80,92 @@ def readPhylipSeries(path: Path) -> pd.Series:
     return _readSeries(path, phylip_reader)
 
 
-@type_reader(FileType.AliFile)
-def readAliFile(path: Path) -> pd.DataFrame:
-    return pd.DataFrame(readAliSeries(path))
+def _register_multifile_reader(
+    format: FileFormat,
+    reader: Callable[[Path], pd.Series]
+) -> None:
+
+    @file_reader(FileType.File, format)
+    class _SingleFileReader(FileReader):
+        def call(self, path: Path) -> Iterator[pd.Series]:
+            yield reader(path)
+
+    @file_reader(FileType.Directory, format)
+    class _MultiDirReader(FileReader):
+        def call(self, path: Path) -> Iterator[pd.Series]:
+            for part in iterateDirectory(path):
+                yield reader(part)
+
+    @file_reader(FileType.ZipArchive, format)
+    class _MultiZipReader(FileReader):
+        def call(self, path: Path) -> Iterator[pd.Series]:
+            for part in iterateZipArchive(path):
+                yield reader(part)
 
 
-@type_reader(FileType.FastaFile)
-def readFastaFile(path: Path) -> pd.DataFrame:
-    return pd.DataFrame(readFastaSeries(path))
+for format, reader in {
+    FileFormat.Fasta: readFastaSeries,
+    FileFormat.Phylip: readPhylipSeries,
+    FileFormat.Ali: readAliSeries,
+}.items():
+    _register_multifile_reader(format, reader)
 
 
-@type_reader(FileType.PhylipFile)
-def readPhylipFile(path: Path) -> pd.DataFrame:
-    return pd.DataFrame(readPhylipSeries(path))
+@file_reader(FileType.File, FileFormat.Tab)
+class TabFileReaderSlow(FileReader):
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        with path.open() as file:
+            columns = file.readline().rstrip().split("\t")
+            sequences = [x for x in columns if x.startswith(SEQUENCE_PREFIX)]
+            indices = [x for x in columns if not x.startswith(SEQUENCE_PREFIX)]
+            file.seek(0)
+            index = pd.read_table(
+                file, usecols=indices, dtype=str)
+            for sequence in sequences:
+                file.seek(0)
+                table = pd.read_table(
+                    file, usecols=[sequence], dtype=str)
+                data = table.join(index)
+                data.set_index(indices, inplace=True)
+                series = pd.Series(data.iloc[:, 0])
+                series.name = removeprefix(sequence, SEQUENCE_PREFIX)
+                yield OpIndexToMulti()(series)
+
+
+def readTab(path: Path) -> pd.DataFrame:
+    data = pd.read_csv(path, sep='\t', dtype=str)
+    indices = [x for x in data.columns if not x.startswith(SEQUENCE_PREFIX)]
+    data.set_index(indices, inplace=True)
+    data.columns = [
+        removeprefix(col, SEQUENCE_PREFIX) for col in data.columns]
+    return OpIndexToMulti()(data)
+
+
+# Defined last takes precedence
+@file_reader(FileType.File, FileFormat.Tab)
+class TabFileReader(FileReader):
+    def call(self, path: Path) -> Iterator[pd.Series]:
+        data = readTab(path)
+        for col in data:
+            yield data[col]
 
 
 class ReaderNotFound(Exception):
-    def __init__(self, type: FileType):
+    def __init__(self, type: FileType, format: FileFormat):
         self.type = type
-        super().__init__(f'No reader for FileType: {str(type)}')
+        self.format = format
+        super().__init__((f'No iterator for {str(type)} and {str(format)}'))
 
 
-def dataframe_from_path(path: Path) -> pd.DataFrame:
-    """Species as index, sequences as columns"""
-    type = autodetect(path)
-    if type not in type_readers:
-        raise ReaderNotFound(type)
-    data = type_readers[type](path)
-    return data
+def get_reader(type: FileType, format: FileFormat):
+    if format not in file_readers[type]:
+        raise ReaderNotFound(type, format)
+    return file_readers[type][format]
+
+
+def read_from_path(path: Path) -> Iterator[pd.Series]:
+    type, format = autodetect(path)
+    if format in file_readers[type]:
+        reader = get_reader(type, format)
+        for series in reader()(path):
+            yield OpCheckValid()(series)

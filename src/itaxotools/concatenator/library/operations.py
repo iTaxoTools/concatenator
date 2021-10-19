@@ -15,7 +15,7 @@ from . import tab_to_partition_finder
 from . import nexus_to_partition_finder
 from . import tab_to_codon_tab
 from .file_utils import make_binary, make_binary_in, make_binary_out
-from .file_types import FileType
+from .file_types import FileFormat
 
 
 Parameter = Union[None, int, str]
@@ -31,43 +31,43 @@ def dnaconvert_wrapper(format: str) -> Callable[[TextIO, TextIO], None]:
 class Operation(Enum):
     """Operations that the program can perform on files"""
 
-    TabToNexus = (FileType.TabFile, "Tabfile to NEXUS", None, None)
-    NexusToTab = (FileType.NexusFile, "NEXUS to Tabfile", None, None)
-    ConcatTab = (FileType.TabFile, "Concatenate", None, None)
+    TabToNexus = (FileFormat.TabFile, "Tabfile to NEXUS", None, None)
+    NexusToTab = (FileFormat.NexusFile, "NEXUS to Tabfile", None, None)
+    ConcatTab = (FileFormat.TabFile, "Concatenate", None, None)
     DnaConvert = (
-        FileType.ConcatTabFile,
+        FileFormat.ConcatTabFile,
         "DNAconvert\n(concatenated)",
         "Convert into {} with DNAconvert",
         ["fasta", "phylip"],
     )
-    TabToMFasta = (FileType.TabFile, "Tabfile to multifile Fasta", None, None)
-    TabToMPhylip = (FileType.TabFile, "Tabfile to multifile Phylip", None, None)
-    TabToMAli = (FileType.TabFile, "Tabfile to multifile Ali", None, None)
-    MFastaToTab = (FileType.MultiFastaInput, "Multifile Fasta to tabfile", None, None)
-    MAliToTab = (FileType.MultiAliInput, "Multifile Ali to tabfile", None, None)
+    TabToMFasta = (FileFormat.TabFile, "Tabfile to multifile Fasta", None, None)
+    TabToMPhylip = (FileFormat.TabFile, "Tabfile to multifile Phylip", None, None)
+    TabToMAli = (FileFormat.TabFile, "Tabfile to multifile Ali", None, None)
+    MFastaToTab = (FileFormat.MultiFastaInput, "Multifile Fasta to tabfile", None, None)
+    MAliToTab = (FileFormat.MultiAliInput, "Multifile Ali to tabfile", None, None)
     MPhylipToTab = (
-        FileType.MultiPhylipInput,
+        FileFormat.MultiPhylipInput,
         "Multifile Phylip to tabfile",
         None,
         None,
     )
     TabToPartition = (
-        FileType.TabFile,
+        FileFormat.TabFile,
         "Tabfile to Partitionfinder archive",
         None,
         None,
     )
     NexusToPartition = (
-        FileType.NexusFile,
+        FileFormat.NexusFile,
         "NEXUS file to Partitionfinder archive",
         None,
         None,
     )
-    TabToCodons = (FileType.TabFile, "Split codon positions in tabfile", None, None)
+    TabToCodons = (FileFormat.TabFile, "Split codon positions in tabfile", None, None)
 
     def __init__(
         self,
-        input_type: FileType,
+        input_type: FileFormat,
         button_text: str,
         description: Optional[str],
         parameter_type: Any,
@@ -81,25 +81,25 @@ class Operation(Enum):
             self.description = button_text
         self.parameter_type = parameter_type
 
-    def output_type(self, parameter: Parameter) -> FileType:
+    def output_type(self, parameter: Parameter) -> FileFormat:
         type = {
-            Operation.TabToNexus: FileType.NexusFile,
-            Operation.NexusToTab: FileType.TabFile,
-            Operation.ConcatTab: FileType.ConcatTabFile,
-            Operation.DnaConvert: FileType.ConcatFasta
+            Operation.TabToNexus: FileFormat.NexusFile,
+            Operation.NexusToTab: FileFormat.TabFile,
+            Operation.ConcatTab: FileFormat.ConcatTabFile,
+            Operation.DnaConvert: FileFormat.ConcatFasta
             if parameter == "fasta"
-            else FileType.ConcatPhylip
+            else FileFormat.ConcatPhylip
             if parameter == "phylip"
             else None,
-            Operation.TabToMFasta: FileType.MultiFastaOutput,
-            Operation.TabToMPhylip: FileType.MultiPhylipOutput,
-            Operation.TabToMAli: FileType.MultiAliOutput,
-            Operation.MFastaToTab: FileType.TabFile,
-            Operation.MAliToTab: FileType.TabFile,
-            Operation.MPhylipToTab: FileType.TabFile,
-            Operation.TabToPartition: FileType.PartitionFinderOutput,
-            Operation.NexusToPartition: FileType.PartitionFinderOutput,
-            Operation.TabToCodons: FileType.CodonTab,
+            Operation.TabToMFasta: FileFormat.MultiFastaOutput,
+            Operation.TabToMPhylip: FileFormat.MultiPhylipOutput,
+            Operation.TabToMAli: FileFormat.MultiAliOutput,
+            Operation.MFastaToTab: FileFormat.TabFile,
+            Operation.MAliToTab: FileFormat.TabFile,
+            Operation.MPhylipToTab: FileFormat.TabFile,
+            Operation.TabToPartition: FileFormat.PartitionFinderOutput,
+            Operation.NexusToPartition: FileFormat.PartitionFinderOutput,
+            Operation.TabToCodons: FileFormat.CodonTab,
         }.get(self)
         assert type is not None
         return type

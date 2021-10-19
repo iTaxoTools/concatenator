@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 
 from enum import Enum
+from typing import Optional
 
 
-class FileType(Enum):
-    """Types of files that can be processed by operations"""
+class FileFormat(Enum):
+    """File formats supported by operations"""
+
+    Tab = ("Tab-separated Table", ".tab", False)
+    Nexus = ("Interleaved NEXUS", ".nex", False)
+    Ali = ("Ali", ".ali", False)
+    Fasta = ("Fasta", ".fas", False)
+    Phylip = ("Phylip", ".phy", False)
+
+    # Pending cleanup
 
     TabFile = ("Tab file", ".tab", False)
     AliFile = ("Ali file", ".ali", False)
@@ -27,3 +36,21 @@ class FileType(Enum):
         self.description = description
         self.extension = extension
         self.timestamp = timestamp
+
+    def __str__(self):
+        return self.description
+
+
+class FileType(Enum):
+    """Containers for file formats"""
+
+    File = ('Single File', None)
+    Directory = ('Directory', '')
+    ZipArchive = ('Zip Archive', '.zip')
+
+    def __init__(self, description: str, extension: Optional[str]):
+        self.description = description
+        self.extension = extension
+
+    def __str__(self):
+        return self.description

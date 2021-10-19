@@ -12,8 +12,8 @@ import tkinter.filedialog as tkfiledialog
 import tkinter.messagebox as tkmessagebox
 
 from .operations import Operation, Parameter, run_pipeline
-from .detect_file_type import autodetect
-from .file_types import FileType
+from .file_identify import autodetect
+from .file_types import FileFormat
 
 
 class Operator(ttk.Frame):
@@ -69,7 +69,7 @@ class Operator(ttk.Frame):
         self.operations.append((self.operation, parameter))
         self.command()
 
-    def show_type_error(self, last_op: str, last_output_type: FileType) -> None:
+    def show_type_error(self, last_op: str, last_output_type: FileFormat) -> None:
         message = "\n".join(
             [
                 "Can't add operation:",
