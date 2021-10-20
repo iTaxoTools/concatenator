@@ -1,0 +1,40 @@
+#NEXUS
+
+begin data;
+
+format datatype=DNA missing=N missing=? Gap=- Interleave=yes;
+
+dimensions Nchar=27 Ntax=5;
+
+matrix
+
+sample1_Mantella_aurantiaca_ZCMV1234_Andasibe ACGTTTTTZC
+sample2_Mantella_aurantiaca_ZCMV9876_Andasibe ACGTTTTACN
+ sample3_Mantella_aurantiaca_FGZC345_Andasibe ATGTTTTACN
+   sample4_Mantella_crocea_FGZC346_Ranomafana ACGTAATACN
+  sample5_Mantella_crocea_MNHN1991_Ranomafana ACGTAATAGN
+
+sample1_Mantella_aurantiaca_ZCMV1234_Andasibe GATTTAGA
+sample2_Mantella_aurantiaca_ZCMV9876_Andasibe GATCTAGA
+ sample3_Mantella_aurantiaca_FGZC345_Andasibe NNNNNNNN
+   sample4_Mantella_crocea_FGZC346_Ranomafana GATTTATA
+  sample5_Mantella_crocea_MNHN1991_Ranomafana AATTTATA
+
+sample1_Mantella_aurantiaca_ZCMV1234_Andasibe TAAGGCTGC
+sample2_Mantella_aurantiaca_ZCMV9876_Andasibe TAAGGGTGA
+ sample3_Mantella_aurantiaca_FGZC345_Andasibe TAAGGCTGA
+   sample4_Mantella_crocea_FGZC346_Ranomafana TATGGCTGA
+  sample5_Mantella_crocea_MNHN1991_Ranomafana TATGGCTGA
+
+;
+end;
+
+
+
+begin sets;
+
+charset 16S = 1-10;
+charset cytb = 11-18;
+charset coi = 19-27;
+
+end;

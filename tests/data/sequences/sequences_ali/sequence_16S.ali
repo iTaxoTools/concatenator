@@ -1,0 +1,14 @@
+#Number of positions: 10
+#Number of OTUs: 5
+#Percent of ?: 8.0
+#
+>sample1_Mantella_aurantiaca_ZCMV1234_Andasibe
+ACGTTTTTZC
+>sample2_Mantella_aurantiaca_ZCMV9876_Andasibe
+ACGTTTTAC?
+>sample3_Mantella_aurantiaca_FGZC345_Andasibe
+ATGTTTTAC?
+>sample4_Mantella_crocea_FGZC346_Ranomafana
+ACGTAATAC?
+>sample5_Mantella_crocea_MNHN1991_Ranomafana
+ACGTAATAG?
