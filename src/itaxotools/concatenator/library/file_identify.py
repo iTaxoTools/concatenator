@@ -6,7 +6,7 @@ from re import fullmatch
 from zipfile import is_zipfile
 
 from .file_types import FileFormat, FileType
-from .file_utils import PathLike
+from .file_utils import PathLike, ZipPath
 
 
 CallableTest = Callable[[Path], bool]
@@ -74,25 +74,26 @@ def _containerTest(
 
 def _register_multifile_test(
     type: FileType,
+    pathlike: PathLike,
     format: FileFormat,
     tester: CallableTest,
 ) -> None:
 
     @test(type, format)
     def _testMultifile(path: Path) -> bool:
-        return _containerTest(path.iterdir(), tester)
+        return _containerTest(pathlike(path).iterdir(), tester)
 
 
-for type in {
-    FileType.Directory,
-    FileType.ZipArchive,
-}:
+for type, pathlike in {
+    FileType.Directory: Path,
+    FileType.ZipArchive: ZipPath,
+}.items():
     for format, tester in {
         FileFormat.Fasta: isFastaFile,
         FileFormat.Phylip: isPhylipFile,
         FileFormat.Ali: isAliFile,
     }.items():
-        _register_multifile_test(type, format, tester)
+        _register_multifile_test(type, pathlike, format, tester)
 
 
 class UnknownFileType(Exception):
