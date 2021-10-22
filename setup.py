@@ -61,7 +61,10 @@ setup(
     ],
 
     extras_require={
-        'dev': ['pyinstaller'],
+        'dev': [
+            'pyinstaller>=4.5.1',
+            'pytest>=6.2.5',
+        ],
     },
 
     # Include all data from MANIFEST.in
