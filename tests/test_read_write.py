@@ -11,10 +11,10 @@ TEST_DATA_DIR = Path("tests") / "data"  # I'm not sure if this is a good idea
 
 def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
     if type == FileType.Directory:
-        for (part1, part2) in zip(file1.iterdir(), file2.iterdir()):
+        for (part1, part2) in zip(sorted(file1.iterdir()), sorted(file2.iterdir())):
             assert part1.read_text() == part2.read_text()
     elif type == FileType.ZipArchive:
-        for (part1, part2) in zip(file1.iterdir(), file2.iterdir()):
+        for (part1, part2) in zip(sorted(file1.iterdir()), sorted(file2.iterdir())):
             assert part1.read_text() == part2.read_text()
     else:
         assert file1.read_text() == file2.read_text()
