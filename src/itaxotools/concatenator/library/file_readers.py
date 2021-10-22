@@ -6,7 +6,7 @@ import pandas as pd
 
 from .utils import ConfigurableCallable, removeprefix
 from .file_types import FileFormat, FileType
-from .file_utils import iterateZipArchive, iterateDirectory
+from .file_utils import ZipPath
 from .file_identify import autodetect
 from .operators import OpCheckValid, OpIndexToMulti
 
@@ -93,13 +93,13 @@ def _register_multifile_reader(
     @file_reader(FileType.Directory, format)
     class _MultiDirReader(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
-            for part in iterateDirectory(path):
+            for part in path.iterdir():
                 yield reader(part)
 
     @file_reader(FileType.ZipArchive, format)
     class _MultiZipReader(FileReader):
         def call(self, path: Path) -> Iterator[pd.Series]:
-            for part in iterateZipArchive(path):
+            for part in ZipPath(path).iterdir():
                 yield reader(part)
 
 

@@ -4,22 +4,21 @@ import io
 import zipfile
 from pathlib import Path
 from zipfile import ZipFile
-from zipp import Path as ZipPath
+from zipp import Path as ZipPath_
 from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union
 
 
+class ZipPath(ZipPath_):
+    # zipp.Path does not subclass pathlib.Path, so we msut implement these.
+    # When we stop supporting Python3.8 for Win7, these will have to go.
+    def __eq__(self, other):
+        return self.at == other.at
+
+    def __lt__(self, other):
+        return self.at < other.at
+
+
 PathLike = Union[Path, ZipPath]
-
-
-def iterateZipArchive(path: Path) -> Iterator[ZipPath]:
-    archive = ZipFile(path)
-    for part in archive.namelist():
-        yield ZipPath(archive, part)
-
-
-def iterateDirectory(path: Path) -> Iterator[Path]:
-    for part in path.glob('*'):
-        yield part
 
 
 def createZipArchive(path: Path) -> ZipPath:
