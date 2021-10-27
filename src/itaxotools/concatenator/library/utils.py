@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from typing import Callable, Dict, Iterator, Optional, Any
+from enum import Enum
 
 import pandas as pd
 
@@ -57,6 +58,22 @@ class OrderedSet(dict):
 
     def update(self, iterator: Iterator):
         super().update({key: None for key in iterator})
+
+
+class Justification(Enum):
+    Left = 'Left', str.ljust
+    Right = 'Right', str.rjust
+    Center = 'Center', str.center
+    NoJust = 'None', None
+
+    def __init__(self, description: str, method: Optional[Callable]):
+        self.description = description
+        self.method = method
+
+    def apply(self, text: str, *args, **kwargs):
+        if not self.method:
+            return text
+        return self.method(text, *args, **kwargs)
 
 
 # For Python 3.8 compatibility

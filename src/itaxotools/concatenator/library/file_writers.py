@@ -6,14 +6,14 @@ import pandas as pd
 
 from .file_utils import createDirectory, createZipArchive, PathLike
 from .file_types import FileType, FileFormat
-from .utils import Stream, ConfigurableCallable, Param
+from .utils import Stream, ConfigurableCallable, Param, Justification
 from .operators import (
     OpIndexMerge, OpPadRight, OpIndexToMulti, OpDropEmpty, join_any, chain)
 
 from .fasta import fasta_writer
 from .phylip import phylip_writer
 from .ali import ali_writer
-from .nexus import write_from_series
+from .nexus import write_from_series as nexus_write
 
 from . import SEQUENCE_PREFIX
 
@@ -137,13 +137,18 @@ for type, creator in {
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusFileWriter(FileWriter):
     padding = Param('-')
+    justification = Param(Justification.Right)
+    separator = Param(' ')
 
     def call(self, stream: Stream, path: Path) -> None:
         data = OpIndexMerge()(join_any(stream))
         generator = (data[col].fillna('') for col in data)
         with path.open('w') as file:
-            write_from_series(
-                OpPadRight(self.padding).to_filter(generator), file)
+            nexus_write(
+                OpPadRight(self.padding).to_filter(generator),
+                file,
+                self.justification,
+                self.separator)
 
 
 @file_writer(FileType.File, FileFormat.Tab)

@@ -43,7 +43,7 @@ def file_reader(
 
 def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
-        data = nexus_read(file)
+        data = nexus_read(file, sequence_prefix='')
     data.set_index('seqid', inplace=True)
     data.index.name = SPECIES
     return OpIndexToMulti()(data)

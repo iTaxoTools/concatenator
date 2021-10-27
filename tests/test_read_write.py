@@ -9,6 +9,7 @@ import pytest
 from itaxotools.concatenator import (
     FileType, FileFormat, get_reader, get_writer)
 from itaxotools.concatenator.library.file_utils import ZipPath
+from itaxotools.concatenator.library.utils import Justification
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -38,11 +39,14 @@ class CrossTest:
 self_test_data = [
     SelfTest(File('sequences_ali', FileType.Directory, FileFormat.Ali), {}, {}),
     SelfTest(File('sequences_ali.zip', FileType.ZipArchive, FileFormat.Ali), {}, {}),
-    SelfTest(File('sequences.fas', FileType.File, FileFormat.Fasta), {}, {}),
     SelfTest(File('sequences.phy', FileType.File, FileFormat.Phylip), {}, {}),
+    SelfTest(File('sequences_pad.fas', FileType.File, FileFormat.Fasta), {}, {}),
     SelfTest(File('sequences_no_pad.fas', FileType.File, FileFormat.Fasta), {}, dict(padding='')),
     SelfTest(File('sequences.tab', FileType.File, FileFormat.Tab), {}, {}),
-    # SelfTest(File('sequences.nex', FileType.File, FileFormat.Nexus), {}, {}),
+    SelfTest(File('sequences_left_space.nex', FileType.File, FileFormat.Nexus), {},
+        dict(justification=Justification.Left, separator=' ')),
+    SelfTest(File('sequences_right_tab.nex', FileType.File, FileFormat.Nexus), {},
+        dict(justification=Justification.Right, separator='\t')),
 ]
 
 test_data = [
