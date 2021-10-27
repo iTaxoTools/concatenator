@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
-from typing import Dict, Optional, Iterator, Tuple, Set, TypeVar, Iterable, List
+from typing import Dict, Optional, Iterator, Tuple, Set, TypeVar, Iterable, List, Any
 import json
 import sys
 import os
 import regex
 import itertools
 from collections import Counter
+from enum import IntEnum
+from dataclasses import dataclass
+
 import pandas as pd
 
 from .resources import get_resource
@@ -35,6 +38,83 @@ class ReadingFrame(IntEnum):
     N1 = -1, 'reverse complement of +1'
     N2 = -2, 'reverse complement of +2'
     N3 = -3, 'reverse complement of +3'
+
+
+@dataclass(frozen=True)
+class GeneticCodeDescription:
+    name: str
+    ncbieaa: str
+    sncbieaa: str
+    abbr_name: Optional[str] = None
+
+
+def validate_genetic_code_table(table: Any) -> None:
+    if not isinstance(table, dict):
+        raise ValueError(
+            "In genetic_codes.json, in 'Genetic_code_tables' "
+            "one of the values is not a dictionary")
+    try:
+        for field, field_type in (("name", str),
+                                  ("id", int), ("ncbieaa", str), ("sncbieaa", str)):
+            if not isinstance(table[field], field_type):
+                raise ValueError(
+                    "In genetic_codes.json, in 'Genetic_code_tables' "
+                    f"the field '{field}' of one of the values is not an {field_type}"
+                )
+    except KeyError as e:
+        raise ValueError(
+            "In genetic_codes.json, in 'Genetic_code_tables' "
+            f"the field '{e.args}' of one of the values is missing"
+        ) from e
+    for data_field in ("ncbieaa", "sncbieaa"):
+        if len(table[data_field]) != 64:
+            raise ValueError(
+                "In genetic_codes.json, in 'Genetic_code_tables' "
+                f"the field '{data_field}' of all of the values should be 64 bytes"
+            )
+    if "abbr_name" in table:
+        if not isinstance(table["abbr_name"], str):
+            raise ValueError(
+                "In genetic_codes.json, in 'Genetic_code_tables' "
+                f"the optional field 'abbr_name' of one of the values is not an str"
+            )
+
+
+def load_genetic_codes() -> Dict[int, GeneticCodeDescription]:
+    genetic_codes_path = get_resource("genetic_codes.json")
+    with open(genetic_codes_path) as genetic_codes_file:
+        try:
+            json_content = json.load(genetic_codes_file)
+        except json.JSONDecodeError as e:
+            raise ValueError("genetic_codes.json is not a valid JSON") from e
+    if not isinstance(json_content, dict):
+        raise ValueError("genetic_codes.json is not a dictionary")
+    try:
+        tables = json_content["Genetic_code_tables"]
+    except KeyError as e:
+        raise ValueError(
+            "genetic_codes.json is missing 'Genetic_code_tables' field") from e
+    if not isinstance(tables, list):
+        raise ValueError(
+            "In genetic_codes.json 'Genetic_code_tables' is not an array") from e
+    result: Dict[int, GeneticCodeDescription] = {}
+    for table in tables:
+        validate_genetic_code_table(table)
+        assert isinstance(table, dict)
+        gc_id: int = table.pop("id")
+        result[gc_id] = GeneticCodeDescription(**table)
+    return result
+
+
+_GC_DESCRIPTIONS = load_genetic_codes()
+
+
+class _GeneticCodePrototype(int):
+
+    def __new__(cls, value: int):
+        obj = int.__new__(cls, value)  # type: ignore
+        obj._value_ = value
+        return obj
 
 
 class GeneticCode(IntEnum):
