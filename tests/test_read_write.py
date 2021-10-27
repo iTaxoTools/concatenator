@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+from typing import Dict
 
 import pytest
 
-from itaxotools.concatenator import autodetect, read_from_path, write_to_path, FileType
+from itaxotools.concatenator import (
+    autodetect, read_from_path, write_to_path, FileType, FileFormat,
+    get_reader, get_writer)
 from itaxotools.concatenator.library.file_utils import ZipPath
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
+
+
+self_test_data = [
+    ('sequences_ali', FileType.Directory, FileFormat.Ali, {}, {}),
+    ('sequences_ali.zip', FileType.ZipArchive, FileFormat.Ali, {}, {}),
+]
+
+test_data = self_test_data
 
 
 def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
@@ -23,10 +34,18 @@ def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
         assert file1.read_text() == file2.read_text()
 
 
-@pytest.mark.parametrize("expected_output", TEST_DATA_DIR.iterdir())
-def test_read_write(expected_output: Path, tmp_path: Path) -> None:
-    expected_type, expected_format = autodetect(expected_output)
-    test_path = tmp_path / f"test_{expected_type}_{expected_format}"
-    write_to_path(read_from_path(expected_output), test_path,
-                  expected_type, expected_format)
-    assert_eq_files(expected_type, test_path, expected_output)
+@pytest.mark.parametrize("file,type,format,reader_kwds,writer_kwds", test_data)
+def test_read_write(
+    file: Path,
+    type: FileType,
+    format: FileFormat,
+    reader_kwds: Dict,
+    writer_kwds: Dict,
+    tmp_path: Path
+) -> None:
+    file_path = TEST_DATA_DIR / file
+    test_path = tmp_path / file
+    reader = get_reader(type, format)(*reader_kwds)
+    writer = get_writer(type, format)(*writer_kwds)
+    writer(reader(file_path), test_path)
+    assert_eq_files(type, test_path, file_path)
