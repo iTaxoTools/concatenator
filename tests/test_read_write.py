@@ -2,23 +2,48 @@
 
 from pathlib import Path
 from typing import Dict
+from dataclasses import dataclass
 
 import pytest
 
 from itaxotools.concatenator import (
-    autodetect, read_from_path, write_to_path, FileType, FileFormat,
-    get_reader, get_writer)
+    FileType, FileFormat, get_reader, get_writer)
 from itaxotools.concatenator.library.file_utils import ZipPath
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
 
+@dataclass
+class File:
+    name: str
+    type: FileType
+    format: FileFormat
+
+
+@dataclass
+class SelfTest:
+    file: File
+    reader_kwds: Dict
+    writer_kwds: Dict
+
+
+@dataclass
+class CrossTest:
+    input: File
+    output: File
+    reader_kwds: Dict
+    writer_kwds: Dict
+
+
 self_test_data = [
-    ('sequences_ali', FileType.Directory, FileFormat.Ali, {}, {}),
-    ('sequences_ali.zip', FileType.ZipArchive, FileFormat.Ali, {}, {}),
+    SelfTest(File('sequences_ali', FileType.Directory, FileFormat.Ali), {}, {}),
+    SelfTest(File('sequences_ali.zip', FileType.ZipArchive, FileFormat.Ali), {}, {}),
 ]
 
-test_data = self_test_data
+test_data = [
+    CrossTest(test.file, test.file, test.reader_kwds, test.writer_kwds)
+    for test in self_test_data
+    ]
 
 
 def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
@@ -34,18 +59,12 @@ def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
         assert file1.read_text() == file2.read_text()
 
 
-@pytest.mark.parametrize("file,type,format,reader_kwds,writer_kwds", test_data)
-def test_read_write(
-    file: Path,
-    type: FileType,
-    format: FileFormat,
-    reader_kwds: Dict,
-    writer_kwds: Dict,
-    tmp_path: Path
-) -> None:
-    file_path = TEST_DATA_DIR / file
-    test_path = tmp_path / file
-    reader = get_reader(type, format)(*reader_kwds)
-    writer = get_writer(type, format)(*writer_kwds)
-    writer(reader(file_path), test_path)
-    assert_eq_files(type, test_path, file_path)
+@pytest.mark.parametrize("test", test_data)
+def test_read_write(test: CrossTest, tmp_path: Path) -> None:
+    input_path = TEST_DATA_DIR / test.input.name
+    output_path = TEST_DATA_DIR / test.output.name
+    test_path = tmp_path / test.output.name
+    reader = get_reader(test.input.type, test.input.format)(*test.reader_kwds)
+    writer = get_writer(test.output.type, test.output.format)(*test.writer_kwds)
+    writer(reader(input_path), test_path)
+    assert_eq_files(test.output.type, test_path, output_path)
