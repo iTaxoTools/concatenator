@@ -129,3 +129,6 @@ references/
 testfiles/
 pyrightconfig.json
 helpers/
+
+# symlink for convenience
+concat_src
