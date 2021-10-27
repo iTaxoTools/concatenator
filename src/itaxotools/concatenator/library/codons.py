@@ -11,6 +11,71 @@ import pandas as pd
 
 from .resources import get_resource
 
+
+class ReadingFrame(IntEnum):
+
+    def __new__(cls, value: int, text: str):
+        obj = int.__new__(cls, value)  # type: ignore
+        obj._value_ = value
+        obj.text = text
+        return obj
+
+    def __str__(self):
+        return f'{self.label} ({self.text})'
+
+    @property
+    def label(self):
+        return f'{self.value:+}'
+
+    Unknown = 0, 'unknown'
+
+    P1 = +1, 'starts with 1st codon position'
+    P2 = +2, 'starts with 2nd codon position'
+    P3 = +3, 'starts with 3rd codon position'
+    N1 = -1, 'reverse complement of +1'
+    N2 = -2, 'reverse complement of +2'
+    N3 = -3, 'reverse complement of +3'
+
+
+class GeneticCode(IntEnum):
+
+    def __new__(cls, text: str, stops: List[str]):
+        value = len(cls.__members__)
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        obj.text = text
+        obj.stops = stops
+        return obj
+
+    Unknown = 'Unknown', []
+
+    SGC0 = 'Standard', ['TAA', 'TAG', 'TGA']
+    SGC1 = 'Vertebrate Mitochondrial', ['TAA', 'TAG', 'AGA', 'AGG']
+    SGC2 = 'Yeast Mitochondrial', ['TAA', 'TAG', 'TGA']
+    SGC3 = 'Mold/Protozoan/Coelenterate Mitochondrial; Mycoplasma; Spiroplasma', [
+        'TAA', 'TAG']
+    ...
+
+
+class GeneData:
+    def __init__(self, series: pd.Series):
+        self.series: pd.Series = series
+        self.genetic_code: GeneticCode = GeneticCode(0)
+        self.reading_frame: ReadingFrame = ReadingFrame(0)
+        self.codons: Tuple[str, str, str] = ('**_1st', '**_2nd', '**_3rd')
+        self.missing: str = 'N?'
+        self.gap: str = '-'
+
+
+class BadReadingFrame(Exception):
+    pass
+
+
+# Placeholder, needs to be implemented, in library.codons?
+def some_func(data: GeneData) -> GeneData:
+    return GeneData(data.series)
+
+
 stop_codons_path = get_resource("stop_codons.json")
 try:
     stop_codons: Optional[Dict[str, Set[int]]] = {
