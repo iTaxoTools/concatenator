@@ -38,6 +38,11 @@ class CrossTest:
 self_test_data = [
     SelfTest(File('sequences_ali', FileType.Directory, FileFormat.Ali), {}, {}),
     SelfTest(File('sequences_ali.zip', FileType.ZipArchive, FileFormat.Ali), {}, {}),
+    SelfTest(File('sequences.fas', FileType.File, FileFormat.Fasta), {}, {}),
+    SelfTest(File('sequences.phy', FileType.File, FileFormat.Phylip), {}, {}),
+    SelfTest(File('sequences_no_pad.fas', FileType.File, FileFormat.Fasta), {}, dict(padding='')),
+    SelfTest(File('sequences.tab', FileType.File, FileFormat.Tab), {}, {}),
+    # SelfTest(File('sequences.nex', FileType.File, FileFormat.Nexus), {}, {}),
 ]
 
 test_data = [
@@ -64,7 +69,7 @@ def test_read_write(test: CrossTest, tmp_path: Path) -> None:
     input_path = TEST_DATA_DIR / test.input.name
     output_path = TEST_DATA_DIR / test.output.name
     test_path = tmp_path / test.output.name
-    reader = get_reader(test.input.type, test.input.format)(*test.reader_kwds)
-    writer = get_writer(test.output.type, test.output.format)(*test.writer_kwds)
+    reader = get_reader(test.input.type, test.input.format)(**test.reader_kwds)
+    writer = get_writer(test.output.type, test.output.format)(**test.writer_kwds)
     writer(reader(input_path), test_path)
     assert_eq_files(test.output.type, test_path, output_path)
