@@ -8,7 +8,7 @@ import pytest
 from itaxotools.concatenator import (
     FileType, FileFormat, write_to_path, read_from_path, get_writer)
 from itaxotools.concatenator.library.file_writers import WriterNotFound
-from .gen_stream import gen_table, stream_table
+from gen_stream import gen_table, stream_table
 
 
 @pytest.mark.parametrize("filetype", list(FileType))
