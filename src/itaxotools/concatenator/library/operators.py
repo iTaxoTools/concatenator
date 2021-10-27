@@ -6,7 +6,7 @@ import pandas as pd
 
 from .utils import (
     Stream, Filter, MultiFilter, Translation, ConfigurableCallable, Param,
-    removeprefix,
+    OrderedSet, removeprefix,
     )
 
 from . import SPECIES
@@ -179,7 +179,7 @@ class OpApply(Operator):
 def join_any(stream: Stream) -> pd.DataFrame:
     """Outer join for any MultiIndex"""
     sentinel = '\u0000'
-    all_keys = set()
+    all_keys = OrderedSet()
 
     def guarded(names: Iterator[str]) -> List[str]:
         return [name for name in names if name.startswith(sentinel)]
@@ -192,7 +192,7 @@ def join_any(stream: Stream) -> pd.DataFrame:
 
     def fold_keys(stream: Stream) -> Iterator[pd.DataFrame]:
         for series in stream:
-            keys = guard(list(series.index.names))
+            keys = guard(series.index.names)
             series.index = pd.MultiIndex.from_frame(
                 series.index.to_frame(), names=keys)
             all_keys.update(keys)
@@ -201,11 +201,11 @@ def join_any(stream: Stream) -> pd.DataFrame:
     species = fold_keys(stream)
     all = pd.DataFrame(next(species))
     for series in species:
-        merge_keys = set(guarded(series.columns)) & all_keys
+        merge_keys = all_keys & guarded(series.columns)
         all = pd.merge(all, series, how='outer', on=list(merge_keys))
     all.set_index(list(all_keys), inplace=True)
     all.index.names = unguard(all.index.names)
-    return OpSpeciesToFront()(OpIndexToMulti()(all))
+    return all
 
 
 def join_any_to_stream(stream: Stream) -> Stream:

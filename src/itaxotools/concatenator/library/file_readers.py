@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .utils import ConfigurableCallable, removeprefix
+from .utils import ConfigurableCallable, Param, removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath
 from .file_identify import autodetect
@@ -132,20 +132,22 @@ class TabFileReaderSlow(FileReader):
                 yield OpIndexToMulti()(series)
 
 
-def readTab(path: Path) -> pd.DataFrame:
+def readTab(path: Path, sequence_prefix: str) -> pd.DataFrame:
     data = pd.read_csv(path, sep='\t', dtype=str)
-    indices = [x for x in data.columns if not x.startswith(SEQUENCE_PREFIX)]
+    indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
     data.set_index(indices, inplace=True)
     data.columns = [
-        removeprefix(col, SEQUENCE_PREFIX) for col in data.columns]
+        removeprefix(col, sequence_prefix) for col in data.columns]
     return OpIndexToMulti()(data)
 
 
 # Defined last takes precedence
 @file_reader(FileType.File, FileFormat.Tab)
 class TabFileReader(FileReader):
+    sequence_prefix = Param(SEQUENCE_PREFIX)
+
     def call(self, path: Path) -> Iterator[pd.Series]:
-        data = readTab(path)
+        data = readTab(path, sequence_prefix=self.sequence_prefix)
         for col in data:
             yield data[col]
 
@@ -165,7 +167,6 @@ def get_reader(type: FileType, format: FileFormat):
 
 def read_from_path(path: Path) -> Iterator[pd.Series]:
     type, format = autodetect(path)
-    if format in file_readers[type]:
-        reader = get_reader(type, format)
-        for series in reader()(path):
-            yield OpCheckValid()(series)
+    reader = get_reader(type, format)
+    for series in reader()(path):
+        yield OpCheckValid()(series)

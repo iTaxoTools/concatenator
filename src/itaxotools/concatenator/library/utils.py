@@ -47,6 +47,18 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
         raise NotImplementedError()
 
 
+class OrderedSet(dict):
+    def __init__(self, iterator: Iterator = {}):
+        super().__init__()
+        self.update(iterator)
+
+    def __and__(self, other):
+        return OrderedSet({key for key in self if key in other})
+
+    def update(self, iterator: Iterator):
+        super().update({key: None for key in iterator})
+
+
 # For Python 3.8 compatibility
 def removeprefix(text: str, prefix: str) -> str:
     if text.startswith(prefix):

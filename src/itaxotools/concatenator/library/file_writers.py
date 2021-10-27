@@ -148,9 +148,11 @@ class NexusFileWriter(FileWriter):
 
 @file_writer(FileType.File, FileFormat.Tab)
 class TabFileWriter(FileWriter):
+    sequence_prefix = Param(SEQUENCE_PREFIX)
+
     def call(self, stream: Stream, path: Path) -> None:
         data = join_any(stream)
-        data.columns = [SEQUENCE_PREFIX + col for col in data.columns]
+        data.columns = [self.sequence_prefix + col for col in data.columns]
         with path.open('w') as file:
             data.to_csv(file, sep="\t", line_terminator="\n")
 
