@@ -6,7 +6,7 @@ import pandas as pd
 
 from .utils import (
     Stream, Filter, MultiFilter, Translation, ConfigurableCallable, Param,
-    removeprefix, make_equal_length,
+    removeprefix,
     )
 
 from . import SPECIES
@@ -117,8 +117,10 @@ class OpPadRight(Operator):
     def call(self, series: pd.Series) -> pd.Series:
         if not self.padding:
             return series
+        assert len(self.padding) == 1
         series = series.fillna('', inplace=False)
-        return make_equal_length(series, fillchar=self.padding)
+        max_length = series.str.len().max()
+        return series.str.ljust(max_length, self.padding)
 
 
 class OpTranslateSequences(Operator):
