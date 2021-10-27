@@ -7,7 +7,7 @@ import pytest
 from itaxotools.concatenator import autodetect, read_from_path, write_to_path, FileType
 from itaxotools.concatenator.library.file_utils import ZipPath
 
-TEST_DATA_DIR = Path(__file__).parent / "data" / "sequences"
+TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
 
 def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
