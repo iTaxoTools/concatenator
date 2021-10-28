@@ -45,7 +45,9 @@ def column_reader(infile: TextIO) -> pd.Series:
         name = name.strip()
         # return the record
         sequences[name] = sequence
-    return pd.Series(sequences)
+    series = pd.Series(sequences)
+    series.index.name = 'seqid'
+    return series
 
 
 phylip_reader = column_reader

@@ -9,8 +9,6 @@ from .utils import (
     OrderedSet, removeprefix,
     )
 
-from . import SPECIES
-
 
 IndexedData = Union[pd.DataFrame, pd.Series]
 T = TypeVar('T')
@@ -53,33 +51,7 @@ class OpCheckValid(Operator):
             raise InvalidSeries(series, 'Not a pandas.Series!')
         if not series.name:
             raise InvalidSeries(series, 'Missing series name')
-        if not isinstance(series.index, pd.MultiIndex):
-            raise InvalidSeries(series, 'Series must have MultiIndex')
-        if SPECIES not in series.index.names:
-            raise InvalidSeries(series, f'Missing "{SPECIES}" index')
-        if series.index.names[0] != SPECIES:
-            raise InvalidSeries(series, f'"{SPECIES}" index must be first')
         return series
-
-
-class OpIndexToMulti(Operator):
-    def call(self, series: pd.Series) -> pd.Series:
-        if not isinstance(series.index, pd.MultiIndex):
-            series = series.copy(deep=False)
-            series.index = pd.MultiIndex.from_arrays(
-                [series.index], names=[series.index.name])
-        return series
-
-
-class OpSpeciesToFront(Operator):
-    def call(self, series: pd.Series) -> pd.Series:
-        ordered = list(series.index.names)
-        if SPECIES not in ordered:
-            return series
-        ordered.remove(SPECIES)
-        ordered = [SPECIES] + ordered
-        series = series.copy(deep=False)
-        return series.reorder_levels(ordered)
 
 
 class OpIndexMerge(Operator):
@@ -94,10 +66,12 @@ class OpIndexMerge(Operator):
         return series
 
 
-class OpIndexSpeciesOnly(Operator):
+class OpIndexFilter(Operator):
+    index: str = 'seqid'
+
     def call(self, series: pd.Series) -> pd.Series:
         series = series.copy(deep=False)
-        series.index = series.index.to_frame()[SPECIES]
+        series.index = series.index.to_frame()[self.index]
         return series
 
 

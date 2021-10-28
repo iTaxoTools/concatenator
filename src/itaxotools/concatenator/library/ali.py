@@ -8,8 +8,6 @@ import pandas as pd
 from .utils import *
 from .multifile import ColumnWriter
 
-from . import SPECIES
-
 
 class AliTuple(NamedTuple):
     species: str
@@ -112,7 +110,7 @@ def chunk_reader(infile: TextIO) -> Iterator[AliTuple]:
 def ali_reader(infile: TextIO) -> pd.Series:
     series = pd.Series({
         (x.species, x.ali_tag): x.sequence for x in chunk_reader(infile)})
-    series.index.names = [SPECIES, 'ali_tag']
+    series.index.names = ['seqid', 'ali_tag']
     if series.index.to_frame()['ali_tag'].eq('').all():
         series.reset_index(level='ali_tag', drop=True, inplace=True)
     return series

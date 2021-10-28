@@ -8,14 +8,12 @@ from .file_utils import createDirectory, createZipArchive, PathLike
 from .file_types import FileType, FileFormat
 from .utils import Stream, ConfigurableCallable, Param, Justification
 from .operators import (
-    OpIndexMerge, OpPadRight, OpIndexToMulti, OpDropEmpty, join_any, chain)
+    OpIndexMerge, OpPadRight, OpDropEmpty, join_any, chain)
 
 from .fasta import fasta_writer
 from .phylip import phylip_writer
 from .ali import ali_writer
 from .nexus import write_from_series as nexus_write
-
-from . import SEQUENCE_PREFIX
 
 
 PartWriter = Callable[[pd.Series, TextIO], None]
@@ -82,7 +80,6 @@ def _register_concatenated_writer(
         def call(self, stream: Stream, path: Path) -> None:
             filters = chain([
                 OpIndexMerge().to_filter,
-                OpIndexToMulti().to_filter,
                 OpPadRight(self.padding).to_filter,
                 ])
             _writeConcatenatedFormat(filters(stream), path, writer)
@@ -115,7 +112,6 @@ def _register_multifile_writer(
                 operator = chain([
                     OpDropEmpty(),
                     OpIndexMerge(),
-                    OpIndexToMulti(),
                     OpPadRight(self.padding),
                     ])
                 with part.open('w') as file:
@@ -153,7 +149,7 @@ class NexusFileWriter(FileWriter):
 
 @file_writer(FileType.File, FileFormat.Tab)
 class TabFileWriter(FileWriter):
-    sequence_prefix = Param(SEQUENCE_PREFIX)
+    sequence_prefix = Param('sequence_')
 
     def call(self, stream: Stream, path: Path) -> None:
         data = join_any(stream)

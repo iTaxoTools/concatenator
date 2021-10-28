@@ -53,7 +53,11 @@ def split_file(file: TextIO) -> Iterator[List[str]]:
 
 
 def column_reader(infile: TextIO) -> pd.Series:
-    return pd.Series({chunk[0][1:]: "".join(chunk[1:]) for chunk in split_file(infile)})
+    series = pd.Series({
+        chunk[0][1:]: "".join(chunk[1:])
+        for chunk in split_file(infile)})
+    series.index.name = 'seqid'
+    return series
 
 
 fasta_reader = column_reader

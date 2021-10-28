@@ -8,14 +8,12 @@ from .utils import ConfigurableCallable, Param, removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath
 from .file_identify import autodetect
-from .operators import OpCheckValid, OpIndexToMulti
+from .operators import OpCheckValid
 
 from .nexus import read as nexus_read
 from .ali import ali_reader
 from .fasta import fasta_reader
 from .phylip import phylip_reader
-
-from . import SPECIES, SEQUENCE_PREFIX
 
 
 class FileReader(ConfigurableCallable):
@@ -45,8 +43,7 @@ def readNexusFile(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file, sequence_prefix='')
     data.set_index('seqid', inplace=True)
-    data.index.name = SPECIES
-    return OpIndexToMulti()(data)
+    return data
 
 
 @file_reader(FileType.File, FileFormat.Nexus)
@@ -64,8 +61,7 @@ def _readSeries(
     with path.open() as file:
         series = part_reader(file)
     series.name = path.stem
-    series.index.name = SPECIES
-    return OpIndexToMulti()(series)
+    return series
 
 
 def readAliSeries(path: Path) -> pd.Series:
@@ -113,11 +109,13 @@ for format, reader in {
 
 @file_reader(FileType.File, FileFormat.Tab)
 class TabFileReaderSlow(FileReader):
+    sequence_prefix = Param('sequence_')
+
     def call(self, path: Path) -> Iterator[pd.Series]:
         with path.open() as file:
             columns = file.readline().rstrip().split("\t")
-            sequences = [x for x in columns if x.startswith(SEQUENCE_PREFIX)]
-            indices = [x for x in columns if not x.startswith(SEQUENCE_PREFIX)]
+            sequences = [x for x in columns if x.startswith(self.sequence_prefix)]
+            indices = [x for x in columns if not x.startswith(self.sequence_prefix)]
             file.seek(0)
             index = pd.read_table(
                 file, usecols=indices, dtype=str)
@@ -128,8 +126,8 @@ class TabFileReaderSlow(FileReader):
                 data = table.join(index)
                 data.set_index(indices, inplace=True)
                 series = pd.Series(data.iloc[:, 0])
-                series.name = removeprefix(sequence, SEQUENCE_PREFIX)
-                yield OpIndexToMulti()(series)
+                series.name = removeprefix(sequence, self.sequence_prefix)
+                yield series
 
 
 def readTab(path: Path, sequence_prefix: str) -> pd.DataFrame:
@@ -138,13 +136,13 @@ def readTab(path: Path, sequence_prefix: str) -> pd.DataFrame:
     data.set_index(indices, inplace=True)
     data.columns = [
         removeprefix(col, sequence_prefix) for col in data.columns]
-    return OpIndexToMulti()(data)
+    return data
 
 
 # Defined last takes precedence
 @file_reader(FileType.File, FileFormat.Tab)
 class TabFileReader(FileReader):
-    sequence_prefix = Param(SEQUENCE_PREFIX)
+    sequence_prefix = Param('sequence_')
 
     def call(self, path: Path) -> Iterator[pd.Series]:
         data = readTab(path, sequence_prefix=self.sequence_prefix)
