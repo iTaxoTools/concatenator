@@ -43,8 +43,8 @@ self_test_data = [
     SelfTest(File('sequences.fas', FileType.File, FileFormat.Fasta), {}, {}),
     SelfTest(File('sequences.tsv', FileType.File, FileFormat.Tab), {}, {}),
     SelfTest(File('sequences.nex', FileType.File, FileFormat.Nexus), {}, {}),
-    SelfTest(File('sequences_no_pad.fas', FileType.File, FileFormat.Fasta), {},
-        dict(padding='')),
+    SelfTest(File('sequences_pad.fas', FileType.File, FileFormat.Fasta), {},
+        dict(padding='-')),
     SelfTest(File('sequences_right_tab.nex', FileType.File, FileFormat.Nexus), {},
         dict(justification=Justification.Right, separator='\t')),
 ]

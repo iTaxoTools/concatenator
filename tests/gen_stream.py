@@ -63,8 +63,10 @@ def gen_table(filetype: FileType, format: FileFormat) -> pd.DataFrame:
         def gen_seq() -> str:
             return _gen_seq()
     if single_sequence(filetype, format):
-        seq_generators = [("sequence_" + _gen_str(3)(), gen_seq)]
+        name = "sequence_" + _gen_str(3)()
+        seq_generators = [(name, gen_seq)]
     else:
+        name = 'output'
         gene_num = random.randint(3, 17)
         seq_generators = [("sequence_" + _gen_str(3)(), gen_seq)
                           for _ in range(gene_num)]
@@ -73,7 +75,7 @@ def gen_table(filetype: FileType, format: FileFormat) -> pd.DataFrame:
                    if column != "seqid" and column not in _METADATA_COLUMNS]
     index_columns = [column for column in table.columns if column not in seq_columns]
     table = table.set_index(index_columns)
-    return table
+    return table, name
 
 
 def stream_table(table: pd.DataFrame) -> Iterator[pd.Series]:

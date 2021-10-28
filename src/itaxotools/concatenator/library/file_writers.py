@@ -65,8 +65,8 @@ def _register_concatenated_writer(
 ) -> None:
 
     @file_writer(FileType.File, format)
-    class _ConcatenatedFileWriter(FileWriter):
-        padding = Param('-')
+    class _SingleFileWriter(FileWriter):
+        padding = Param('')
 
         def call(self, stream: Stream, path: Path) -> None:
             filters = chain([
