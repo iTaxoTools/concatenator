@@ -74,7 +74,7 @@ def write_from_series(
     iterator: Iterator[pd.Series],
     out: TextIO,
     justification: Justification = Justification.Left,
-    separator: str = '\t'
+    separator: str = ' '
 ) -> None:
     buffer = tempfile.TemporaryFile(mode="w+")
     charsets = {}
@@ -96,17 +96,17 @@ def write_from_series(
     nchar = sum(charsets.values())
 
     out.write('#NEXUS\n\n')
-    out.write('begin data;\n\n')
-    out.write('format datatype=DNA missing=N missing=? Gap=- ')
-    out.write('Interleave=yes;\n\n')
-    out.write(f'dimensions Nchar={nchar} Ntax={ntax};\n\n')
-    out.write('matrix\n\n')
+    out.write('BEGIN DATA;\n\n')
+    out.write(f'Dimensions Nchar={nchar} Ntax={ntax};\n')
+    out.write('Format Datatype=DNA Missing=N Missing=? Gap=- ')
+    out.write('Interleave=yes;\n')
+    out.write('Matrix\n\n')
 
     buffer.seek(0)
     for line in buffer:
         out.write(line)
-    out.write(';\nend;\n\n\n')
-    out.write('begin sets;\n\n')
+    out.write(';\nEND;\n\n\n')
+    out.write('BEGIN SETS;\n\n')
     buffer.close()
 
     position = 1
@@ -114,7 +114,7 @@ def write_from_series(
         position_end = position + length - 1
         out.write(f'charset {name} = {position}-{position_end};\n')
         position += length
-    out.write('\nend;\n')
+    out.write('\nEND;\n')
 
 
 def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
@@ -344,7 +344,7 @@ class NexusReader:
         Sets the state for the next block
         """
         try:
-            arg = next(args)
+            arg = next(args).casefold()
             state = NexusReader.nexus_state[arg]
             if state in self.todo:
                 self.state = state

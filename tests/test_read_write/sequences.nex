@@ -1,12 +1,10 @@
 #NEXUS
 
-begin data;
+BEGIN DATA;
 
-format datatype=DNA missing=N missing=? Gap=- Interleave=yes;
-
-dimensions Nchar=27 Ntax=5;
-
-matrix
+Dimensions Nchar=27 Ntax=5;
+Format Datatype=DNA Missing=N Missing=? Gap=- Interleave=yes;
+Matrix
 
 sample1_Mantella_aurantiaca_ZCMV1234_Andasibe ACGTTTTTZC
 sample2_Mantella_aurantiaca_ZCMV9876_Andasibe ACGTTTTACN
@@ -27,13 +25,13 @@ sample4_Mantella_crocea_FGZC346_Ranomafana    TATGGCTGA
 sample5_Mantella_crocea_MNHN1991_Ranomafana   TATGGCTGA
 
 ;
-end;
+END;
 
 
-begin sets;
+BEGIN SETS;
 
 charset 16S = 1-10;
 charset cytb = 11-18;
 charset coi = 19-27;
 
-end;
+END;

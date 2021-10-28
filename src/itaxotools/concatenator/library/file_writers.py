@@ -137,7 +137,7 @@ for type, creator in {
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusFileWriter(FileWriter):
     padding = Param('-')
-    justification = Param(Justification.Right)
+    justification = Param(Justification.Left)
     separator = Param(' ')
 
     def call(self, stream: Stream, path: Path) -> None:
