@@ -109,16 +109,16 @@ def _register_multifile_writer(
                     writer(operator(series), file)
 
 
-for type, creator in {
+for file_type, creator in {
     FileType.Directory: createDirectory,
     FileType.ZipArchive: createZipArchive,
 }.items():
-    for format, writer in {
+    for file_format, writer in {
         FileFormat.Fasta: filtered_fasta_writer,
         FileFormat.Phylip: filtered_phylip_writer,
         FileFormat.Ali: filtered_ali_writer,
     }.items():
-        _register_multifile_writer(type, format, creator, writer)
+        _register_multifile_writer(file_type, file_format, creator, writer)
 
 
 @file_writer(FileType.File, FileFormat.Nexus)

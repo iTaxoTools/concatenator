@@ -55,6 +55,7 @@ class OpCheckValid(Operator):
 
 
 class OpIndexMerge(Operator):
+    index: str = 'seqid'
     glue: str = Param('_')
 
     def call(self, series: pd.Series) -> pd.Series:
@@ -62,7 +63,7 @@ class OpIndexMerge(Operator):
         indices = series.index.to_frame().fillna('', inplace=False)
         series.index = pd.Index(
             indices.apply(self.glue.join, axis=1),
-            name='merged')
+            name=self.index)
         return series
 
 
@@ -166,6 +167,7 @@ def join_any(stream: Stream) -> pd.DataFrame:
 
     def fold_keys(stream: Stream) -> Iterator[pd.DataFrame]:
         for series in stream:
+            series = series.copy(deep=False)
             keys = guard(series.index.names)
             series.index = pd.MultiIndex.from_frame(
                 series.index.to_frame(), names=keys)

@@ -68,14 +68,14 @@ def gen_table(filetype: FileType, format: FileFormat) -> pd.DataFrame:
         gene_num = random.randint(3, 17)
         seq_generators = [("sequence_" + _gen_str(3)(), gen_seq)
                           for _ in range(gene_num)]
-    return _gen_columns(metadata_generators +
-                        seq_generators)
-
-
-def stream_table(table: pd.DataFrame) -> Iterator[pd.Series]:
+    table = _gen_columns(metadata_generators + seq_generators)
     seq_columns = [column for column in table.columns
                    if column != "seqid" and column not in _METADATA_COLUMNS]
     index_columns = [column for column in table.columns if column not in seq_columns]
-    index = pd.MultiIndex.from_frame(table[index_columns])
-    for column in seq_columns:
-        yield pd.Series(table[column].to_list(), index=index, name=column)
+    table = table.set_index(index_columns)
+    return table
+
+
+def stream_table(table: pd.DataFrame) -> Iterator[pd.Series]:
+    for column in table:
+        yield table[column]
