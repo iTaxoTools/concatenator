@@ -7,7 +7,7 @@ from typing import Optional
 class FileFormat(Enum):
     """File formats supported by operations"""
 
-    Tab = ("Tab-separated Table", ".tab", False)
+    Tab = ("Tab-separated Table", ".tsv", False)
     Nexus = ("Interleaved NEXUS", ".nex", False)
     Ali = ("Ali", ".ali", False)
     Fasta = ("Fasta", ".fas", False)
