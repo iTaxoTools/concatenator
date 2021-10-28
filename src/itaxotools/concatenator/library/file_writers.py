@@ -93,7 +93,7 @@ def _register_multifile_writer(
 
     @file_writer(type, format)
     class _MultiFileWriter(FileWriter):
-        padding = Param('-')
+        padding = Param('')
 
         def call(self, stream: Stream, path: Path) -> None:
             container = creator(path)
