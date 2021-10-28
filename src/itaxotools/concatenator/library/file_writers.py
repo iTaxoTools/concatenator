@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from .file_utils import createDirectory, createZipArchive, PathLike
-from .file_types import FileType, FileFormat
+from .file_types import FileType, FileFormat, get_extension
 from .utils import Stream, ConfigurableCallable, Param, Justification
 from .operators import (
     OpIndexMerge, OpPadRight, OpDropEmpty, join_any, chain)
@@ -35,15 +35,6 @@ file_writers: Dict[FileType, Dict[FileFormat, FileWriter]] = {
 filtered_fasta_writer = fasta_writer
 filtered_phylip_writer = phylip_writer
 filtered_ali_writer = ali_writer
-
-
-def get_extension(
-    type: FileType,
-    format: FileFormat,
-) -> str:
-    if type.extension is None:
-        return format.extension
-    return type.extension
 
 
 def file_writer(

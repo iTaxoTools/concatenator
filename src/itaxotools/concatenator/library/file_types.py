@@ -54,3 +54,12 @@ class FileType(Enum):
 
     def __str__(self):
         return self.description
+
+
+def get_extension(
+    type: FileType,
+    format: FileFormat,
+) -> str:
+    if type.extension is None:
+        return format.extension
+    return type.extension
