@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from typing import Callable, Dict, Iterator, Optional, Any
+from enum import Enum
 
 import pandas as pd
 
@@ -45,6 +46,34 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
 
     def call(self, *args, **kwargs) -> Any:
         raise NotImplementedError()
+
+
+class OrderedSet(dict):
+    def __init__(self, iterator: Iterator = {}):
+        super().__init__()
+        self.update(iterator)
+
+    def __and__(self, other):
+        return OrderedSet({key for key in self if key in other})
+
+    def update(self, iterator: Iterator):
+        super().update({key: None for key in iterator})
+
+
+class Justification(Enum):
+    Left = 'Left', str.ljust
+    Right = 'Right', str.rjust
+    Center = 'Center', str.center
+    NoJust = 'None', None
+
+    def __init__(self, description: str, method: Optional[Callable]):
+        self.description = description
+        self.method = method
+
+    def apply(self, text: str, *args, **kwargs):
+        if not self.method:
+            return text
+        return self.method(text, *args, **kwargs)
 
 
 # For Python 3.8 compatibility

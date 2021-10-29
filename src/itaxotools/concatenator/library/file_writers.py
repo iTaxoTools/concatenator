@@ -5,17 +5,15 @@ from pathlib import Path
 import pandas as pd
 
 from .file_utils import createDirectory, createZipArchive, PathLike
-from .file_types import FileType, FileFormat
-from .utils import Stream, ConfigurableCallable, Param
+from .file_types import FileType, FileFormat, get_extension
+from .utils import Stream, ConfigurableCallable, Param, Justification
 from .operators import (
-    OpIndexMerge, OpPadRight, OpIndexToMulti, OpDropEmpty, join_any, chain)
+    OpIndexMerge, OpPadRight, OpDropEmpty, join_any, chain)
 
 from .fasta import fasta_writer
 from .phylip import phylip_writer
 from .ali import ali_writer
-from .nexus import write_from_series
-
-from . import SEQUENCE_PREFIX
+from .nexus import write_from_series as nexus_write
 
 
 PartWriter = Callable[[pd.Series, TextIO], None]
@@ -37,15 +35,6 @@ file_writers: Dict[FileType, Dict[FileFormat, FileWriter]] = {
 filtered_fasta_writer = fasta_writer
 filtered_phylip_writer = phylip_writer
 filtered_ali_writer = ali_writer
-
-
-def get_extension(
-    type: FileType,
-    format: FileFormat,
-) -> str:
-    if type.extension is None:
-        return format.extension
-    return type.extension
 
 
 def file_writer(
@@ -76,13 +65,12 @@ def _register_concatenated_writer(
 ) -> None:
 
     @file_writer(FileType.File, format)
-    class _ConcatenatedFileWriter(FileWriter):
-        padding = Param('-')
+    class _SingleFileWriter(FileWriter):
+        padding = Param('')
 
         def call(self, stream: Stream, path: Path) -> None:
             filters = chain([
                 OpIndexMerge().to_filter,
-                OpIndexToMulti().to_filter,
                 OpPadRight(self.padding).to_filter,
                 ])
             _writeConcatenatedFormat(filters(stream), path, writer)
@@ -105,7 +93,7 @@ def _register_multifile_writer(
 
     @file_writer(type, format)
     class _MultiFileWriter(FileWriter):
-        padding = Param('-')
+        padding = Param('')
 
         def call(self, stream: Stream, path: Path) -> None:
             container = creator(path)
@@ -115,42 +103,48 @@ def _register_multifile_writer(
                 operator = chain([
                     OpDropEmpty(),
                     OpIndexMerge(),
-                    OpIndexToMulti(),
                     OpPadRight(self.padding),
                     ])
                 with part.open('w') as file:
                     writer(operator(series), file)
 
 
-for type, creator in {
+for file_type, creator in {
     FileType.Directory: createDirectory,
     FileType.ZipArchive: createZipArchive,
 }.items():
-    for format, writer in {
+    for file_format, writer in {
         FileFormat.Fasta: filtered_fasta_writer,
         FileFormat.Phylip: filtered_phylip_writer,
         FileFormat.Ali: filtered_ali_writer,
     }.items():
-        _register_multifile_writer(type, format, creator, writer)
+        _register_multifile_writer(file_type, file_format, creator, writer)
 
 
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusFileWriter(FileWriter):
     padding = Param('-')
+    justification = Param(Justification.Left)
+    separator = Param(' ')
 
     def call(self, stream: Stream, path: Path) -> None:
         data = OpIndexMerge()(join_any(stream))
         generator = (data[col].fillna('') for col in data)
         with path.open('w') as file:
-            write_from_series(
-                OpPadRight(self.padding).to_filter(generator), file)
+            nexus_write(
+                OpPadRight(self.padding).to_filter(generator),
+                file,
+                self.justification,
+                self.separator)
 
 
 @file_writer(FileType.File, FileFormat.Tab)
 class TabFileWriter(FileWriter):
+    sequence_prefix = Param('sequence_')
+
     def call(self, stream: Stream, path: Path) -> None:
         data = join_any(stream)
-        data.columns = [SEQUENCE_PREFIX + col for col in data.columns]
+        data.columns = [self.sequence_prefix + col for col in data.columns]
         with path.open('w') as file:
             data.to_csv(file, sep="\t", line_terminator="\n")
 

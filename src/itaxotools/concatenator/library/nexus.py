@@ -70,7 +70,12 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     buf.close()
 
 
-def write_from_series(iterator: Iterator[pd.Series], out: TextIO) -> None:
+def write_from_series(
+    iterator: Iterator[pd.Series],
+    out: TextIO,
+    justification: Justification = Justification.Left,
+    separator: str = ' '
+) -> None:
     buffer = tempfile.TemporaryFile(mode="w+")
     charsets = {}
     ntax = 0
@@ -82,24 +87,26 @@ def write_from_series(iterator: Iterator[pd.Series], out: TextIO) -> None:
         charsets[series.name] = len(series.iat[0])
         index_len = series.index.str.len().max()
         for index, sequence in series.iteritems():
-            buffer.write(f'{index.ljust(index_len)}\t{sequence}\n')
+            buffer.write((
+                f'{justification.apply(index, index_len)}'
+                f'{separator}{sequence}\n'))
         buffer.write('\n')
         ntax = len(series)
 
     nchar = sum(charsets.values())
 
     out.write('#NEXUS\n\n')
-    out.write('begin data;\n\n')
-    out.write('format datatype=DNA missing=N missing=? Gap=- ')
-    out.write('Interleave=yes;\n\n')
-    out.write(f'dimensions Nchar={nchar} Ntax={ntax};\n\n')
-    out.write('matrix\n\n')
+    out.write('BEGIN DATA;\n\n')
+    out.write(f'Dimensions Nchar={nchar} Ntax={ntax};\n')
+    out.write('Format Datatype=DNA Missing=N Missing=? Gap=- ')
+    out.write('Interleave=yes;\n')
+    out.write('Matrix\n\n')
 
     buffer.seek(0)
     for line in buffer:
         out.write(line)
-    out.write(';\nend;\n\n\n')
-    out.write('begin sets;\n\n')
+    out.write(';\nEND;\n\n\n')
+    out.write('BEGIN SETS;\n\n')
     buffer.close()
 
     position = 1
@@ -107,12 +114,12 @@ def write_from_series(iterator: Iterator[pd.Series], out: TextIO) -> None:
         position_end = position + length - 1
         out.write(f'charset {name} = {position}-{position_end};\n')
         position += length
-    out.write('\nend;\n')
+    out.write('\nEND;\n')
 
 
-def read(input: TextIO) -> pd.DataFrame:
+def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
     commands = NexusCommands(input)
-    reader = NexusReader()
+    reader = NexusReader(sequence_prefix=sequence_prefix)
     for command, args in commands:
         reader.execute(command, args)
     return reader.return_table()
@@ -323,9 +330,10 @@ class NexusReader:
         data=NexusState.Data, sets=NexusState.Sets
     )
 
-    def __init__(self) -> None:
+    def __init__(self, sequence_prefix: str = 'sequence_') -> None:
         self.table = pd.DataFrame()
         self.columns = ["seqid"]
+        self.sequence_prefix = sequence_prefix
         self.state: Optional[NexusState] = None
         self.todo: Set[NexusState] = {NexusState.Data, NexusState.Sets}
         self.ntax: Optional[int] = None
@@ -336,7 +344,7 @@ class NexusReader:
         Sets the state for the next block
         """
         try:
-            arg = next(args)
+            arg = next(args).casefold()
             state = NexusReader.nexus_state[arg]
             if state in self.todo:
                 self.state = state
@@ -424,7 +432,7 @@ class NexusReader:
         """
         if self.state == NexusState.Sets:
             try:
-                self.columns.append("sequence_" + next(args))
+                self.columns.append(self.sequence_prefix + next(args))
             except StopIteration:
                 self.columns.append("")
 

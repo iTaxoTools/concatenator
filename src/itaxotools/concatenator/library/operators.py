@@ -6,10 +6,8 @@ import pandas as pd
 
 from .utils import (
     Stream, Filter, MultiFilter, Translation, ConfigurableCallable, Param,
-    removeprefix, make_equal_length,
+    OrderedSet, removeprefix,
     )
-
-from . import SPECIES
 
 
 IndexedData = Union[pd.DataFrame, pd.Series]
@@ -53,36 +51,11 @@ class OpCheckValid(Operator):
             raise InvalidSeries(series, 'Not a pandas.Series!')
         if not series.name:
             raise InvalidSeries(series, 'Missing series name')
-        if not isinstance(series.index, pd.MultiIndex):
-            raise InvalidSeries(series, 'Series must have MultiIndex')
-        if SPECIES not in series.index.names:
-            raise InvalidSeries(series, f'Missing "{SPECIES}" index')
-        if series.index.names[0] != SPECIES:
-            raise InvalidSeries(series, f'"{SPECIES}" index must be first')
         return series
-
-
-class OpIndexToMulti(Operator):
-    def call(self, series: pd.Series) -> pd.Series:
-        if not isinstance(series.index, pd.MultiIndex):
-            series = series.copy(deep=False)
-            series.index = pd.MultiIndex.from_arrays(
-                [series.index], names=[series.index.name])
-        return series
-
-
-class OpSpeciesToFront(Operator):
-    def call(self, series: pd.Series) -> pd.Series:
-        ordered = list(series.index.names)
-        if SPECIES not in ordered:
-            return series
-        ordered.remove(SPECIES)
-        ordered = [SPECIES] + ordered
-        series = series.copy(deep=False)
-        return series.reorder_levels(ordered)
 
 
 class OpIndexMerge(Operator):
+    index: str = 'seqid'
     glue: str = Param('_')
 
     def call(self, series: pd.Series) -> pd.Series:
@@ -90,14 +63,16 @@ class OpIndexMerge(Operator):
         indices = series.index.to_frame().fillna('', inplace=False)
         series.index = pd.Index(
             indices.apply(self.glue.join, axis=1),
-            name='merged')
+            name=self.index)
         return series
 
 
-class OpIndexSpeciesOnly(Operator):
+class OpIndexFilter(Operator):
+    index: str = 'seqid'
+
     def call(self, series: pd.Series) -> pd.Series:
         series = series.copy(deep=False)
-        series.index = series.index.to_frame()[SPECIES]
+        series.index = series.index.to_frame()[self.index]
         return series
 
 
@@ -117,8 +92,10 @@ class OpPadRight(Operator):
     def call(self, series: pd.Series) -> pd.Series:
         if not self.padding:
             return series
+        assert len(self.padding) == 1
         series = series.fillna('', inplace=False)
-        return make_equal_length(series, fillchar=self.padding)
+        max_length = series.str.len().max()
+        return series.str.ljust(max_length, self.padding)
 
 
 class OpTranslateSequences(Operator):
@@ -177,7 +154,7 @@ class OpApply(Operator):
 def join_any(stream: Stream) -> pd.DataFrame:
     """Outer join for any MultiIndex"""
     sentinel = '\u0000'
-    all_keys = set()
+    all_keys = OrderedSet()
 
     def guarded(names: Iterator[str]) -> List[str]:
         return [name for name in names if name.startswith(sentinel)]
@@ -190,7 +167,8 @@ def join_any(stream: Stream) -> pd.DataFrame:
 
     def fold_keys(stream: Stream) -> Iterator[pd.DataFrame]:
         for series in stream:
-            keys = guard(list(series.index.names))
+            series = series.copy(deep=False)
+            keys = guard(series.index.names)
             series.index = pd.MultiIndex.from_frame(
                 series.index.to_frame(), names=keys)
             all_keys.update(keys)
@@ -199,11 +177,11 @@ def join_any(stream: Stream) -> pd.DataFrame:
     species = fold_keys(stream)
     all = pd.DataFrame(next(species))
     for series in species:
-        merge_keys = set(guarded(series.columns)) & all_keys
+        merge_keys = all_keys & guarded(series.columns)
         all = pd.merge(all, series, how='outer', on=list(merge_keys))
     all.set_index(list(all_keys), inplace=True)
     all.index.names = unguard(all.index.names)
-    return OpSpeciesToFront()(OpIndexToMulti()(all))
+    return all
 
 
 def join_any_to_stream(stream: Stream) -> Stream:
