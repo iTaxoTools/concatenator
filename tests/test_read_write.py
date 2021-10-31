@@ -73,7 +73,7 @@ def test_read_write(test: CrossTest, tmp_path: Path) -> None:
     input_path = TEST_DATA_DIR / test.input.name
     output_path = TEST_DATA_DIR / test.output.name
     test_path = tmp_path / test.output.name
-    reader = get_reader(test.input.type, test.input.format)(**test.reader_kwds)
-    writer = get_writer(test.output.type, test.output.format)(**test.writer_kwds)
+    reader = get_reader(test.input.type, test.input.format).update(**test.reader_kwds)
+    writer = get_writer(test.output.type, test.output.format).update(**test.writer_kwds)
     writer(reader(input_path), test_path)
     assert_eq_files(test.output.type, test_path, output_path)

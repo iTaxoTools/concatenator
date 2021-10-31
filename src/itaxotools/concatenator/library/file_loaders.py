@@ -4,18 +4,19 @@ from pathlib import Path
 
 import pandas as pd
 
+from .model import GeneDataFrame
 from .utils import ConfigurableCallable
 from .file_types import FileType, FileFormat
 from .file_identify import autodetect
 from .operators import join_any
 from .file_readers import (
-    file_readers, read_from_path, readNexusFile, readTab,
-    readAliSeries, readFastaSeries, readPhylipSeries,
+    file_readers, read_from_path, readNexus, readTab,
+    readAliGene, readFastaGene, readPhylipGene,
     )
 
 
 class FileLoader(ConfigurableCallable):
-    def call(self, path: Path) -> pd.DataFrame:
+    def call(self, path: Path) -> GeneDataFrame:
         raise NotImplementedError
 
 
@@ -34,32 +35,37 @@ def file_loader(
 
 @file_loader(FileType.File, FileFormat.Tab)
 class TabFileLoader(FileLoader):
-    def call(self, path: Path) -> pd.DataFrame:
-        return readTab(path)
+    def call(self, path: Path) -> GeneDataFrame:
+        df = readTab(path)
+        return GeneDataFrame(df, missing='?N', gap='-')
 
 
 @file_loader(FileType.File, FileFormat.Nexus)
 class NexusFileLoader(FileLoader):
-    def call(self, path: Path) -> pd.DataFrame:
-        return readNexusFile(path)
+    def call(self, path: Path) -> GeneDataFrame:
+        df = readNexus(path)
+        return GeneDataFrame(df, missing='?N', gap='-')
 
 
 @file_loader(FileType.File, FileFormat.Ali)
 class AliFileLoader(FileLoader):
-    def call(self, path: Path) -> pd.DataFrame:
-        return pd.DataFrame(readAliSeries(path))
+    def call(self, path: Path) -> GeneDataFrame:
+        df = pd.DataFrame(readAliGene(path).series)
+        return GeneDataFrame(df, missing='?', gap='*')
 
 
 @file_loader(FileType.File, FileFormat.Fasta)
 class FastaFileLoader(FileLoader):
-    def call(self, path: Path) -> pd.DataFrame:
-        return pd.DataFrame(readFastaSeries(path))
+    def call(self, path: Path) -> GeneDataFrame:
+        df = pd.DataFrame(readFastaGene(path).series)
+        return GeneDataFrame(df, missing='?N', gap='-')
 
 
 @file_loader(FileType.File, FileFormat.Phylip)
 class PhylipFileLoader(FileLoader):
-    def call(self, path: Path) -> pd.DataFrame:
-        return pd.DataFrame(readPhylipSeries(path))
+    def call(self, path: Path) -> GeneDataFrame:
+        df = pd.DataFrame(readPhylipGene(path).series)
+        return GeneDataFrame(df, missing='?N', gap='-')
 
 
 class LoaderNotFound(Exception):
@@ -69,7 +75,13 @@ class LoaderNotFound(Exception):
         super().__init__(f'No loader for {str(type)} and {str(format)}')
 
 
-def load_from_path(path: Path) -> pd.DataFrame:
+def get_loader(type: FileType, format: FileFormat):
+    if format not in file_loaders[type]:
+        raise LoaderNotFound(type, format)
+    return file_loaders[type][format]()
+
+
+def load_from_path(path: Path) -> GeneDataFrame:
     type, format = autodetect(path)
     if format in file_loaders[type]:
         return file_loaders[type][format]()(path)

@@ -6,10 +6,6 @@ from enum import Enum
 import pandas as pd
 
 
-Stream = Iterator[pd.Series]
-Filter = Callable[[Stream], Stream]
-MultiFilter = Callable[[Iterator[Stream]], Stream]
-
 # Such as returned by str.maketrans
 Translation = Dict[int, int]
 
@@ -31,6 +27,9 @@ class _ConfigurableCallable_meta(type):
 
 class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
     def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
         members = self._params_.copy()
         for arg in args:
             if not members:
@@ -40,6 +39,7 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
             if kwarg not in members:
                 raise TypeError(f'Unexpected keyword: {kwarg}')
             setattr(self, kwarg, kwargs[kwarg])
+        return self
 
     def __call__(self, *args, **kwargs) -> Any:
         return self.call(*args, **kwargs)

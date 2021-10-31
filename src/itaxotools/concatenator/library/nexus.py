@@ -7,6 +7,7 @@ import re
 
 import pandas as pd
 
+from .model import GeneStream, GeneSeries
 from .utils import *
 
 
@@ -70,8 +71,8 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     buf.close()
 
 
-def write_from_series(
-    iterator: Iterator[pd.Series],
+def nexus_writer(
+    stream: GeneStream,
     out: TextIO,
     justification: Justification = Justification.Left,
     separator: str = ' '
@@ -80,7 +81,8 @@ def write_from_series(
     charsets = {}
     ntax = 0
 
-    for series in iterator:
+    for gene in stream:
+        series = gene.series
         assert has_uniform_length(series)
         assert not isinstance(series.index, pd.MultiIndex)
 

@@ -5,6 +5,7 @@ from typing import TextIO, Iterator, List, NamedTuple
 
 import pandas as pd
 
+from .model import GeneSeries
 from .utils import *
 from .multifile import ColumnWriter
 
@@ -116,7 +117,8 @@ def ali_reader(infile: TextIO) -> pd.Series:
     return series
 
 
-def ali_writer(series: pd.Series, outfile: TextIO) -> None:
+def ali_writer(gene: GeneSeries, outfile: TextIO) -> None:
+    series = gene.series
     assert has_uniform_length(series)
 
     trans_dict = str.maketrans("Nn-", "??*")
