@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import (Dict, Optional, Iterator, Tuple, Set,
-                    TypeVar, Iterable, List, Any, Counter)
+                    TypeVar, Iterable, List, Any, Counter, DefaultDict)
 import json
 import sys
 import os
@@ -150,6 +150,14 @@ GeneticCode = Enum('GeneticCode',  # type: ignore
 # ...
 
 
+class BadReadingFrame(Exception):
+    pass
+
+
+class NoReadingFrames(Exception):
+    pass
+
+
 class GeneData:
     def __init__(self, series: pd.Series):
         self.series: pd.Series = series
@@ -159,29 +167,44 @@ class GeneData:
         self.missing: str = 'N?'
         self.gap: str = '-'
 
+    def copy(self) -> 'GeneData':
+        result = GeneData(self.series)
+        result.genetic_code = self.genetic_code
+        result.reading_frame = self.reading_frame
+        result.codons = self.codons
+        result.missing = self.missing
+        result.gap = self.gap
+        return result
 
-class BadReadingFrame(Exception):
-    pass
+    # Placeholder, needs to be implemented, in library.codons?
+    def detect_reading_frame(self) -> 'GeneData':
+        possible_frames = column_reading_frame(self.series, self.genetic_code)
+        result = self.copy()
+        if not possible_frames:
+            raise NoReadingFrames
+        elif not self.reading_frame:
+            result.reading_frame = ReadingFrame(possible_frames.pop())  # type: ignore
+            return result
+        elif self.reading_frame in possible_frames:
+            return result
+        else:
+            raise BadReadingFrame
 
 
-# Placeholder, needs to be implemented, in library.codons?
-def some_func(data: GeneData) -> GeneData:
-    return GeneData(data.series)
+def collect_stop_codons() -> Dict[str, Set[int]]:
+    stop_codons: Dict[str, Set[int]] = DefaultDict(set)
+    for gc_table in GeneticCode:
+        if gc_table == GeneticCode(0):
+            continue
+        for stop in gc_table.stops:  # type: ignore
+            stop_codons[stop].add(gc_table._value_)
+    return stop_codons
 
 
-stop_codons_path = get_resource("stop_codons.json")
-try:
-    stop_codons: Optional[Dict[str, Set[int]]] = {
-        codon: set(tables)
-        for codon, tables in json.load(open(stop_codons_path)).items()
-    }
-except json.JSONDecodeError:
-    stop_codons = None
-else:
-    assert stop_codons is not None
-    stop_codons_set = set(stop_codons.keys()) if stop_codons else None
+STOP_CODONS: Dict[str, Set[int]] = collect_stop_codons()
+STOP_CODONS_SET = set(STOP_CODONS.keys())
 
-    table_set = set(table for tables in stop_codons.values() for table in tables)
+TABLE_SET = set(gc_table._value_ for gc_table in GeneticCode)
 
 
 def detect_stop_codons(
@@ -244,7 +267,7 @@ def allowed_translations(
     Returns mapping from reading frame to possible translation tables
     """
     result: Dict[int, Set[int]] = {
-        frame: table_set.copy() for frame in [-3, -2, -1, 1, 2, 3]
+        frame: TABLE_SET.copy() for frame in [-3, -2, -1, 1, 2, 3]
     }
     for stop_codon, frame in stops:
         result[frame] -= stop_codons[stop_codon]
@@ -255,20 +278,28 @@ def choose_frame(frame_to_table: Dict[int, Set[int]]) -> List[int]:
     return [frame for frame, tables in frame_to_table.items() if tables]
 
 
-def detect_reading_frame(sequence: str) -> Optional[List[int]]:
-    if not stop_codons_set:
-        return None
+def detect_reading_frame(sequence: str,
+                         gc_table: GeneticCode = GeneticCode(0)) -> List[int]:
+    if gc_table:
+        stop_codons_set = set(gc_table.stops)  # type: ignore
+    else:
+        stop_codons_set = STOP_CODONS_SET
     stops = set(
         itertools.chain(
             detect_stop_codons(sequence, stop_codons_set),
             detect_reverse_stop_codons(sequence, stop_codons_set),
         )
     )
-    assert stop_codons is not None
-    return choose_frame(allowed_translations(stops, stop_codons))
+    if gc_table:
+        return [frame for frame, count in
+                Counter((frame for codon, frame in stops)).items()
+                if count == 1]
+    else:
+        return choose_frame(allowed_translations(stops, STOP_CODONS))
 
 
-def column_reading_frame(column: pd.Series) -> List[int]:
+def column_reading_frame(column: pd.Series,
+                         gc_table: GeneticCode = GeneticCode(0)) -> List[int]:
     """
     Returns the list of reading frames detected in `column`.
 
@@ -276,7 +307,7 @@ def column_reading_frame(column: pd.Series) -> List[int]:
     """
     frame_counter: Counter[int] = Counter()
     for _, seq in column.items():
-        frame_counter.update(detect_reading_frame(seq))
+        frame_counter.update(detect_reading_frame(seq, gc_table))
     return [frame for frame, _ in frame_counter.most_common()]
 
 

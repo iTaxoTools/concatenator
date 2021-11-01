@@ -4,7 +4,7 @@ from enum import IntEnum
 import pandas as pd
 import pytest
 
-from itaxotools.concatenator.library.codons import GeneData, GeneticCode, ReadingFrame
+from itaxotools.concatenator.library.codons import GeneData, GeneticCode, ReadingFrame, BadReadingFrame
 
 
 @pytest.fixture
@@ -60,23 +60,23 @@ def gene_bad_standard_1st(series_bad) -> GeneData:
 
 
 def test_good_standard_1st(gene_good_standard_1st):
-    result = some_func(gene_good_standard_1st)
+    result = gene_good_standard_1st.detect_reading_frame()
     assert result.reading_frame == 1
 
 
 def test_good_standard_unknown(gene_good_standard_unknown):
-    result = some_func(gene_good_standard_unknown)
+    result = gene_good_standard_unknown.detect_reading_frame()
     assert result.reading_frame == 1
 
 
 def test_good_unknown_unknown(gene_good_unknown_unknown):
-    result = some_func(gene_good_unknown_unknown)
+    result = gene_good_unknown_unknown.detect_reading_frame()
     assert result.reading_frame == 1
 
 
 def test_bad_standard_1st(gene_bad_standard_1st):
     with pytest.raises(BadReadingFrame):
-        some_func(gene_bad_standard_1st)
+        gene_bad_standard_1st.detect_reading_frame()
 
 
 def test_model_reading_frame():
