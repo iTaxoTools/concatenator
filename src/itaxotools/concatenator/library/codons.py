@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-from typing import Dict, Optional, Iterator, Tuple, Set, TypeVar, Iterable, List, Any
+from typing import (Dict, Optional, Iterator, Tuple, Set,
+                    TypeVar, Iterable, List, Any, Counter)
 import json
 import sys
 import os
-import regex
+import regex  # type: ignore
 import itertools
-from collections import Counter
 from enum import IntEnum, Enum
 from dataclasses import dataclass
 
-import pandas as pd
+import pandas as pd  # type: ignore
 
 from .resources import get_resource
 
@@ -154,7 +154,7 @@ class GeneData:
     def __init__(self, series: pd.Series):
         self.series: pd.Series = series
         self.genetic_code: GeneticCode = GeneticCode(0)
-        self.reading_frame: ReadingFrame = ReadingFrame(0)
+        self.reading_frame: ReadingFrame = ReadingFrame.Unknown
         self.codons: Tuple[str, str, str] = ('**_1st', '**_2nd', '**_3rd')
         self.missing: str = 'N?'
         self.gap: str = '-'
@@ -274,7 +274,7 @@ def column_reading_frame(column: pd.Series) -> List[int]:
 
     The result is ordered by decreasing occurences
     """
-    frame_counter = Counter()
+    frame_counter: Counter[int] = Counter()
     for _, seq in column.items():
         frame_counter.update(detect_reading_frame(seq))
     return [frame for frame, _ in frame_counter.most_common()]
@@ -292,6 +292,6 @@ def split_codon_charsets(
         -3: (-2, -3, -1),
     }[frame]
     if frame > 0:
-        return tuple([column.str[start::3] for start in starts])
+        return tuple([column.str[start::3] for start in starts])  # type: ignore
     else:
-        return tuple([column.str[start::-3] for start in starts])
+        return tuple([column.str[start::-3] for start in starts])  # type: ignore
