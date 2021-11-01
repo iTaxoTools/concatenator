@@ -123,3 +123,16 @@ class GeneIO(Protocol):
 
     def gene_to_path(self, gene: GeneSeries, path: PathLike) -> None:
         ...
+
+
+class StreamIO(Protocol):
+    """
+    Simply reads/writes the GeneStream. Data processing is handled
+    by the calling FileReader/FileWriter.
+    """
+
+    def stream_from_path(self, path: PathLike, **kwargs) -> GeneStream:
+        ...
+
+    def stream_to_path(self, gene: GeneStream, path: PathLike) -> None:
+        ...

@@ -5,14 +5,14 @@ from pathlib import Path
 import pandas as pd
 
 from .model import GeneSeries, GeneStream, GeneIO
-from .utils import ConfigurableCallable, Param, removeprefix
+from .utils import ConfigurableCallable, Param
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath
 from .file_identify import autodetect
 from .operators import OpCheckValid
 
-from .nexus import read as nexus_read
 from . import ali, fasta, phylip
+from . import nexus, tabfile
 
 
 class FileReader(ConfigurableCallable):
@@ -50,7 +50,8 @@ class _GeneReader(FileReader):
 
 class _SingleFileReader(_GeneReader):
     def read(self, path: Path) -> GeneStream:
-        return GeneStream(gene for gene in [self.geneIO.gene_from_path(path)])
+        return GeneStream(
+            iter([self.geneIO.gene_from_path(path)]))
 
 
 class _MultiDirReader(_GeneReader):
@@ -93,63 +94,20 @@ for ftype, reader in {
     _register_type_reader(ftype, reader)
 
 
-def readNexus(path: Path) -> pd.DataFrame:
-    with path.open() as file:
-        data = nexus_read(file, sequence_prefix='')
-    data.set_index('seqid', inplace=True)
-    return data
-
-
 @file_reader(FileType.File, FileFormat.Nexus)
 class NexusReader(FileReader):
     def call(self, path: Path) -> GeneStream:
-        data = readNexus(path)
-        return GeneStream.from_dataframe(data).pipe(OpCheckValid())
+        stream = nexus.stream_from_path(path)
+        return stream.pipe(OpCheckValid())
 
 
-@file_reader(FileType.File, FileFormat.Tab)
-class TabFileReaderSlow(FileReader):
-    sequence_prefix = Param('sequence_')
-
-    def iter(self, path: Path) -> Iterator[GeneSeries]:
-        with path.open() as file:
-            columns = file.readline().rstrip().split("\t")
-            sequences = [x for x in columns if x.startswith(self.sequence_prefix)]
-            indices = [x for x in columns if not x.startswith(self.sequence_prefix)]
-            file.seek(0)
-            index = pd.read_table(
-                file, usecols=indices, dtype=str)
-            for sequence in sequences:
-                file.seek(0)
-                table = pd.read_table(
-                    file, usecols=[sequence], dtype=str)
-                data = table.join(index)
-                data.set_index(indices, inplace=True)
-                series = pd.Series(data.iloc[:, 0])
-                series.name = removeprefix(sequence, self.sequence_prefix)
-                yield GeneSeries(series)
-
-    def call(self, path: Path) -> GeneStream:
-        return GeneStream(self.iter(path)).pipe(OpCheckValid())
-
-
-def readTab(path: Path, sequence_prefix: str = 'sequence_') -> pd.DataFrame:
-    data = pd.read_csv(path, sep='\t', dtype=str)
-    indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
-    data.set_index(indices, inplace=True)
-    data.columns = [
-        removeprefix(col, sequence_prefix) for col in data.columns]
-    return data
-
-
-# Defined last takes precedence
 @file_reader(FileType.File, FileFormat.Tab)
 class TabFileReader(FileReader):
     sequence_prefix = Param('sequence_')
 
     def call(self, path: Path) -> GeneStream:
-        data = readTab(path, sequence_prefix=self.sequence_prefix)
-        return GeneStream.from_dataframe(data).pipe(OpCheckValid())
+        stream = tabfile.stream_from_path(path)
+        return stream.pipe(OpCheckValid())
 
 
 class ReaderNotFound(Exception):

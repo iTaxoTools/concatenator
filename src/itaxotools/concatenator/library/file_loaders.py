@@ -9,7 +9,11 @@ from .utils import ConfigurableCallable
 from .file_types import FileType, FileFormat
 from .file_identify import autodetect
 from .operators import join_any
-from .file_readers import file_readers, read_from_path, readNexus, readTab
+from .file_readers import file_readers, read_from_path
+
+from . import nexus, tabfile
+
+# This module should eventually be removed
 
 
 class FileLoader(ConfigurableCallable):
@@ -33,15 +37,13 @@ def file_loader(
 @file_loader(FileType.File, FileFormat.Tab)
 class TabFileLoader(FileLoader):
     def call(self, path: Path) -> GeneDataFrame:
-        df = readTab(path)
-        return GeneDataFrame(df, missing='?N', gap='-')
+        return tabfile.dataframe_from_path(path)
 
 
 @file_loader(FileType.File, FileFormat.Nexus)
 class NexusFileLoader(FileLoader):
     def call(self, path: Path) -> GeneDataFrame:
-        df = readNexus(path)
-        return GeneDataFrame(df, missing='?N', gap='-')
+        return nexus.dataframe_from_path(path)
 
 
 class LoaderNotFound(Exception):

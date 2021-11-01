@@ -7,7 +7,7 @@ import re
 
 import pandas as pd
 
-from .model import GeneStream, GeneSeries
+from .model import GeneStream, GeneDataFrame, PathLike
 from .utils import *
 
 
@@ -125,6 +125,22 @@ def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
     for command, args in commands:
         reader.execute(command, args)
     return reader.return_table()
+
+
+def dataframe_from_path(
+    path: PathLike,
+    sequence_prefix: str = 'sequence_'
+) -> GeneDataFrame:
+    with path.open() as file:
+        data = read(file, sequence_prefix='')
+    data.set_index('seqid', inplace=True)
+    gdf = GeneDataFrame(data, missing='?N', gap='-')
+    return gdf
+
+
+def stream_from_path(path: PathLike) -> GeneStream:
+    gdf = dataframe_from_path(path)
+    return gdf.stream()
 
 
 class Tokenizer:
