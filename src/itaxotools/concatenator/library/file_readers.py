@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .model import GeneSeries, GeneStream
+from .model import GeneSeries, GeneStream, GeneIO
 from .utils import ConfigurableCallable, Param, removeprefix
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath
@@ -12,9 +12,7 @@ from .file_identify import autodetect
 from .operators import OpCheckValid
 
 from .nexus import read as nexus_read
-from .ali import ali_reader
-from .fasta import fasta_reader
-from .phylip import phylip_reader
+from . import ali, fasta, phylip
 
 
 class FileReader(ConfigurableCallable):
@@ -40,6 +38,61 @@ def file_reader(
     return decorator
 
 
+class _GeneReader(FileReader):
+    geneIO: GeneIO = None
+
+    def read(self, path: Path) -> GeneStream:
+        raise NotImplementedError
+
+    def call(self, path: Path) -> GeneStream:
+        return self.read(path).pipe(OpCheckValid())
+
+
+class _SingleFileReader(_GeneReader):
+    def read(self, path: Path) -> GeneStream:
+        return GeneStream(gene for gene in [self.geneIO.gene_from_path(path)])
+
+
+class _MultiDirReader(_GeneReader):
+    def read(self, path: Path) -> GeneStream:
+        return GeneStream(
+            self.geneIO.gene_from_path(part)
+            for part in path.iterdir())
+
+
+class _MultiZipReader(_GeneReader):
+    def read(self, path: Path) -> GeneStream:
+        return GeneStream(
+            self.geneIO.gene_from_path(part)
+            for part in ZipPath(path).iterdir())
+
+
+def _register_type_reader(
+    ftype: FileType,
+    reader: _GeneReader,
+) -> None:
+
+    @file_reader(ftype, FileFormat.Fasta)
+    class FastaReader(reader):
+        geneIO = fasta
+
+    @file_reader(ftype, FileFormat.Phylip)
+    class PhylipReader(reader):
+        geneIO = phylip
+
+    @file_reader(ftype, FileFormat.Ali)
+    class AliReader(reader):
+        geneIO = ali
+
+
+for ftype, reader in {
+    FileType.File: _SingleFileReader,
+    FileType.Directory: _MultiDirReader,
+    FileType.ZipArchive: _MultiZipReader,
+}.items():
+    _register_type_reader(ftype, reader)
+
+
 def readNexus(path: Path) -> pd.DataFrame:
     with path.open() as file:
         data = nexus_read(file, sequence_prefix='')
@@ -51,63 +104,7 @@ def readNexus(path: Path) -> pd.DataFrame:
 class NexusReader(FileReader):
     def call(self, path: Path) -> GeneStream:
         data = readNexus(path)
-        return GeneStream.from_dataframe(data)
-
-
-def _readSeries(
-    path: Path,
-    part_reader: Callable[[TextIO], pd.Series]
-) -> pd.Series:
-    with path.open() as file:
-        series = part_reader(file)
-    series.name = path.stem
-    return series
-
-
-def readAliGene(path: Path) -> GeneSeries:
-    series =  _readSeries(path, ali_reader)
-    return GeneSeries(series, missing='?', gap='*')
-
-
-def readFastaGene(path: Path) -> GeneSeries:
-    series = _readSeries(path, fasta_reader)
-    return GeneSeries(series, missing='?N', gap='-')
-
-
-def readPhylipGene(path: Path) -> GeneSeries:
-    series = _readSeries(path, phylip_reader)
-    return GeneSeries(series, missing='?N', gap='-')
-
-
-def _register_multifile_reader(
-    format: FileFormat,
-    reader: Callable[[Path], GeneSeries]
-) -> None:
-
-    @file_reader(FileType.File, format)
-    class _SingleFileReader(FileReader):
-        def call(self, path: Path) -> GeneStream:
-            return GeneStream(gene for gene in [reader(path)])
-
-    @file_reader(FileType.Directory, format)
-    class _MultiDirReader(FileReader):
-        def call(self, path: Path) -> GeneStream:
-            return GeneStream(
-                (reader(part) for part in path.iterdir()))
-
-    @file_reader(FileType.ZipArchive, format)
-    class _MultiZipReader(FileReader):
-        def call(self, path: Path) -> GeneStream:
-            return GeneStream(
-                (reader(part) for part in ZipPath(path).iterdir()))
-
-
-for format, reader in {
-    FileFormat.Fasta: readFastaGene,
-    FileFormat.Phylip: readPhylipGene,
-    FileFormat.Ali: readAliGene,
-}.items():
-    _register_multifile_reader(format, reader)
+        return GeneStream.from_dataframe(data).pipe(OpCheckValid())
 
 
 @file_reader(FileType.File, FileFormat.Tab)
@@ -133,7 +130,7 @@ class TabFileReaderSlow(FileReader):
                 yield GeneSeries(series)
 
     def call(self, path: Path) -> GeneStream:
-        return GeneStream(self.iter(path))
+        return GeneStream(self.iter(path)).pipe(OpCheckValid())
 
 
 def readTab(path: Path, sequence_prefix: str = 'sequence_') -> pd.DataFrame:
@@ -152,7 +149,7 @@ class TabFileReader(FileReader):
 
     def call(self, path: Path) -> GeneStream:
         data = readTab(path, sequence_prefix=self.sequence_prefix)
-        return GeneStream.from_dataframe(data)
+        return GeneStream.from_dataframe(data).pipe(OpCheckValid())
 
 
 class ReaderNotFound(Exception):
@@ -171,4 +168,4 @@ def get_reader(type: FileType, format: FileFormat):
 def read_from_path(path: Path) -> GeneStream:
     type, format = autodetect(path)
     reader = get_reader(type, format)
-    return reader(path).pipe(OpCheckValid())
+    return reader(path)

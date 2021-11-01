@@ -9,10 +9,7 @@ from .utils import ConfigurableCallable
 from .file_types import FileType, FileFormat
 from .file_identify import autodetect
 from .operators import join_any
-from .file_readers import (
-    file_readers, read_from_path, readNexus, readTab,
-    readAliGene, readFastaGene, readPhylipGene,
-    )
+from .file_readers import file_readers, read_from_path, readNexus, readTab
 
 
 class FileLoader(ConfigurableCallable):
@@ -44,27 +41,6 @@ class TabFileLoader(FileLoader):
 class NexusFileLoader(FileLoader):
     def call(self, path: Path) -> GeneDataFrame:
         df = readNexus(path)
-        return GeneDataFrame(df, missing='?N', gap='-')
-
-
-@file_loader(FileType.File, FileFormat.Ali)
-class AliFileLoader(FileLoader):
-    def call(self, path: Path) -> GeneDataFrame:
-        df = pd.DataFrame(readAliGene(path).series)
-        return GeneDataFrame(df, missing='?', gap='*')
-
-
-@file_loader(FileType.File, FileFormat.Fasta)
-class FastaFileLoader(FileLoader):
-    def call(self, path: Path) -> GeneDataFrame:
-        df = pd.DataFrame(readFastaGene(path).series)
-        return GeneDataFrame(df, missing='?N', gap='-')
-
-
-@file_loader(FileType.File, FileFormat.Phylip)
-class PhylipFileLoader(FileLoader):
-    def call(self, path: Path) -> GeneDataFrame:
-        df = pd.DataFrame(readPhylipGene(path).series)
         return GeneDataFrame(df, missing='?N', gap='-')
 
 

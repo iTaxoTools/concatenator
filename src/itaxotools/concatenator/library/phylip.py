@@ -5,7 +5,7 @@ from typing import TextIO, Dict
 
 import pandas as pd
 
-from .model import GeneSeries
+from .model import GeneSeries, PathLike
 from .multifile import ColumnWriter
 from .utils import *
 
@@ -51,7 +51,12 @@ def column_reader(infile: TextIO) -> pd.Series:
     return series
 
 
-phylip_reader = column_reader
+def gene_from_path(path: PathLike) -> GeneSeries:
+    with path.open() as file:
+        series = column_reader(file)
+    series.index.name = 'seqid'
+    series.name = path.stem
+    return GeneSeries(series, missing='?N', gap='-')
 
 
 def phylip_writer(gene: GeneSeries, outfile: TextIO, relaxed: bool = True) -> None:

@@ -180,20 +180,17 @@ def join_any(stream: GeneStream) -> GeneDataFrame:
             yield gene
 
     genes = fold_keys(stream)
-    all = pd.DataFrame(next(genes).series)
-    gdf = GeneDataFrame(all)
+    gdf = GeneDataFrame.from_gene(next(genes))
+    all = gdf.dataframe
     for gene in genes:
         merge_keys = all_keys & guarded(gene.series.columns)
         all = pd.merge(all, gene.series, how='outer', on=list(merge_keys))
         # We assume all gene series are compatible
+        print(gene, gene.missing)
         gdf.missing = gene.missing
         gdf.gap = gene.gap
+    print('end', gdf.missing)
     all.set_index(list(all_keys), inplace=True)
     all.index.names = unguard(all.index.names)
     gdf.dataframe = all
     return gdf
-
-
-# def join_any_to_stream(stream: GeneStream) -> GeneStream:
-#     for series in join_any(stream):
-#         yield series

@@ -5,7 +5,7 @@ from typing import TextIO, Iterator, List, NamedTuple
 
 import pandas as pd
 
-from .model import GeneSeries
+from .model import GeneSeries, PathLike
 from .utils import *
 from .multifile import ColumnWriter
 
@@ -115,6 +115,17 @@ def ali_reader(infile: TextIO) -> pd.Series:
     if series.index.to_frame()['ali_tag'].eq('').all():
         series.reset_index(level='ali_tag', drop=True, inplace=True)
     return series
+
+
+def gene_from_path(path: PathLike) -> GeneSeries:
+    with path.open() as file:
+        series = pd.Series({
+            (x.species, x.ali_tag): x.sequence for x in chunk_reader(file)})
+    series.index.names = ['seqid', 'ali_tag']
+    if series.index.to_frame()['ali_tag'].eq('').all():
+        series.reset_index(level='ali_tag', drop=True, inplace=True)
+    series.name = path.stem
+    return GeneSeries(series, missing='?', gap='*')
 
 
 def ali_writer(gene: GeneSeries, outfile: TextIO) -> None:
