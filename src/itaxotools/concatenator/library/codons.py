@@ -7,7 +7,7 @@ import os
 import regex
 import itertools
 from collections import Counter
-from enum import IntEnum
+from enum import IntEnum, Enum
 from dataclasses import dataclass
 
 import pandas as pd
@@ -41,14 +41,23 @@ class ReadingFrame(IntEnum):
 
 
 @dataclass(frozen=True)
-class GeneticCodeDescription:
+class _GeneticCodeDescription:
     name: str
     ncbieaa: str
     sncbieaa: str
     abbr_name: Optional[str] = None
 
+    # bases and codons in the same order as
+    # in https://www.ncbi.nlm.nih.gov/IEB/ToolBox/C_DOC/lxr/source/data/gc.prt
+    BASES = "TCAG"
+    CODONS = tuple(c1 + c2 + c3
+                   for c1, c2, c3 in itertools.product(BASES, repeat=3))
 
-def validate_genetic_code_table(table: Any) -> None:
+    def stops(self) -> List[str]:
+        return [codon for seaa, codon in zip(self.sncbieaa, self.CODONS) if seaa == "*"]
+
+
+def _validate_genetic_code_table(table: Any) -> None:
     if not isinstance(table, dict):
         raise ValueError(
             "In genetic_codes.json, in 'Genetic_code_tables' "
@@ -66,6 +75,8 @@ def validate_genetic_code_table(table: Any) -> None:
             "In genetic_codes.json, in 'Genetic_code_tables' "
             f"the field '{e.args}' of one of the values is missing"
         ) from e
+    if table["id"] == 0:
+        raise ValueError("In genetic_codes.json, a table has an invalid 'id' 0")
     for data_field in ("ncbieaa", "sncbieaa"):
         if len(table[data_field]) != 64:
             raise ValueError(
@@ -80,7 +91,7 @@ def validate_genetic_code_table(table: Any) -> None:
             )
 
 
-def load_genetic_codes() -> Dict[int, GeneticCodeDescription]:
+def _load_genetic_codes() -> Dict[int, _GeneticCodeDescription]:
     genetic_codes_path = get_resource("genetic_codes.json")
     with open(genetic_codes_path) as genetic_codes_file:
         try:
@@ -97,16 +108,16 @@ def load_genetic_codes() -> Dict[int, GeneticCodeDescription]:
     if not isinstance(tables, list):
         raise ValueError(
             "In genetic_codes.json 'Genetic_code_tables' is not an array") from e
-    result: Dict[int, GeneticCodeDescription] = {}
+    result: Dict[int, _GeneticCodeDescription] = {}
     for table in tables:
-        validate_genetic_code_table(table)
+        _validate_genetic_code_table(table)
         assert isinstance(table, dict)
         gc_id: int = table.pop("id")
-        result[gc_id] = GeneticCodeDescription(**table)
+        result[gc_id] = _GeneticCodeDescription(**table)
     return result
 
 
-_GC_DESCRIPTIONS = load_genetic_codes()
+_GC_DESCRIPTIONS = _load_genetic_codes()
 
 
 class _GeneticCodePrototype(int):
@@ -114,27 +125,29 @@ class _GeneticCodePrototype(int):
     def __new__(cls, value: int):
         obj = int.__new__(cls, value)  # type: ignore
         obj._value_ = value
+        if value == 0:
+            obj.text = 'Unknown'
+            obj.stops = []
+        else:
+            obj.text = _GC_DESCRIPTIONS[value].name
+            obj.stops = _GC_DESCRIPTIONS[value].stops()
         return obj
 
 
-class GeneticCode(IntEnum):
+GeneticCode = Enum('GeneticCode',  # type: ignore
+                   {'Unknown': 0} |
+                   {
+                       "SGC"+str(gc_id - 1): gc_id for gc_id in _GC_DESCRIPTIONS
+                   },
+                   type=_GeneticCodePrototype)
+# Unknown = 'Unknown', []
 
-    def __new__(cls, text: str, stops: List[str]):
-        value = len(cls.__members__)
-        obj = int.__new__(cls, value)
-        obj._value_ = value
-        obj.text = text
-        obj.stops = stops
-        return obj
-
-    Unknown = 'Unknown', []
-
-    SGC0 = 'Standard', ['TAA', 'TAG', 'TGA']
-    SGC1 = 'Vertebrate Mitochondrial', ['TAA', 'TAG', 'AGA', 'AGG']
-    SGC2 = 'Yeast Mitochondrial', ['TAA', 'TAG', 'TGA']
-    SGC3 = 'Mold/Protozoan/Coelenterate Mitochondrial; Mycoplasma; Spiroplasma', [
-        'TAA', 'TAG']
-    ...
+# SGC0 = 'Standard', ['TAA', 'TAG', 'TGA']
+# SGC1 = 'Vertebrate Mitochondrial', ['TAA', 'TAG', 'AGA', 'AGG']
+# SGC2 = 'Yeast Mitochondrial', ['TAA', 'TAG', 'TGA']
+# SGC3 = 'Mold/Protozoan/Coelenterate Mitochondrial; Mycoplasma; Spiroplasma', [
+#     'TAA', 'TAG']
+# ...
 
 
 class GeneData:
