@@ -291,11 +291,37 @@ def detect_reading_frame(sequence: str,
         )
     )
     if gc_table:
-        return [frame for frame, count in
-                Counter((frame for codon, frame in stops)).items()
-                if count == 1]
+        disallowed_frames = {frame for frame, count in
+                             Counter((frame for codon, frame in stops)).items()
+                             if count == 1}
+        return [frame for frame in [1, 2, 3, -1, -2, -3]
+                if frame not in disallowed_frames]
     else:
         return choose_frame(allowed_translations(stops, STOP_CODONS))
+
+
+def detect_reading_combinations(sequence: str,
+                                gc_table: GeneticCode = GeneticCode(0)
+                                ) -> Set[Tuple[GeneticCode, int]]:
+    if gc_table:
+        stop_codons_set = set(gc_table.stops)  # type: ignore
+    else:
+        stop_codons_set = STOP_CODONS_SET
+    stops = set(
+        itertools.chain(
+            detect_stop_codons(sequence, stop_codons_set),
+            detect_reverse_stop_codons(sequence, stop_codons_set),
+        )
+    )
+    if gc_table:
+        disallowed_frames = {frame for frame, count in
+                             Counter((frame for codon, frame in stops)).items()
+                             if count == 1}
+        return {(gc_table, frame) for frame in [1, 2, 3, -1, -2, -3]
+                if frame not in disallowed_frames}
+    else:
+        return {(GeneticCode(gc_id), frame) for frame, gcs in allowed_translations(
+            stops, STOP_CODONS).items() for gc_id in gcs}
 
 
 def column_reading_frame(column: pd.Series,
@@ -305,10 +331,11 @@ def column_reading_frame(column: pd.Series,
 
     The result is ordered by decreasing occurences
     """
-    frame_counter: Counter[int] = Counter()
+    reading_combinations: Set[Tuple[GeneticCode, int]] = set()
     for _, seq in column.items():
-        frame_counter.update(detect_reading_frame(seq, gc_table))
-    return [frame for frame, _ in frame_counter.most_common()]
+        reading_combinations = reading_combinations.intersection(
+            detect_reading_combinations(seq, gc_table))
+    return [frame for _, frame in reading_combinations]
 
 
 def split_codon_charsets(
