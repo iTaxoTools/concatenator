@@ -19,7 +19,12 @@ class FileReader(ConfigurableCallable):
     type: FileType = None
     format: FileFormat = None
 
+    def filter(self, stream: GeneStream) -> GeneStream:
+        """Stream operations, obeys inheritance"""
+        return stream.pipe(OpCheckValid())
+
     def call(self, path: Path) -> GeneStream:
+        """Read from path, then apply filter operations"""
         raise NotImplementedError
 
 
@@ -45,7 +50,8 @@ class _GeneReader(FileReader):
         raise NotImplementedError
 
     def call(self, path: Path) -> GeneStream:
-        return self.read(path).pipe(OpCheckValid())
+        stream = self.read(path)
+        return self.filter(stream)
 
 
 class _SingleFileReader(_GeneReader):
@@ -98,7 +104,7 @@ for ftype, reader in {
 class NexusReader(FileReader):
     def call(self, path: Path) -> GeneStream:
         stream = nexus.stream_from_path(path)
-        return stream.pipe(OpCheckValid())
+        return self.filter(stream)
 
 
 @file_reader(FileType.File, FileFormat.Tab)
@@ -107,7 +113,7 @@ class TabFileReader(FileReader):
 
     def call(self, path: Path) -> GeneStream:
         stream = tabfile.stream_from_path(path)
-        return stream.pipe(OpCheckValid())
+        return self.filter(stream)
 
 
 class ReaderNotFound(Exception):

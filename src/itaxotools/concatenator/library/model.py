@@ -82,12 +82,12 @@ class GeneSeries:
 class Operator(ConfigurableCallable):
     """The basis for manipulating GeneSeries"""
 
-    def call(self, series: GeneSeries) -> Optional[GeneSeries]:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         raise NotImplementedError()
 
     def iter(self, stream: GeneStream):
-        for series in stream:
-            result = self(series)
+        for gene in stream:
+            result = self(gene)
             if result is not None:
                 yield result
 

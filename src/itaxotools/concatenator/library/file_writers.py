@@ -9,7 +9,8 @@ from .utils import ConfigurableCallable, Param, Justification
 from .file_utils import ZipFile, ZipPath, PathLike
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
-    OpIndexMerge, OpPadRight, OpDropEmpty, OpApplyToSeries, join_any)
+    OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
+    OpApplyToSeries, join_any)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -22,9 +23,12 @@ class FileWriter(ConfigurableCallable):
     type: FileType = None
     format: FileFormat = None
 
-    # assert isinstance(stream, GeneStream) etc
+    def filter(self, stream: GeneStream) -> GeneStream:
+        """Stream operations, obeys inheritance"""
+        return stream.pipe(OpCheckValid())
 
     def call(self, stream: GeneStream, path: Path) -> None:
+        """Write to path after applying filter operations"""
         raise NotImplementedError
 
 
@@ -50,16 +54,21 @@ class _GeneWriter(FileWriter):
         raise NotImplementedError
 
     def call(self, stream: GeneStream, path: Path) -> None:
+        stream = self.filter(stream)
         self.write(stream, path)
 
 
 class _ConcatenatedWriter(_GeneWriter):
     padding = Param('')
 
-    def write(self, stream: GeneStream, path: Path) -> None:
-        stream = (stream
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = (super().filter(stream)
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
+        return stream
+
+    def write(self, stream: GeneStream, path: Path) -> None:
+        stream = self.filter(stream)
         joined = join_any(stream)
         data = joined.dataframe.apply(
             lambda row: ''.join(row.values.astype(str)), axis=1)
@@ -74,12 +83,16 @@ class _MultiFileWriter(_GeneWriter):
     def create(path: Path) -> Path:
         raise NotImplementedError
 
-    def call(self, stream: GeneStream, path: Path) -> None:
-        container = self.create(path)
-        stream = (stream
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = (super().filter(stream)
             .pipe(OpDropEmpty())
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
+        return stream
+
+    def call(self, stream: GeneStream, path: Path) -> None:
+        stream = self.filter(stream)
+        container = self.create(path)
         for gene in stream:
             name = gene.series.name + get_extension(FileType.File, self.format)
             part = container / name
@@ -132,11 +145,16 @@ class NexusWriter(FileWriter):
     justification = Param(Justification.Left)
     separator = Param(' ')
 
-    def call(self, stream: GeneStream, path: Path) -> None:
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = super().filter(stream)
         stream = (join_any(stream).stream()
             .pipe(OpIndexMerge())
             .pipe(OpApplyToSeries(lambda x: x.fillna('')))
             .pipe(OpPadRight(self.padding)))
+        return stream
+
+    def call(self, stream: GeneStream, path: Path) -> None:
+        stream = self.filter(stream)
         nexus.stream_to_path(stream, path, self.justification, self.separator)
 
 
@@ -145,6 +163,7 @@ class TabWriter(FileWriter):
     sequence_prefix = Param('sequence_')
 
     def call(self, stream: GeneStream, path: Path) -> None:
+        stream = self.filter(stream)
         tabfile.stream_to_path(stream, path, self.sequence_prefix)
 
 

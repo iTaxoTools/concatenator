@@ -25,7 +25,23 @@ class InvalidGeneSeries(Exception):
         super().__init__(error)
 
 
+class OpCheckDuplicates(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._memory = set()
+
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        if gene.name in self._memory:
+            raise InvalidGeneSeries(gene, f'Duplicate gene: {repr(gene.name)}')
+        self._memory.add(gene.name)
+        return gene
+
+
 class OpCheckValid(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.op_check_duplicates = OpCheckDuplicates()
+
     def call(self, gene: GeneSeries) -> GeneSeries:
         if not isinstance(gene, GeneSeries):
             raise InvalidGeneSeries(gene, 'Not a GeneSeries!')
@@ -37,7 +53,7 @@ class OpCheckValid(Operator):
             raise InvalidGeneSeries(gene, 'Missing gene data: "missing"')
         if not gene.gap:
             raise InvalidGeneSeries(gene, 'Missing gene data: "gap"')
-        return gene
+        return self.op_check_duplicates(gene)
 
 
 class OpIndexMerge(Operator):
