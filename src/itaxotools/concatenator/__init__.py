@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# flake8: noqa: F401
+# __all__ = [...]
+
 from pathlib import Path
 
 from .concatenator import main  # noqa
@@ -11,6 +14,7 @@ from .library.file_readers import read_from_path, get_reader
 from .library.file_writers import write_to_path, get_writer
 from .library.file_loaders import load_from_path, get_loader
 from .library import operators
+
 
 def convert(
     source: Path,

@@ -1,22 +1,10 @@
 
-from typing import Callable, Dict, List, Iterator, TypeVar, Set, Union
-from functools import reduce
+from typing import Callable, Dict, List, Iterator, Set
 
 import pandas as pd
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
-from .utils import (
-    Translation, ConfigurableCallable, Param,
-    OrderedSet, removeprefix,
-    )
-
-
-T = TypeVar('T')
-
-
-# to be removed, replaced by GeneStream.pipe
-def chain(funcs: List[Callable[[T], T]]) -> Callable[[T], T]:
-    return reduce(lambda f, g: lambda x: f(g(x)), funcs)
+from .utils import Translation, Param, OrderedSet, removeprefix
 
 
 class InvalidGeneSeries(Exception):
@@ -110,7 +98,7 @@ class OpTranslateSequences(Operator):
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         gene = gene.copy()
-        gene.series = series.str.translate(self.translation)
+        gene.series = gene.series.str.translate(self.translation)
         return gene
 
 

@@ -2,8 +2,6 @@
 from typing import Callable, Dict
 from pathlib import Path
 
-import pandas as pd
-
 from .model import GeneDataFrame
 from .utils import ConfigurableCallable
 from .file_types import FileType, FileFormat
@@ -13,7 +11,8 @@ from .file_readers import file_readers, read_from_path
 
 from . import nexus, tabfile
 
-# This module should eventually be removed
+# This module has little use and should eventually be removed:
+# The dataset will not always fit in memory and should be lazily loaded
 
 
 class FileLoader(ConfigurableCallable):

@@ -1,10 +1,8 @@
 
-from typing import Callable, Dict, Iterator, TextIO
+from typing import Callable, Dict
 from pathlib import Path
 
-import pandas as pd
-
-from .model import GeneSeries, GeneStream, GeneIO
+from .model import GeneStream, GeneIO
 from .utils import ConfigurableCallable, Param
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath

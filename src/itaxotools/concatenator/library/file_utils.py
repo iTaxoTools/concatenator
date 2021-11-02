@@ -7,6 +7,8 @@ from zipfile import ZipFile
 from zipp import Path as ZipPath_
 from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union
 
+__all__ = ['ZipFile', 'ZipPath', ...]
+
 
 class ZipPath(ZipPath_):
     # zipp.Path does not subclass pathlib.Path, so we must implement these.

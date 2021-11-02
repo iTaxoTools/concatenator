@@ -6,7 +6,7 @@ import pandas as pd
 
 from .model import GeneSeries, GeneStream, GeneIO
 from .utils import ConfigurableCallable, Param, Justification
-from .file_utils import ZipFile, ZipPath, PathLike
+from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
@@ -14,9 +14,6 @@ from .operators import (
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
-
-
-PartWriter = Callable[[pd.Series, TextIO], None]
 
 
 class FileWriter(ConfigurableCallable):
@@ -62,7 +59,8 @@ class _ConcatenatedWriter(_GeneWriter):
     padding = Param('')
 
     def filter(self, stream: GeneStream) -> GeneStream:
-        stream = (super().filter(stream)
+        stream = (
+            super().filter(stream)
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
         return stream
@@ -84,7 +82,8 @@ class _MultiFileWriter(_GeneWriter):
         raise NotImplementedError
 
     def filter(self, stream: GeneStream) -> GeneStream:
-        stream = (super().filter(stream)
+        stream = (
+            super().filter(stream)
             .pipe(OpDropEmpty())
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
@@ -147,7 +146,8 @@ class NexusWriter(FileWriter):
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
-        stream = (join_any(stream).stream()
+        stream = (
+            join_any(stream).stream()
             .pipe(OpIndexMerge())
             .pipe(OpApplyToSeries(lambda x: x.fillna('')))
             .pipe(OpPadRight(self.padding)))
