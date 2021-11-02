@@ -72,3 +72,8 @@ def phylip_writer(gene: GeneSeries, outfile: TextIO, relaxed: bool = True) -> No
             assert len(index) > 10
         index = index.ljust(10)
         outfile.write(f'{index} {sequence}\n')
+
+
+def gene_to_path(gene: GeneSeries, path: PathLike, relaxed: bool = True) -> None:
+    with path.open('w') as file:
+        phylip_writer(gene, file, relaxed)

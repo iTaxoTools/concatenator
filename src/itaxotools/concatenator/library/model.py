@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-from typing import Callable, Iterator, Optional, Protocol, TextIO
+from typing import Iterator, Optional, Protocol
 from copy import copy
 
 import pandas as pd
@@ -14,8 +14,8 @@ class GeneDataFrame:
 
     # this is generally a bad idea and should be fully replaced by GeneStream
     defaults = dict(
-        missing = '?N',
-        gap = '-',
+        missing='?N',
+        gap='-',
     )
 
     def __init__(
@@ -45,8 +45,8 @@ class GeneSeries:
 
     defaults = dict(
         # codons = ('**_1st', '**_2nd', '**_3rd'),
-        missing = '?N',
-        gap = '-',
+        missing='?N',
+        gap='-',
     )
 
     def __init__(
@@ -118,10 +118,10 @@ class GeneIO(Protocol):
     by the calling FileReader/FileWriter.
     """
 
-    def gene_from_path(self, path: PathLike) -> GeneSeries:
+    def gene_from_path(self, path: PathLike, **kwargs) -> GeneSeries:
         ...
 
-    def gene_to_path(self, gene: GeneSeries, path: PathLike) -> None:
+    def gene_to_path(self, gene: GeneSeries, path: PathLike, **kwargs) -> None:
         ...
 
 
@@ -134,5 +134,6 @@ class StreamIO(Protocol):
     def stream_from_path(self, path: PathLike, **kwargs) -> GeneStream:
         ...
 
-    def stream_to_path(self, gene: GeneStream, path: PathLike) -> None:
+    def stream_to_path(self, stream: GeneStream, path: PathLike,
+                       **kwargs) -> None:
         ...

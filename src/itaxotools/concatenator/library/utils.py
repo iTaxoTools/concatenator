@@ -17,11 +17,15 @@ class Param:
 
 class _ConfigurableCallable_meta(type):
     def __new__(cls, name, bases, classdict):
-        result = type.__new__(cls, name, bases, classdict)
-        result._params_ = [
-            x for x in classdict if isinstance(classdict[x], Param)]
-        for param in result._params_:
+        result = super().__new__(cls, name, bases, classdict)
+        if hasattr(result, '_params_'):
+            _inherited_params = result._params_.copy()
+        else:
+            _inherited_params = list()
+        _new_params = [x for x in classdict if isinstance(classdict[x], Param)]
+        for param in _new_params:
             setattr(result, param, classdict[param].default)
+        result._params_ = _inherited_params + _new_params
         return result
 
 

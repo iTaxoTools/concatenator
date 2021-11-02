@@ -4,17 +4,15 @@ from pathlib import Path
 
 import pandas as pd
 
-from .model import GeneSeries, GeneStream
+from .model import GeneSeries, GeneStream, GeneIO
 from .utils import ConfigurableCallable, Param, Justification
-from .file_utils import createDirectory, createZipArchive, PathLike
+from .file_utils import ZipFile, ZipPath, PathLike
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpIndexMerge, OpPadRight, OpDropEmpty, OpApplyToSeries, join_any)
 
-from .fasta import fasta_writer
-from .phylip import phylip_writer
-from .ali import ali_writer
-from .nexus import nexus_writer
+from . import ali, fasta, phylip
+from . import nexus, tabfile
 
 
 PartWriter = Callable[[pd.Series, TextIO], None]
@@ -23,6 +21,8 @@ PartWriter = Callable[[pd.Series, TextIO], None]
 class FileWriter(ConfigurableCallable):
     type: FileType = None
     format: FileFormat = None
+
+    # assert isinstance(stream, GeneStream) etc
 
     def call(self, stream: GeneStream, path: Path) -> None:
         raise NotImplementedError
@@ -43,80 +43,91 @@ def file_writer(
     return decorator
 
 
-def _writeConcatenatedFormat(
-    stream: GeneStream,
-    path: Path,
-    writer: PartWriter,
+class _GeneWriter(FileWriter):
+    geneIO: GeneIO = None
+
+    def write(self, stream: GeneStream, path: Path) -> None:
+        raise NotImplementedError
+
+    def call(self, stream: GeneStream, path: Path) -> None:
+        self.write(stream, path)
+
+
+class _ConcatenatedWriter(_GeneWriter):
+    padding = Param('')
+
+    def write(self, stream: GeneStream, path: Path) -> None:
+        stream = (stream
+            .pipe(OpIndexMerge())
+            .pipe(OpPadRight(self.padding)))
+        joined = join_any(stream)
+        data = joined.dataframe.apply(
+            lambda row: ''.join(row.values.astype(str)), axis=1)
+        gene = GeneSeries(data, missing=joined.missing, gap=joined.gap)
+        self.geneIO.gene_to_path(gene, path)
+
+
+class _MultiFileWriter(_GeneWriter):
+    padding = Param('')
+
+    @staticmethod
+    def create(path: Path) -> Path:
+        raise NotImplementedError
+
+    def call(self, stream: GeneStream, path: Path) -> None:
+        container = self.create(path)
+        stream = (stream
+            .pipe(OpDropEmpty())
+            .pipe(OpIndexMerge())
+            .pipe(OpPadRight(self.padding)))
+        for gene in stream:
+            name = gene.series.name + get_extension(FileType.File, self.format)
+            part = container / name
+            self.geneIO.gene_to_path(gene, part)
+
+
+class _MultiDirWriter(_MultiFileWriter):
+    @staticmethod
+    def create(path: Path) -> Path:
+        path.mkdir(exist_ok=True)
+        return path
+
+
+class _MultiZipWriter(_MultiFileWriter):
+    @staticmethod
+    def create(path: Path) -> Path:
+        archive = ZipFile(path, 'w')
+        return ZipPath(archive)
+
+
+def _register_type_writer(
+    ftype: FileType,
+    writer: _GeneWriter,
 ) -> None:
-    joined = join_any(stream)
-    data = joined.dataframe.apply(lambda row: ''.join(row.values.astype(str)), axis=1)
-    gene = GeneSeries(data, missing=joined.missing, gap=joined.gap)
-    with path.open('w') as file:
-        writer(gene, file)
+
+    @file_writer(ftype, FileFormat.Fasta)
+    class FastaWriter(writer):
+        geneIO = fasta
+
+    @file_writer(ftype, FileFormat.Phylip)
+    class PhylipWriter(writer):
+        geneIO = phylip
+
+    @file_writer(ftype, FileFormat.Ali)
+    class AliWriter(writer):
+        geneIO = ali
 
 
-def _register_concatenated_writer(
-    format: FileFormat,
-    writer: PartWriter,
-) -> None:
-
-    @file_writer(FileType.File, format)
-    class _SingleFileWriter(FileWriter):
-        padding = Param('')
-
-        def call(self, stream: GeneStream, path: Path) -> None:
-            stream = (stream
-                .pipe(OpIndexMerge())
-                .pipe(OpPadRight(self.padding)))
-            _writeConcatenatedFormat(stream, path, writer)
-
-
-for format, (writer, filters) in {
-    FileFormat.Fasta: (fasta_writer, []),
-    FileFormat.Phylip: (phylip_writer, []),
-    FileFormat.Ali: (ali_writer, []),
+for ftype, writer in {
+    FileType.File: _ConcatenatedWriter,
+    FileType.Directory: _MultiDirWriter,
+    FileType.ZipArchive: _MultiZipWriter,
 }.items():
-    _register_concatenated_writer(format, writer)
-
-
-def _register_multifile_writer(
-    type: FileType,
-    format: FileFormat,
-    creator: Callable[[Path], PathLike],
-    writer: PartWriter,
-) -> None:
-
-    @file_writer(type, format)
-    class _MultiFileWriter(FileWriter):
-        padding = Param('')
-
-        def call(self, stream: GeneStream, path: Path) -> None:
-            container = creator(path)
-            stream = (stream
-                .pipe(OpDropEmpty())
-                .pipe(OpIndexMerge())
-                .pipe(OpPadRight(self.padding)))
-            for gene in stream:
-                name = gene.series.name + get_extension(FileType.File, format)
-                part = container / name
-                with part.open('w') as file:
-                    writer(gene, file)
-
-
-for file_type, creator in {
-    FileType.Directory: createDirectory,
-    FileType.ZipArchive: createZipArchive,
-}.items():
-    for file_format, writer in {
-        FileFormat.Fasta: fasta_writer,
-        FileFormat.Phylip: phylip_writer,
-        FileFormat.Ali: ali_writer,
-    }.items():
-        _register_multifile_writer(file_type, file_format, creator, writer)
+    _register_type_writer(ftype, writer)
 
 
 @file_writer(FileType.File, FileFormat.Nexus)
-class NexusFileWriter(FileWriter):
+class NexusWriter(FileWriter):
     padding = Param('-')
     justification = Param(Justification.Left)
     separator = Param(' ')
@@ -126,20 +137,15 @@ class NexusFileWriter(FileWriter):
             .pipe(OpIndexMerge())
             .pipe(OpApplyToSeries(lambda x: x.fillna('')))
             .pipe(OpPadRight(self.padding)))
-        with path.open('w') as file:
-            nexus_writer(stream, file, self.justification, self.separator)
+        nexus.stream_to_path(stream, path, self.justification, self.separator)
 
 
 @file_writer(FileType.File, FileFormat.Tab)
-class TabFileWriter(FileWriter):
+class TabWriter(FileWriter):
     sequence_prefix = Param('sequence_')
 
     def call(self, stream: GeneStream, path: Path) -> None:
-        assert isinstance(stream, GeneStream)
-        data = join_any(stream).dataframe
-        data.columns = [self.sequence_prefix + col for col in data.columns]
-        with path.open('w') as file:
-            data.to_csv(file, sep="\t", line_terminator="\n")
+        tabfile.stream_to_path(stream, path, self.sequence_prefix)
 
 
 class WriterNotFound(Exception):

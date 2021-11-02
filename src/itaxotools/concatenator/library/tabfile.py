@@ -5,6 +5,7 @@ from typing import TextIO, Iterator, TypeVar, List
 import pandas as pd
 
 from .model import GeneStream, GeneDataFrame, PathLike
+from .operators import join_any
 from .utils import removeprefix
 
 
@@ -89,9 +90,21 @@ def dataframe_from_path(
     gdf = GeneDataFrame(data, missing='?N', gap='-')
     return gdf
 
+
 def stream_from_path(
     path: PathLike,
-    sequence_prefix: str = 'sequence_'
+    sequence_prefix: str = 'sequence_',
 ) -> GeneStream:
     gdf = dataframe_from_path(path, sequence_prefix)
     return gdf.stream()
+
+
+def stream_to_path(
+    stream: GeneStream,
+    path: PathLike,
+    sequence_prefix: str = 'sequence_',
+) -> None:
+    data = join_any(stream).dataframe
+    data.columns = [sequence_prefix + col for col in data.columns]
+    with path.open('w') as file:
+        data.to_csv(file, sep="\t", line_terminator="\n")

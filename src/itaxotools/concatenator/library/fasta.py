@@ -79,3 +79,8 @@ def fasta_writer(gene: GeneSeries, outfile: TextIO) -> None:
             index = '_'.join([str(x) for x in index if x is not None])
         outfile.write('>' + index + '\n')
         outfile.write(sequence + '\n')
+
+
+def gene_to_path(gene: GeneSeries, path: PathLike) -> None:
+    with path.open('w') as file:
+        fasta_writer(gene, file)

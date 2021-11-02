@@ -75,7 +75,7 @@ def nexus_writer(
     stream: GeneStream,
     out: TextIO,
     justification: Justification = Justification.Left,
-    separator: str = ' '
+    separator: str = ' ',
 ) -> None:
     buffer = tempfile.TemporaryFile(mode="w+")
     charsets = {}
@@ -119,6 +119,15 @@ def nexus_writer(
     out.write('\nEND;\n')
 
 
+def stream_to_path(
+    stream: GeneStream,
+    path: PathLike,
+    *args, **kwargs
+) -> None:
+    with path.open('w') as file:
+        nexus_writer(stream, file, *args, **kwargs)
+
+
 def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
     commands = NexusCommands(input)
     reader = NexusReader(sequence_prefix=sequence_prefix)
@@ -129,7 +138,7 @@ def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
 
 def dataframe_from_path(
     path: PathLike,
-    sequence_prefix: str = 'sequence_'
+    sequence_prefix: str = 'sequence_',
 ) -> GeneDataFrame:
     with path.open() as file:
         data = read(file, sequence_prefix='')
@@ -138,8 +147,11 @@ def dataframe_from_path(
     return gdf
 
 
-def stream_from_path(path: PathLike) -> GeneStream:
-    gdf = dataframe_from_path(path)
+def stream_from_path(
+    path: PathLike,
+    sequence_prefix: str = 'sequence_',
+) -> GeneStream:
+    gdf = dataframe_from_path(path, sequence_prefix)
     return gdf.stream()
 
 

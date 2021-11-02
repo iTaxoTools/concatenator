@@ -21,16 +21,6 @@ class ZipPath(ZipPath_):
 PathLike = Union[Path, ZipPath]
 
 
-def createZipArchive(path: Path) -> ZipPath:
-    archive = ZipFile(path, 'w')
-    return ZipPath(archive)
-
-
-def createDirectory(path: Path) -> Path:
-    path.mkdir(exist_ok=True)
-    return path
-
-
 def make_binary(
     process: Callable[[TextIO, TextIO], None]
 ) -> Callable[[BinaryIO, BinaryIO], None]:
