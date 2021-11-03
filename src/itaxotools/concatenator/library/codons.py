@@ -328,9 +328,8 @@ def detect_reading_combinations(sequence: str,
 def column_reading_frame(column: pd.Series,
                          gc_table: GeneticCode = GeneticCode(0)) -> Set[int]:
     """
-    Returns the list of reading frames detected in `column`.
+    Returns the set of reading frames that are valid for all sequences in `column`.
 
-    The result is ordered by decreasing occurences
     """
     reading_combinations: Optional[Set[Tuple[GeneticCode, int]]] = None
     for _, seq in column.items():
