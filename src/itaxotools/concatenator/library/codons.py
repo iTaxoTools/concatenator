@@ -176,8 +176,9 @@ class GeneData:
         result.gap = self.gap
         return result
 
-    # Placeholder, needs to be implemented, in library.codons?
     def detect_reading_frame(self) -> 'GeneData':
+        if self.series.empty:
+            return self.copy()
         possible_frames = column_reading_frame(self.series, self.genetic_code)
         result = self.copy()
         if not possible_frames:
@@ -331,10 +332,15 @@ def column_reading_frame(column: pd.Series,
 
     The result is ordered by decreasing occurences
     """
-    reading_combinations: Set[Tuple[GeneticCode, int]] = set()
+    reading_combinations: Optional[Set[Tuple[GeneticCode, int]]] = None
     for _, seq in column.items():
-        reading_combinations = reading_combinations.intersection(
-            detect_reading_combinations(seq, gc_table))
+        seq_reading_combinations = detect_reading_combinations(seq, gc_table)
+        if reading_combinations is None:
+            reading_combinations = seq_reading_combinations
+        else:
+            reading_combinations = reading_combinations.intersection(
+                seq_reading_combinations)
+    assert reading_combinations is not None
     return [frame for _, frame in reading_combinations]
 
 
