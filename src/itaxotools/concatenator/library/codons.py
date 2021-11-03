@@ -326,7 +326,7 @@ def detect_reading_combinations(sequence: str,
 
 
 def column_reading_frame(column: pd.Series,
-                         gc_table: GeneticCode = GeneticCode(0)) -> List[int]:
+                         gc_table: GeneticCode = GeneticCode(0)) -> Set[int]:
     """
     Returns the list of reading frames detected in `column`.
 
@@ -341,7 +341,7 @@ def column_reading_frame(column: pd.Series,
             reading_combinations = reading_combinations.intersection(
                 seq_reading_combinations)
     assert reading_combinations is not None
-    return [frame for _, frame in reading_combinations]
+    return {frame for _, frame in reading_combinations}
 
 
 def split_codon_charsets(
