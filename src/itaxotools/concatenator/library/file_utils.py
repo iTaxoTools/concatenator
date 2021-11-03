@@ -7,28 +7,20 @@ from zipfile import ZipFile
 from zipp import Path as ZipPath_
 from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union
 
+__all__ = ['ZipFile', 'ZipPath', ...]
+
 
 class ZipPath(ZipPath_):
-    # zipp.Path does not subclass pathlib.Path, so we msut implement these.
+    # zipp.Path does not subclass pathlib.Path, so we must implement these.
     # When we stop supporting Python3.8 for Win7, these will have to go.
     def __eq__(self, other):
-        return self.at == other.at
+        return (self.root == other.root) and (self.at == other.at)
 
     def __lt__(self, other):
         return self.at < other.at
 
 
 PathLike = Union[Path, ZipPath]
-
-
-def createZipArchive(path: Path) -> ZipPath:
-    archive = ZipFile(path, 'w')
-    return ZipPath(archive)
-
-
-def createDirectory(path: Path) -> Path:
-    path.mkdir(exist_ok=True)
-    return path
 
 
 def make_binary(

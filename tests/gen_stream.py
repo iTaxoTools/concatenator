@@ -6,7 +6,7 @@ import string
 
 import pandas as pd
 
-from itaxotools.concatenator import FileType, FileFormat
+from itaxotools.concatenator import FileType, FileFormat, GeneDataFrame, GeneStream
 
 _TABLE_LEN = 20
 
@@ -78,6 +78,5 @@ def gen_table(filetype: FileType, format: FileFormat) -> pd.DataFrame:
     return table, name
 
 
-def stream_table(table: pd.DataFrame) -> Iterator[pd.Series]:
-    for column in table:
-        yield table[column]
+def stream_table(table: pd.DataFrame) -> GeneStream:
+    return GeneDataFrame(table).stream()

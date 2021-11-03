@@ -6,10 +6,6 @@ from enum import Enum
 import pandas as pd
 
 
-Stream = Iterator[pd.Series]
-Filter = Callable[[Stream], Stream]
-MultiFilter = Callable[[Iterator[Stream]], Stream]
-
 # Such as returned by str.maketrans
 Translation = Dict[int, int]
 
@@ -21,16 +17,23 @@ class Param:
 
 class _ConfigurableCallable_meta(type):
     def __new__(cls, name, bases, classdict):
-        result = type.__new__(cls, name, bases, classdict)
-        result._params_ = [
-            x for x in classdict if isinstance(classdict[x], Param)]
-        for param in result._params_:
+        result = super().__new__(cls, name, bases, classdict)
+        if hasattr(result, '_params_'):
+            _inherited_params = result._params_.copy()
+        else:
+            _inherited_params = list()
+        _new_params = [x for x in classdict if isinstance(classdict[x], Param)]
+        for param in _new_params:
             setattr(result, param, classdict[param].default)
+        result._params_ = _inherited_params + _new_params
         return result
 
 
 class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
     def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
         members = self._params_.copy()
         for arg in args:
             if not members:
@@ -40,6 +43,7 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
             if kwarg not in members:
                 raise TypeError(f'Unexpected keyword: {kwarg}')
             setattr(self, kwarg, kwargs[kwarg])
+        return self
 
     def __call__(self, *args, **kwargs) -> Any:
         return self.call(*args, **kwargs)

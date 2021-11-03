@@ -4,6 +4,10 @@ from typing import TextIO, Iterator, TypeVar, List
 
 import pandas as pd
 
+from .model import GeneStream, GeneDataFrame, PathLike
+from .operators import join_any
+from .utils import removeprefix
+
 
 def read(file: TextIO) -> Iterator[pd.DataFrame]:
     columns = file.readline().rstrip().split("\t")
@@ -72,3 +76,35 @@ def concat_sequences(rows: Iterator[List[str]]) -> Iterator[List[str]]:
 def write_rows(rows: Iterator[List[str]], output: TextIO) -> None:
     for row in rows:
         print(*row, sep="\t", file=output)
+
+
+def dataframe_from_path(
+    path: PathLike,
+    sequence_prefix: str = 'sequence_'
+) -> GeneDataFrame:
+    data = pd.read_csv(path, sep='\t', dtype=str)
+    indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
+    data.set_index(indices, inplace=True)
+    data.columns = [
+        removeprefix(col, sequence_prefix) for col in data.columns]
+    gdf = GeneDataFrame(data, missing='?N', gap='-')
+    return gdf
+
+
+def stream_from_path(
+    path: PathLike,
+    sequence_prefix: str = 'sequence_',
+) -> GeneStream:
+    gdf = dataframe_from_path(path, sequence_prefix)
+    return gdf.stream()
+
+
+def stream_to_path(
+    stream: GeneStream,
+    path: PathLike,
+    sequence_prefix: str = 'sequence_',
+) -> None:
+    data = join_any(stream).dataframe
+    data.columns = [sequence_prefix + col for col in data.columns]
+    with path.open('w') as file:
+        data.to_csv(file, sep="\t", line_terminator="\n")

@@ -4,6 +4,8 @@ from typing import TextIO, Iterator, List
 
 import pandas as pd
 
+from .model import GeneSeries, PathLike
+from .file_types import FileType
 from .utils import *
 from .multifile import ColumnWriter
 
@@ -60,12 +62,25 @@ def column_reader(infile: TextIO) -> pd.Series:
     return series
 
 
-fasta_reader = column_reader
+def gene_from_path(path: PathLike) -> GeneSeries:
+    with path.open() as file:
+        series = pd.Series({
+            chunk[0][1:]: ''.join(chunk[1:])
+            for chunk in split_file(file)})
+    series.index.name = 'seqid'
+    series.name = path.stem
+    return GeneSeries(series, missing='?N', gap='-')
 
 
-def fasta_writer(series: pd.Series, outfile: TextIO) -> None:
-    for index, sequence in series.iteritems():
+def fasta_writer(gene: GeneSeries, outfile: TextIO) -> None:
+    for index, sequence in gene.series.iteritems():
         if isinstance(index, tuple):
+            # this should never happen
             index = '_'.join([str(x) for x in index if x is not None])
         outfile.write('>' + index + '\n')
         outfile.write(sequence + '\n')
+
+
+def gene_to_path(gene: GeneSeries, path: PathLike) -> None:
+    with path.open('w') as file:
+        fasta_writer(gene, file)

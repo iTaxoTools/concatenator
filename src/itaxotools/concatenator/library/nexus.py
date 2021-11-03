@@ -7,6 +7,7 @@ import re
 
 import pandas as pd
 
+from .model import GeneStream, GeneDataFrame, PathLike
 from .utils import *
 
 
@@ -70,17 +71,18 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     buf.close()
 
 
-def write_from_series(
-    iterator: Iterator[pd.Series],
+def nexus_writer(
+    stream: GeneStream,
     out: TextIO,
     justification: Justification = Justification.Left,
-    separator: str = ' '
+    separator: str = ' ',
 ) -> None:
     buffer = tempfile.TemporaryFile(mode="w+")
     charsets = {}
     ntax = 0
 
-    for series in iterator:
+    for gene in stream:
+        series = gene.series
         assert has_uniform_length(series)
         assert not isinstance(series.index, pd.MultiIndex)
 
@@ -117,12 +119,40 @@ def write_from_series(
     out.write('\nEND;\n')
 
 
+def stream_to_path(
+    stream: GeneStream,
+    path: PathLike,
+    *args, **kwargs
+) -> None:
+    with path.open('w') as file:
+        nexus_writer(stream, file, *args, **kwargs)
+
+
 def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
     commands = NexusCommands(input)
     reader = NexusReader(sequence_prefix=sequence_prefix)
     for command, args in commands:
         reader.execute(command, args)
     return reader.return_table()
+
+
+def dataframe_from_path(
+    path: PathLike,
+    sequence_prefix: str = 'sequence_',
+) -> GeneDataFrame:
+    with path.open() as file:
+        data = read(file, sequence_prefix='')
+    data.set_index('seqid', inplace=True)
+    gdf = GeneDataFrame(data, missing='?N', gap='-')
+    return gdf
+
+
+def stream_from_path(
+    path: PathLike,
+    sequence_prefix: str = 'sequence_',
+) -> GeneStream:
+    gdf = dataframe_from_path(path, sequence_prefix)
+    return gdf.stream()
 
 
 class Tokenizer:
