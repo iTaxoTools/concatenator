@@ -169,26 +169,6 @@ class AmbiguousReadingFrame(Exception):
             f'possible values: {repr(reading_frame_set)}'))
 
 
-class GeneData:
-    def __init__(self, series: pd.Series):
-        self.series: pd.Series = series
-        self.genetic_code: GeneticCode = GeneticCode(0)
-        self.reading_frame: ReadingFrame = ReadingFrame.Unknown
-        self.codons: Tuple[str, str, str] = ('**_1st', '**_2nd', '**_3rd')
-        self.missing: str = 'N?'
-        self.gap: str = '-'
-
-    def copy(self) -> 'GeneData':
-        result = GeneData(self.series)
-        result.genetic_code = self.genetic_code
-        result.reading_frame = self.reading_frame
-        result.codons = self.codons
-        result.missing = self.missing
-        result.gap = self.gap
-        return result
-
-
-
 def collect_stop_codons() -> Dict[str, Set[int]]:
     stop_codons: Dict[str, Set[int]] = DefaultDict(set)
     for gc_table in GeneticCode:
@@ -347,6 +327,10 @@ def final_column_reading_frame(
     genetic_code: GeneticCode = GeneticCode(0),
     reading_frame: ReadingFrame = ReadingFrame(0),
 ) -> ReadingFrame:
+    """
+    Determine the correct reading frame for a given Series,
+    under optional assumptions for the genetic code and reading frame.
+    """
     if column.empty:
         raise AmbiguousReadingFrame(column.name, set())
     possible_frames = column_reading_frames(column, genetic_code)
