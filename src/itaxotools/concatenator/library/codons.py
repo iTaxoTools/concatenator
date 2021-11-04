@@ -134,20 +134,13 @@ class _GeneticCodePrototype(int):
         return obj
 
 
-GeneticCode = Enum('GeneticCode',  # type: ignore
-                   {'Unknown': 0} |
-                   {
-                       "SGC"+str(gc_id - 1): gc_id for gc_id in _GC_DESCRIPTIONS
-                   },
-                   type=_GeneticCodePrototype)
-# Unknown = 'Unknown', []
-
-# SGC0 = 'Standard', ['TAA', 'TAG', 'TGA']
-# SGC1 = 'Vertebrate Mitochondrial', ['TAA', 'TAG', 'AGA', 'AGG']
-# SGC2 = 'Yeast Mitochondrial', ['TAA', 'TAG', 'TGA']
-# SGC3 = 'Mold/Protozoan/Coelenterate Mitochondrial; Mycoplasma; Spiroplasma', [
-#     'TAA', 'TAG']
-# ...
+GeneticCode = Enum(
+    'GeneticCode',  # type: ignore
+    dict(
+        **{"Unknown": 0},
+        **{"SGC"+str(gc_id - 1): gc_id for gc_id in _GC_DESCRIPTIONS},
+        ),
+    type=_GeneticCodePrototype)
 
 
 class BadReadingFrame(Exception):
