@@ -143,12 +143,30 @@ GeneticCode = Enum(
     type=_GeneticCodePrototype)
 
 
-class BadReadingFrame(Exception):
-    pass
-
-
 class NoReadingFrames(Exception):
-    pass
+    def __init__(self, gene_name: str):
+        self.gene_name = gene_name
+        self.reading_frame_set = reading_frame_set
+        super().__init__(
+            f'No possible reading frames exist for gene {repr(gene_name)}')
+
+
+class BadReadingFrame(Exception):
+    def __init__(self, gene_name: str, reading_frame: ReadingFrame):
+        self.gene_name = gene_name
+        self.reading_frame = reading_frame
+        super().__init__((
+            f'Bad reading frame for gene {repr(gene_name)}: '
+            f'multiple stop codons detected for {repr(reading_frame)}'))
+
+
+class AmbiguousReadingFrame(Exception):
+    def __init__(self, gene_name: str, reading_frame_set: Set[ReadingFrame]):
+        self.gene_name = gene_name
+        self.reading_frame_set = reading_frame_set
+        super().__init__((
+            f'Ambiguous reading frame for gene {repr(gene_name)}: '
+            f'possible values: {repr(reading_frame_set)}'))
 
 
 class GeneData:
@@ -169,20 +187,6 @@ class GeneData:
         result.gap = self.gap
         return result
 
-    def detect_reading_frame(self) -> 'GeneData':
-        if self.series.empty:
-            return self.copy()
-        possible_frames = column_reading_frame(self.series, self.genetic_code)
-        result = self.copy()
-        if not possible_frames:
-            raise NoReadingFrames
-        elif not self.reading_frame:
-            result.reading_frame = ReadingFrame(possible_frames.pop())  # type: ignore
-            return result
-        elif self.reading_frame in possible_frames:
-            return result
-        else:
-            raise BadReadingFrame
 
 
 def collect_stop_codons() -> Dict[str, Set[int]]:
@@ -318,8 +322,10 @@ def detect_reading_combinations(sequence: str,
             stops, STOP_CODONS).items() for gc_id in gcs}
 
 
-def column_reading_frame(column: pd.Series,
-                         gc_table: GeneticCode = GeneticCode(0)) -> Set[int]:
+def column_reading_frames(
+    column: pd.Series,
+    gc_table: GeneticCode = GeneticCode(0)
+) -> Set[ReadingFrame]:
     """
     Returns the set of reading frames that are valid for all sequences in `column`.
 
@@ -333,7 +339,29 @@ def column_reading_frame(column: pd.Series,
             reading_combinations = reading_combinations.intersection(
                 seq_reading_combinations)
     assert reading_combinations is not None
-    return {frame for _, frame in reading_combinations}
+    return {ReadingFrame(frame) for _, frame in reading_combinations}
+
+
+def final_column_reading_frame(
+    column: pd.Series,
+    genetic_code: GeneticCode = GeneticCode(0),
+    reading_frame: ReadingFrame = ReadingFrame(0),
+) -> ReadingFrame:
+    if column.empty:
+        raise AmbiguousReadingFrame(column.name, set())
+    possible_frames = column_reading_frames(column, genetic_code)
+    if not possible_frames:
+        raise NoReadingFrames(column.name)
+    elif not reading_frame:
+        if len(possible_frames) > 1:
+            # Could still determine a reading frame here
+            # if a singular possible frame ends with a stop codon
+            raise AmbiguousReadingFrame(column.name, possible_frames)
+        return ReadingFrame(possible_frames.pop())
+    elif reading_frame:
+        if not reading_frame in possible_frames:
+            raise BadReadingFrame(column.name, reading_frame)
+        return reading_frame
 
 
 def split_codon_charsets(
