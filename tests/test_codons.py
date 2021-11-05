@@ -80,19 +80,3 @@ def test_good_unknown_unknown(gene_good_unknown_unknown):
 def test_bad_standard_1st(gene_bad_standard_1st):
     with pytest.raises(BadReadingFrame):
         OpDetectReadingFrame()(gene_bad_standard_1st)
-
-
-def test_model_reading_frame():
-    assert not bool(ReadingFrame(0))
-    assert ReadingFrame(1) == 1
-    assert ReadingFrame(1).label == '+1'
-    assert ReadingFrame(-2).label == '-2'
-
-
-def test_model_genetic_code():
-    assert not bool(GeneticCode(0))
-    assert not GeneticCode(0).stops
-    assert GeneticCode(1) == 1
-    assert GeneticCode(1).stops
-    assert GeneticCode(1).text == 'Standard'
-    assert GeneticCode(0).text == 'Unknown'
