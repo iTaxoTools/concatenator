@@ -79,4 +79,4 @@ def gen_table(filetype: FileType, format: FileFormat) -> pd.DataFrame:
 
 
 def stream_table(table: pd.DataFrame) -> GeneStream:
-    return GeneDataFrame(table).stream()
+    return GeneDataFrame(table).to_stream()

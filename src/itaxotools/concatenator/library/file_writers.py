@@ -4,13 +4,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from .model import GeneSeries, GeneStream, GeneIO
+from .model import GeneSeries, GeneDataFrame, GeneStream, GeneIO
 from .utils import ConfigurableCallable, Param, Justification
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
-    OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
-    OpApplyToSeries, join_any)
+    OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty, OpApplyToSeries)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -67,10 +66,10 @@ class _ConcatenatedWriter(_GeneWriter):
 
     def write(self, stream: GeneStream, path: Path) -> None:
         stream = self.filter(stream)
-        joined = join_any(stream)
+        joined = GeneDataFrame.from_stream(stream)
         data = joined.dataframe.apply(
             lambda row: ''.join(row.values.astype(str)), axis=1)
-        gene = GeneSeries(data, missing=joined.missing, gap=joined.gap)
+        gene = GeneSeries(data, missing='', gap='')
         self.geneIO.gene_to_path(gene, path)
 
 
@@ -147,7 +146,7 @@ class NexusWriter(FileWriter):
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
         stream = (
-            join_any(stream).stream()
+            GeneDataFrame.from_stream(stream).to_stream()
             .pipe(OpIndexMerge())
             .pipe(OpApplyToSeries(lambda x: x.fillna('')))
             .pipe(OpPadRight(self.padding)))

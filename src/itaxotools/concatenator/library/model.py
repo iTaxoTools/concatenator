@@ -9,36 +9,6 @@ from .utils import ConfigurableCallable
 from .file_utils import PathLike
 from .codons import GeneticCode, ReadingFrame
 
-class GeneDataFrame:
-    """Holds the sequences and metadata for multiple genes"""
-
-    # this is generally a bad idea and should be fully replaced by GeneStream
-    defaults = dict(
-        missing='?N',
-        gap='-',
-    )
-
-    def __init__(
-        self,
-        dataframe: pd.DataFrame,
-        missing: str = defaults['missing'],
-        gap: str = defaults['gap'],
-    ):
-        self.dataframe = dataframe
-        self.missing = missing
-        self.gap = gap
-
-    def stream(self):
-        return GeneStream.from_dataframe(
-            self.dataframe, missing=self.missing, gap=self.gap)
-
-    @classmethod
-    def from_gene(cls, gene: GeneSeries):
-        return cls(
-            pd.DataFrame(gene.series),
-            missing=gene.missing,
-            gap=gene.gap)
-
 
 class GeneSeries:
     """Holds all sequences and metadata for a certain gene"""
@@ -51,7 +21,7 @@ class GeneSeries:
 
     def __init__(
         self,
-        series: pd.Series,
+        series: Optional[pd.Series] = None,
         genetic_code: GeneticCode = GeneticCode(0),
         reading_frame: ReadingFrame = ReadingFrame(0),
         codon_names: Tuple[str, str, str] = defaults['codon_names'],
@@ -67,15 +37,20 @@ class GeneSeries:
 
     def copy(self):
         other = copy(self)
-        other.series = self.series.copy(deep=False)
+        if self.series is not None:
+            other.series = self.series.copy(deep=False)
         return other
 
     @property
     def name(self):
+        if self.series is None:
+            raise Exception('GeneSeries.series is None')
         return self.series.name
 
     @name.setter
     def name(self, value: str):
+        if self.series is None:
+            raise Exception('GeneSeries.series is None')
         self.series.name = value
 
 
@@ -107,9 +82,58 @@ class GeneStream:
     def pipe(self, op: Operator) -> GeneStream:
         return GeneStream((op.iter(self)))
 
+
+class GeneDataFrame:
+    """Holds the sequences and metadata for multiple genes"""
+
+    # this is generally a bad idea and should be fully replaced by GeneStream
+
+    def __init__(self, dataframe: Optional[pd.DataFrame] = None, **kwargs):
+        self._genes: Dict[str, GeneSeries] = dict()
+        if dataframe is None:
+            self.dataframe = pd.DataFrame(dtype=str)
+        else:
+            self.dataframe = dataframe
+            for name in dataframe:
+                series = pd.Series(dtype=str, name=name)
+                self._genes[name] = GeneSeries(series, **kwargs)
+
+    def __getitem__(self, name: str) -> GeneSeries:
+        if name not in self._genes:
+            raise Exception(f'Gene {repr(name)} not found')
+        gene = self._genes[name].copy()
+        gene.series = self.dataframe[name]
+        return gene
+
     @classmethod
-    def from_dataframe(cls, df: pd.Dataframe, **kwargs):
-        return cls((GeneSeries(df[col], **kwargs) for col in df))
+    def from_stream(cls, stream: GeneStream) -> GeneDataFrame:
+        obj = cls()
+        for gene in stream:
+            obj.add_gene(gene)
+        return obj
+
+    def to_stream(self) -> GeneStream:
+        return GeneStream(self[name] for name in self.dataframe)
+
+    @property
+    def genes(self):
+        return list(self._genes.keys())
+
+    def _join(self, series: pd.Series) -> pd.DataFrame:
+        # This may drop rows when joining multiindex, should probably reset
+        # unique indices and join the common ones, then set them back.
+        # In case of no common index, should concatenate instead?
+        df = self.dataframe.join(series, how='outer')
+        self.dataframe = df
+
+    def add_gene(self, gene: GeneSeries) -> None:
+        gene = gene.copy()
+        if self.dataframe.empty:
+            self.dataframe = pd.DataFrame(gene.series)
+        else:
+            self._join(gene.series)
+        self._genes[gene.name] = gene
+        gene.series = None
 
 
 class GeneIO(Protocol):

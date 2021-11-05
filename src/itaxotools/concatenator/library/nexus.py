@@ -152,7 +152,7 @@ def stream_from_path(
     sequence_prefix: str = 'sequence_',
 ) -> GeneStream:
     gdf = dataframe_from_path(path, sequence_prefix)
-    return gdf.stream()
+    return gdf.to_stream()
 
 
 class Tokenizer:

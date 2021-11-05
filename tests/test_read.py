@@ -8,7 +8,7 @@ import pytest
 import pandas as pd
 
 from itaxotools.concatenator import (
-    FileType, FileFormat, GeneSeries, GeneStream, GeneDataFrame,
+    FileType, FileFormat, GeneSeries, GeneStream,
     autodetect, get_reader, get_loader, load_from_path)
 from itaxotools.concatenator.library.operators import OpCheckValid
 
@@ -105,8 +105,6 @@ def test_read_multi(test: ReadTest, dataframe_multi: pd.DataFrame) -> None:
 def test_load_simple(test: ReadTest, series_simple: pd.Series) -> None:
     input_path = TEST_DATA_DIR / test.input.name
     gdf = load_from_path(input_path)
-    assert gdf.missing == test.missing
-    assert gdf.gap == test.gap
     for col in gdf.dataframe:
         assert_series_equal(gdf.dataframe[col], series_simple)
 

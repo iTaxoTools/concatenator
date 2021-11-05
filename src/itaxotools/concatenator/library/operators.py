@@ -173,8 +173,8 @@ class OpApplyToSeries(Operator):
         return gene
 
 
-def join_any(stream: GeneStream) -> GeneDataFrame:
-    # To be replaced by a better method, using a file buffer
+# Pending removal, functionality to be merged into GeneDataFrame?
+def _join_any(stream: GeneStream) -> GeneDataFrame:
     sentinel = '\u0000'
     all_keys = OrderedSet()
 
