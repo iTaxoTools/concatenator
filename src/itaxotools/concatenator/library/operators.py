@@ -1,11 +1,11 @@
 
-from typing import Callable, Dict, List, Iterator, Set
+from typing import Callable, Dict, List, Iterator, Optional, Set
 
 import pandas as pd
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .utils import Translation, Param, OrderedSet, removeprefix
-
+from .codons import final_column_reading_frame
 
 class InvalidGeneSeries(Exception):
     def __init__(self, gene: GeneSeries, error: str):
@@ -136,6 +136,20 @@ class OpChainCharsets(Operator):
         if gene.name in gene._memory:
             return None
         self._memory.add(gene.name)
+        return gene
+
+
+class OpDetectReadingFrame(Operator):
+    filter: Optional[Set[str]] = None
+
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        if self.filter is not None:
+            if gene.name not in self.filter:
+                return gene
+        gene = gene.copy()
+        final_reading_frame = final_column_reading_frame(
+            gene.series, gene.genetic_code, gene.reading_frame)
+        gene.reading_frame = final_reading_frame
         return gene
 
 

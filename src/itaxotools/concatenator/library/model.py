@@ -7,7 +7,7 @@ import pandas as pd
 
 from .utils import ConfigurableCallable
 from .file_utils import PathLike
-
+from .codons import GeneticCode, ReadingFrame
 
 class GeneDataFrame:
     """Holds the sequences and metadata for multiple genes"""
@@ -44,7 +44,7 @@ class GeneSeries:
     """Holds all sequences and metadata for a certain gene"""
 
     defaults = dict(
-        # codons = ('**_1st', '**_2nd', '**_3rd'),
+        codon_names = ('**_1st', '**_2nd', '**_3rd'),
         missing='?N',
         gap='-',
     )
@@ -52,16 +52,16 @@ class GeneSeries:
     def __init__(
         self,
         series: pd.Series,
-        # genetic_code: GeneticCode = GeneticCode(0),
-        # reading_frame: ReadingFrame = ReadingFrame(0),
-        # codons: Tuple[str, str, str] = self.defaults['codons'],
+        genetic_code: GeneticCode = GeneticCode(0),
+        reading_frame: ReadingFrame = ReadingFrame(0),
+        codon_names: Tuple[str, str, str] = defaults['codon_names'],
         missing: str = defaults['missing'],
         gap: str = defaults['gap'],
     ):
         self.series = series
-        # self.genetic_code = genetic_code
-        # self.reading_frame = reading_frame
-        # self.codons = codons
+        self.genetic_code = genetic_code
+        self.reading_frame = reading_frame
+        self.codon_names = codon_names
         self.missing = missing
         self.gap = gap
 
