@@ -10,6 +10,13 @@ from .file_utils import PathLike
 from .codons import GeneticCode, ReadingFrame
 
 
+class BadGeneJoin(Exception):
+    def __init__(self, existing: GeneSeries, adding: GeneSeries, error: str):
+        self.existing = existing
+        self.adding = adding
+        super().__init__(error)
+
+
 class GeneSeries:
     """Holds all sequences and metadata for a certain gene"""
 
@@ -126,7 +133,30 @@ class GeneDataFrame:
         df = self.dataframe.join(series, how='outer')
         self.dataframe = df
 
+    def _concat(self, gene: GeneSeries) -> None:
+        existing = self[gene.name]
+        if not all([
+            existing.genetic_code == gene.genetic_code,
+            existing.reading_frame == gene.reading_frame,
+            existing.codon_names == gene.codon_names,
+            existing.missing == gene.missing,
+            existing.gap == gene.gap,
+        ]):
+            raise BadGeneJoin(
+                existing, gene,
+                f'Incompatible metadata for duplicate gene {repr(gene.name)}')
+        both = pd.concat([existing.series, gene.series])
+        if both.index.duplicated().any():
+            raise BadGeneJoin(
+                existing, gene,
+                f'Duplicate index for duplicate gene {repr(gene.name)}')
+        df = self.dataframe.drop(gene.name, axis=1)
+        self.dataframe = df.join(both, how='outer')
+
     def add_gene(self, gene: GeneSeries) -> None:
+        if gene.name in self.genes:
+            self._concat(gene)
+            return
         gene = gene.copy()
         if self.dataframe.empty:
             self.dataframe = pd.DataFrame(gene.series)

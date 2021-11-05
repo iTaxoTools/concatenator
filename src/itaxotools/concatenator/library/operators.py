@@ -7,6 +7,7 @@ from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .utils import Translation, Param, OrderedSet, removeprefix
 from .codons import final_column_reading_frame
 
+
 class InvalidGeneSeries(Exception):
     def __init__(self, gene: GeneSeries, error: str):
         self.gene = gene
@@ -35,6 +36,8 @@ class OpCheckValid(Operator):
             raise InvalidGeneSeries(gene, 'Not a GeneSeries!')
         if not isinstance(gene.series, pd.Series):
             raise InvalidGeneSeries(gene, 'Gene series is not pandas.Series!')
+        if gene.series.index.duplicated().any():
+            raise InvalidGeneSeries(gene, 'Duplicate indices')
         if not gene.name:
             raise InvalidGeneSeries(gene, 'Missing gene data: "name"')
         if not gene.missing:

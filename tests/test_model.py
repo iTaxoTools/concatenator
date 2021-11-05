@@ -1,7 +1,9 @@
 
+import pytest
 import pandas as pd
 
-from itaxotools.concatenator.library.model import GeneSeries, GeneDataFrame
+from itaxotools.concatenator.library.model import (
+    GeneSeries, GeneDataFrame, BadGeneJoin)
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 
 
@@ -17,6 +19,7 @@ def test_gene_dataframe_simple():
     series1 = pd.Series({
             'seq1': 'GCAGTATAA',
         }, name='gene1')
+    series1.index.name = 'seqid'
     gene1 = GeneSeries(series1, missing='?', reading_frame = ReadingFrame(0))
 
     series2 = pd.Series({
@@ -34,6 +37,63 @@ def test_gene_dataframe_simple():
     assert gdf['gene2'].series.loc['seq2'] == series2.loc['seq2']
     assert_gene_meta_equal(gdf['gene1'], gene1)
     assert_gene_meta_equal(gdf['gene2'], gene2)
+
+
+def test_gene_dataframe_existing():
+    series1 = pd.Series({
+            'seq1': 'GCAGTATAA',
+        }, name='gene')
+    series1.index.name = 'seqid'
+    gene1 = GeneSeries(series1)
+
+    series2 = pd.Series({
+            'seq2': 'GCCTAA',
+        }, name='gene')
+    series2.index.name = 'seqid'
+    gene2 = GeneSeries(series2)
+
+    stream = [gene1, gene2]
+    gdf = GeneDataFrame.from_stream(stream)
+    assert gdf['gene'].series.loc['seq1'] == series1.loc['seq1']
+    assert gdf['gene'].series.loc['seq2'] == series2.loc['seq2']
+    assert_gene_meta_equal(gdf['gene'], gene1)
+    assert_gene_meta_equal(gdf['gene'], gene2)
+
+
+def test_gene_dataframe_incompatible():
+    series1 = pd.Series({
+            'seq1': 'GCAGTATAA',
+        }, name='gene1')
+    series1.index.name = 'seqid'
+    gene1 = GeneSeries(series1, missing='?')
+
+    series2 = pd.Series({
+            'seq2': 'GCCTAA',
+        }, name='gene1')
+    series2.index.name = 'seqid'
+    gene2 = GeneSeries(series2, missing='N')
+
+    with pytest.raises(BadGeneJoin):
+        stream = [gene1, gene2]
+        gdf = GeneDataFrame.from_stream(stream)
+
+
+def test_gene_dataframe_duplicate():
+    series1 = pd.Series({
+            'seq1': 'GCAGTATAA',
+        }, name='gene1')
+    series1.index.name = 'seqid'
+    gene1 = GeneSeries(series1, missing='?')
+
+    series2 = pd.Series({
+            'seq1': 'GCCTAA',
+        }, name='gene1')
+    series2.index.name = 'seqid'
+    gene2 = GeneSeries(series2, missing='?')
+
+    with pytest.raises(BadGeneJoin):
+        stream = [gene1, gene2]
+        gdf = GeneDataFrame.from_stream(stream)
 
 
 def test_reading_frame():
