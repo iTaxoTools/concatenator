@@ -165,6 +165,16 @@ class OpSanitizeGeneNames(Operator):
         return gene
 
 
+class OpSanitizeSpeciesNames(Operator):
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        gene = gene.copy()
+        indices = gene.series.index.names
+        data = gene.series.reset_index()
+        data[indices] = data[indices].applymap(sanitize)
+        gene.series = data.set_index(indices)
+        return gene
+
+
 class OpApplyToGene(Operator):
     func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
 

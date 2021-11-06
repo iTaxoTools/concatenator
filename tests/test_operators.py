@@ -5,7 +5,7 @@ import pandas as pd
 from itaxotools.concatenator.library.model import GeneSeries, GeneStream
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
-    OpSanitizeGeneNames, )
+    OpSanitizeGeneNames, OpSanitizeSpeciesNames)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -26,3 +26,15 @@ def test_sanitize_genes():
     altered = OpSanitizeGeneNames()(gene)
     assert_gene_meta_equal(altered, gene)
     assert altered.name == 'gene_2'
+
+
+def test_sanitize_species():
+    series = pd.Series({
+            'ΔšëqΔ¹Δ': 'GCAGTATAA',
+        }, name='gene')
+    series.index.name = 'seqid'
+    gene = GeneSeries(series)
+
+    altered = OpSanitizeSpeciesNames()(gene)
+    assert_gene_meta_equal(altered, gene)
+    assert altered.series.index[0] == 'seq_1'
