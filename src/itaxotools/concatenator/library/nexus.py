@@ -81,11 +81,12 @@ def nexus_writer(
     buffer = tempfile.TemporaryFile(mode="w+")
     charsets = {}
     ntax = 0
+    missings = set()
+    gaps = set()
 
     for gene in stream:
         series = gene.series
         assert has_uniform_length(series)
-        assert not isinstance(series.index, pd.MultiIndex)
 
         charsets[series.name] = len(series.iat[0])
         index_len = series.index.str.len().max()
@@ -95,14 +96,20 @@ def nexus_writer(
                 f'{separator}{sequence}\n'))
         buffer.write('\n')
         ntax = len(series)
+        missings |= set(gene.missing)
+        gaps |= set(gene.gap)
 
     nchar = sum(charsets.values())
 
     out.write('#NEXUS\n\n')
     out.write('BEGIN DATA;\n\n')
     out.write(f'Dimensions Nchar={nchar} Ntax={ntax};\n')
-    out.write('Format Datatype=DNA Missing=N Missing=? Gap=- ')
-    out.write('Interleave=yes;\n')
+    out.write('Format Datatype=DNA')
+    for missing in sorted(missings, reverse=True):
+        out.write(f' Missing={missing}')
+    for gap in sorted(gaps, reverse=True):
+        out.write(f' Gap={gap}')
+    out.write(' Interleave=yes;\n')
     out.write('Matrix\n\n')
 
     buffer.seek(0)

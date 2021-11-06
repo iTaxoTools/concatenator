@@ -22,7 +22,7 @@ class GeneSeries:
 
     defaults = dict(
         codon_names = ('**_1st', '**_2nd', '**_3rd'),
-        missing='?N',
+        missing='N?',
         gap='-',
     )
 
