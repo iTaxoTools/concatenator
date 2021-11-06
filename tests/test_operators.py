@@ -3,9 +3,10 @@ import pytest
 import pandas as pd
 
 from itaxotools.concatenator.library.model import GeneSeries, GeneStream
+from itaxotools.concatenator.library.types import TextCase
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
-    OpSanitizeGeneNames, OpSanitizeSpeciesNames)
+    OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -16,25 +17,54 @@ def assert_gene_meta_equal(gene1, gene2):
     assert gene1.codon_names == gene2.codon_names
 
 
-def test_sanitize_genes():
+@pytest.fixture
+def gene_unsanitized() -> GeneSeries:
     series = pd.Series({
-            'seq1': 'GCAGTATAA',
+            'ΔšëqΔ¹Δ': 'GCAGTATAA',
         }, name='ΔgëneΔ²Δ')
     series.index.name = 'seqid'
-    gene = GeneSeries(series)
+    return GeneSeries(series)
 
+
+def test_sanitize_genes(gene_unsanitized):
+    gene = gene_unsanitized
     altered = OpSanitizeGeneNames()(gene)
     assert_gene_meta_equal(altered, gene)
     assert altered.name == 'gene_2'
 
 
-def test_sanitize_species():
-    series = pd.Series({
-            'ΔšëqΔ¹Δ': 'GCAGTATAA',
-        }, name='gene')
-    series.index.name = 'seqid'
-    gene = GeneSeries(series)
-
+def test_sanitize_species(gene_unsanitized):
+    gene = gene_unsanitized
     altered = OpSanitizeSpeciesNames()(gene)
     assert_gene_meta_equal(altered, gene)
     assert altered.series.index[0] == 'seq_1'
+
+
+@pytest.fixture
+def gene_case_mixed() -> GeneSeries:
+    series = pd.Series({
+            'seq1': 'gcaGTATAA',
+        }, name='gene')
+    series.index.name = 'seqid'
+    return GeneSeries(series)
+
+
+def test_case_unchanged(gene_case_mixed):
+    gene = gene_case_mixed
+    altered = OpSequenceCase(TextCase.Unchanged)(gene)
+    assert_gene_meta_equal(altered, gene)
+    assert altered.series.iloc[0] == 'gcaGTATAA'
+
+
+def test_case_upper(gene_case_mixed):
+    gene = gene_case_mixed
+    altered = OpSequenceCase(TextCase.Upper)(gene)
+    assert_gene_meta_equal(altered, gene)
+    assert altered.series.iloc[0] == 'GCAGTATAA'
+
+
+def test_case_lower(gene_case_mixed):
+    gene = gene_case_mixed
+    altered = OpSequenceCase(TextCase.Lower)(gene)
+    assert_gene_meta_equal(altered, gene)
+    assert altered.series.iloc[0] == 'gcagtataa'

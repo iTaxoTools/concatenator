@@ -17,3 +17,18 @@ class Justification(Enum):
         if not self.method:
             return text
         return self.method(text, *args, **kwargs)
+
+
+class TextCase(Enum):
+    Unchanged = 'Unchanged', None
+    Upper = 'Upper Case', str.upper
+    Lower = 'Lower Case', str.lower
+
+    def __init__(self, description: str, method: Optional[Callable]):
+        self.description = description
+        self.method = method
+
+    def apply(self, text: str, *args, **kwargs):
+        if not self.method:
+            return text
+        return self.method(text, *args, **kwargs)

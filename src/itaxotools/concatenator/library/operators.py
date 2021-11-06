@@ -6,6 +6,7 @@ import pandas as pd
 from itaxotools.DNAconvert.library.utils import sanitize
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
+from .types import TextCase
 from .utils import Translation, Field, OrderedSet, removeprefix
 from .codons import final_column_reading_frame
 
@@ -172,6 +173,17 @@ class OpSanitizeSpeciesNames(Operator):
         data = gene.series.reset_index()
         data[indices] = data[indices].applymap(sanitize)
         gene.series = data.set_index(indices)
+        return gene
+
+
+class OpSequenceCase(Operator):
+    case: TextCase = Field('case', value=TextCase.Unchanged)
+
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        if self.case.method is None:
+            return gene
+        gene = gene.copy()
+        gene.series = gene.series.apply(self.case.method)
         return gene
 
 
