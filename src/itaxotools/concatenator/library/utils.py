@@ -69,22 +69,6 @@ class OrderedSet(dict):
         super().update({key: None for key in iterator})
 
 
-class Justification(Enum):
-    Left = 'Left', str.ljust
-    Right = 'Right', str.rjust
-    Center = 'Center', str.center
-    NoJust = 'None', None
-
-    def __init__(self, description: str, method: Optional[Callable]):
-        self.description = description
-        self.method = method
-
-    def apply(self, text: str, *args, **kwargs):
-        if not self.method:
-            return text
-        return self.method(text, *args, **kwargs)
-
-
 # For Python 3.8 compatibility
 def removeprefix(text: str, prefix: str) -> str:
     if text.startswith(prefix):

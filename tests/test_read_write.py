@@ -9,7 +9,7 @@ import pytest
 from itaxotools.concatenator import (
     FileType, FileFormat, get_reader, get_writer)
 from itaxotools.concatenator.library.file_utils import ZipPath
-from itaxotools.concatenator.library.utils import Justification
+from itaxotools.concatenator.library.types import Justification
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

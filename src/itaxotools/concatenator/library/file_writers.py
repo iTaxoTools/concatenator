@@ -5,7 +5,8 @@ from pathlib import Path
 import pandas as pd
 
 from .model import GeneSeries, GeneDataFrame, GeneStream, GeneIO
-from .utils import ConfigurableCallable, Field, Justification
+from .types import Justification
+from .utils import ConfigurableCallable, Field
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (

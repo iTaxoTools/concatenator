@@ -8,6 +8,7 @@ import re
 import pandas as pd
 
 from .model import GeneStream, GeneDataFrame, PathLike
+from .types import Justification
 from .utils import *
 
 
