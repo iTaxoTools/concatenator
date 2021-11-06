@@ -215,6 +215,13 @@ class OpSequenceCase(Operator):
         return gene
 
 
+class OpSpreadsheetCompatibility(Operator):
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        gene = gene.copy()
+        gene.series = gene.series.str.replace('^-', 'N', regex=True)
+        return gene
+
+
 class OpApplyToGene(Operator):
     func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
 
