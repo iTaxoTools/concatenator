@@ -5,28 +5,26 @@ from enum import Enum
 
 import pandas as pd
 
+from itaxotools.common.param.core import Field, Group
+
 
 # Such as returned by str.maketrans
 Translation = Dict[int, int]
 
 
-class Param:
-    def __init__(self, default: Any = None):
-        self.default = default
-
-
 class _ConfigurableCallable_meta(type):
     def __new__(cls, name, bases, classdict):
-        result = super().__new__(cls, name, bases, classdict)
-        if hasattr(result, '_params_'):
-            _inherited_params = result._params_.copy()
-        else:
-            _inherited_params = list()
-        _new_params = [x for x in classdict if isinstance(classdict[x], Param)]
-        for param in _new_params:
-            setattr(result, param, classdict[param].default)
-        result._params_ = _inherited_params + _new_params
-        return result
+        new_params = {
+            param: classdict[param] for param in classdict
+            if isinstance(classdict[param], Field)}
+        for param in new_params:
+            classdict.pop(param)
+        obj = super().__new__(cls, name, bases, classdict)
+        inherited_params = dict()
+        if hasattr(obj, '_class_params_'):
+            inherited_params = obj._class_params_.copy()
+        obj._class_params_ = dict(**inherited_params, **new_params)
+        return obj
 
 
 class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
@@ -34,16 +32,23 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
         self.update(*args, **kwargs)
 
     def update(self, *args, **kwargs):
-        members = self._params_.copy()
+        self._params_ = {
+            param: self._class_params_[param].copy()
+            for param in self._class_params_}
+        keys = list(self._params_.keys())
         for arg in args:
-            if not members:
+            if not keys:
                 raise TypeError('Too many arguments')
-            setattr(self, members.pop(0), arg)
+            self._params_[keys.pop(0)].value = arg
         for kwarg in kwargs:
-            if kwarg not in members:
+            if kwarg not in keys:
                 raise TypeError(f'Unexpected keyword: {kwarg}')
-            setattr(self, kwarg, kwargs[kwarg])
+            self._params_[kwarg].value = kwargs[kwarg]
         return self
+
+    def __getattr__(self, attr):
+        if attr in self._params_:
+            return self._params_[attr].value
 
     def __call__(self, *args, **kwargs) -> Any:
         return self.call(*args, **kwargs)

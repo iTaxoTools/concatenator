@@ -3,7 +3,7 @@ from typing import Callable, Dict
 from pathlib import Path
 
 from .model import GeneStream, GeneIO
-from .utils import ConfigurableCallable, Param
+from .utils import ConfigurableCallable, Field
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath
 from .file_identify import autodetect
@@ -107,7 +107,7 @@ class NexusReader(FileReader):
 
 @file_reader(FileType.File, FileFormat.Tab)
 class TabFileReader(FileReader):
-    sequence_prefix = Param('sequence_')
+    sequence_prefix = Field('sequence_prefix', value='sequence_')
 
     def call(self, path: Path) -> GeneStream:
         stream = tabfile.stream_from_path(path)

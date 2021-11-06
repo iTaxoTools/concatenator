@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Iterator, Optional, Set
 import pandas as pd
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
-from .utils import Translation, Param, OrderedSet, removeprefix
+from .utils import Translation, Field, OrderedSet, removeprefix
 from .codons import final_column_reading_frame
 
 
@@ -49,7 +49,7 @@ class OpCheckValid(Operator):
 
 class OpIndexMerge(Operator):
     index: str = 'seqid'
-    glue: str = Param('_')
+    glue: str = Field('glue', value='_')
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         gene = gene.copy()
@@ -70,7 +70,7 @@ class OpIndexFilter(Operator):
 
 
 class OpDropEmpty(Operator):
-    missing: str = Param('')
+    missing: str = Field('missing', value='')
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         gene = gene.copy()
@@ -83,7 +83,7 @@ class OpDropEmpty(Operator):
 
 
 class OpPadRight(Operator):
-    padding: str = Param('-')
+    padding: str = Field('padding', value='-')
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         if not self.padding:
@@ -97,7 +97,7 @@ class OpPadRight(Operator):
 
 
 class OpTranslateSequences(Operator):
-    translation: Translation = Param({})
+    translation: Translation = Field('translation', value={})
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         gene = gene.copy()
@@ -106,7 +106,7 @@ class OpTranslateSequences(Operator):
 
 
 class OpFilterCharsets(Operator):
-    filter: Set = Param(set())
+    filter: Set = Field('filter', value=set())
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         if gene.name not in self.filter:
@@ -115,7 +115,7 @@ class OpFilterCharsets(Operator):
 
 
 class OpTranslateGenes(Operator):
-    translation: Dict = Param(dict())
+    translation: Dict = Field('translation', value=dict())
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         if gene.name in self.translation:
@@ -127,7 +127,7 @@ class OpTranslateGenes(Operator):
 
 
 class OpChainCharsets(Operator):
-    allow_duplicates: bool = Param(False)
+    allow_duplicates: bool = Field('allow_duplicates', value=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -157,7 +157,7 @@ class OpDetectReadingFrame(Operator):
 
 
 class OpApplyToGene(Operator):
-    func: Callable[[GeneSeries], GeneSeries] = Param(None)
+    func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         if self.func is None:
@@ -166,7 +166,7 @@ class OpApplyToGene(Operator):
 
 
 class OpApplyToSeries(Operator):
-    func: Callable[[pd.Series], pd.Series] = Param(None)
+    func: Callable[[pd.Series], pd.Series] = Field('func', value=None)
 
     def call(self, gene: GeneSeries) -> GeneSeries:
         if self.func is None:

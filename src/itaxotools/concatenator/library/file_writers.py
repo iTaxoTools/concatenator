@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from .model import GeneSeries, GeneDataFrame, GeneStream, GeneIO
-from .utils import ConfigurableCallable, Param, Justification
+from .utils import ConfigurableCallable, Field, Justification
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
@@ -55,7 +55,7 @@ class _GeneWriter(FileWriter):
 
 
 class _ConcatenatedWriter(_GeneWriter):
-    padding = Param('')
+    padding = Field('padding', value='')
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = (
@@ -74,7 +74,7 @@ class _ConcatenatedWriter(_GeneWriter):
 
 
 class _MultiFileWriter(_GeneWriter):
-    padding = Param('')
+    padding = Field('padding', value='')
 
     @staticmethod
     def create(path: Path) -> Path:
@@ -139,9 +139,9 @@ for ftype, writer in {
 
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusWriter(FileWriter):
-    padding = Param('-')
-    justification = Param(Justification.Left)
-    separator = Param(' ')
+    padding = Field('padding', value='-')
+    justification = Field('justification', value=Justification.Left)
+    separator = Field('separator', value=' ')
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
@@ -159,7 +159,7 @@ class NexusWriter(FileWriter):
 
 @file_writer(FileType.File, FileFormat.Tab)
 class TabWriter(FileWriter):
-    sequence_prefix = Param('sequence_')
+    sequence_prefix = Field('sequence_prefix', value='sequence_')
 
     def call(self, stream: GeneStream, path: Path) -> None:
         stream = self.filter(stream)
