@@ -6,7 +6,8 @@ from itaxotools.concatenator.library.model import GeneSeries, GeneStream
 from itaxotools.concatenator.library.types import TextCase
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
-    OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase)
+    OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
+    OpTranslateMissing, OpTranslateGap)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -68,3 +69,26 @@ def test_case_lower(gene_case_mixed):
     altered = OpSequenceCase(TextCase.Lower)(gene)
     assert_gene_meta_equal(altered, gene)
     assert altered.series.iloc[0] == 'gcagtataa'
+
+
+@pytest.fixture
+def gene_missing_gap() -> GeneSeries:
+    series = pd.Series({
+            'seq1': 'GTAN?-TAA',
+        }, name='gene')
+    series.index.name = 'seqid'
+    return GeneSeries(series, missing='N?', gap='-')
+
+
+def test_replace_missing(gene_missing_gap):
+    gene = gene_missing_gap
+    altered = OpTranslateMissing('?')(gene)
+    assert altered.missing == '?'
+    assert altered.series.iloc[0] == 'GTA??-TAA'
+
+
+def test_replace_missing(gene_missing_gap):
+    gene = gene_missing_gap
+    altered = OpTranslateGap('*')(gene)
+    assert altered.gap == '*'
+    assert altered.series.iloc[0] == 'GTAN?*TAA'

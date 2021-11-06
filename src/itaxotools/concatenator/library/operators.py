@@ -108,6 +108,34 @@ class OpTranslateSequences(Operator):
         return gene
 
 
+class OpTranslateMissing(Operator):
+    missing: str = Field('missing', value='?')
+
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        if not self.missing or not gene.missing:
+            return gene
+        assert len(self.missing) == 1
+        mapping = {char: self.missing for char in gene.missing}
+        translation = str.maketrans(mapping)
+        gene = OpTranslateSequences(translation)(gene)
+        gene.missing = self.missing
+        return gene
+
+
+class OpTranslateGap(Operator):
+    gap: str = Field('gap', value='-')
+
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        if not self.gap or not gene.gap:
+            return gene
+        assert len(self.gap) == 1
+        mapping = {char: self.gap for char in gene.gap}
+        translation = str.maketrans(mapping)
+        gene = OpTranslateSequences(translation)(gene)
+        gene.gap = self.gap
+        return gene
+
+
 class OpFilterCharsets(Operator):
     filter: Set = Field('filter', value=set())
 
