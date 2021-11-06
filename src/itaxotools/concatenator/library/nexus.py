@@ -129,30 +129,28 @@ def stream_to_path(
         nexus_writer(stream, file, *args, **kwargs)
 
 
-def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
+def read(input: TextIO) -> pd.DataFrame:
     commands = NexusCommands(input)
-    reader = NexusReader(sequence_prefix=sequence_prefix)
+    reader = NexusReader()
     for command, args in commands:
         reader.execute(command, args)
     return reader.return_table()
 
 
-def dataframe_from_path(
-    path: PathLike,
-    sequence_prefix: str = 'sequence_',
-) -> GeneDataFrame:
+def dataframe_from_path(path: PathLike) -> GeneDataFrame:
     with path.open() as file:
-        data = read(file, sequence_prefix='')
+        commands = NexusCommands(file)
+        reader = NexusReader()
+        for command, args in commands:
+            reader.execute(command, args)
+        data = reader.return_table()
     data.set_index('seqid', inplace=True)
-    gdf = GeneDataFrame(data, missing='?N', gap='-')
+    gdf = GeneDataFrame(data, missing=reader.missing, gap=reader.gap)
     return gdf
 
 
-def stream_from_path(
-    path: PathLike,
-    sequence_prefix: str = 'sequence_',
-) -> GeneStream:
-    gdf = dataframe_from_path(path, sequence_prefix)
+def stream_from_path(path: PathLike) -> GeneStream:
+    gdf = dataframe_from_path(path)
     return gdf.to_stream()
 
 
@@ -361,14 +359,15 @@ class NexusReader:
         data=NexusState.Data, sets=NexusState.Sets
     )
 
-    def __init__(self, sequence_prefix: str = 'sequence_') -> None:
+    def __init__(self) -> None:
         self.table = pd.DataFrame()
         self.columns = ["seqid"]
-        self.sequence_prefix = sequence_prefix
         self.state: Optional[NexusState] = None
         self.todo: Set[NexusState] = {NexusState.Data, NexusState.Sets}
         self.ntax: Optional[int] = None
         self.read_matrix = False
+        self.missing = ''
+        self.gap = ''
 
     def begin_block(self, args: Iterator[str]) -> None:
         """
@@ -424,6 +423,14 @@ class NexusReader:
                     continue
                 if re.search(r"DNA|RNA|Nucleotide", next(args), flags=re.IGNORECASE):
                     self.read_matrix = True
+            elif arg.casefold() == "missing":
+                if next(args) != "=":
+                    continue
+                self.missing += next(args)
+            elif arg.casefold() == "gap":
+                if next(args) != "=":
+                    continue
+                self.gap += next(args)
             elif arg.casefold() == "interleave":
                 self.interleave = True
 
@@ -463,7 +470,7 @@ class NexusReader:
         """
         if self.state == NexusState.Sets:
             try:
-                self.columns.append(self.sequence_prefix + next(args))
+                self.columns.append(next(args))
             except StopIteration:
                 self.columns.append("")
 

@@ -54,6 +54,7 @@ simple_tests = [
     ReadTest(File('simple.fas', FileType.File, FileFormat.Fasta), {}, '?N', '-'),
     ReadTest(File('simple.phy', FileType.File, FileFormat.Phylip), {}, '?N', '-'),
     ReadTest(File('simple.ali', FileType.File, FileFormat.Ali), {}, '?', '*'),
+    ReadTest(File('altered.nex', FileType.File, FileFormat.Nexus), {}, '?', '*'),
 ]
 
 multi_tests = [
@@ -80,8 +81,8 @@ def assert_matches(test: ReadTest, gene: GeneSeries, series: pd.Series) -> None:
     assert isinstance(gene, GeneSeries)
     assert_series_equal(gene.series, series)
     assert gene.name == series.name
-    assert gene.missing == test.missing
-    assert gene.gap == test.gap
+    assert set(gene.missing) == set(test.missing)
+    assert set(gene.gap) == set(test.gap)
 
 
 @pytest.mark.parametrize("test", simple_tests)
