@@ -3,6 +3,8 @@ from typing import Callable, Dict, List, Iterator, Optional, Set
 
 import pandas as pd
 
+from itaxotools.DNAconvert.library.utils import sanitize
+
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .utils import Translation, Field, OrderedSet, removeprefix
 from .codons import final_column_reading_frame
@@ -153,6 +155,13 @@ class OpDetectReadingFrame(Operator):
         final_reading_frame = final_column_reading_frame(
             gene.series, gene.genetic_code, gene.reading_frame)
         gene.reading_frame = final_reading_frame
+        return gene
+
+
+class OpSanitizeGeneNames(Operator):
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        gene = gene.copy()
+        gene.name = sanitize(gene.name)
         return gene
 
 
