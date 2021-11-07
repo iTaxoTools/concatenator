@@ -127,14 +127,14 @@ def stream_simple() -> GeneStream:
 def test_filter(stream_simple):
     stream = stream_simple
     altered = stream.pipe(OpFilterGenes({'gene1'}))
-    listed = list(altered)
-    assert len(listed) == 1
-    assert listed[0].name == 'gene1'
+    assert len(altered) == 1
+    assert altered['gene1']
+    assert not altered['gene2']
 
 
-def test_filter(stream_simple):
+def test_stencil(stream_simple):
     stream = stream_simple
     altered = stream.pipe(OpStencilGenes(OpBlock(), {'gene1'}))
-    listed = list(altered)
-    assert len(listed) == 1
-    assert listed[0].name == 'gene2'
+    assert len(altered) == 1
+    assert not altered['gene1']
+    assert altered['gene2']

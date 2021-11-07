@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 from typing import Iterator, Optional, Protocol
+from itertools import tee
 from copy import copy
 
 import pandas as pd
@@ -85,6 +86,21 @@ class GeneStream:
 
     def __next__(self):
         return next(self.iterator)
+
+    def __len__(self) -> int:
+        # Used for testing, should be avoided otherwise
+        self.iterator, iter = tee(self.iterator, 2)
+        return sum(1 for _ in iter)
+
+    def __getitem__(self, name: str) -> Optional[GeneSeries]:
+        # Used for testing, should be avoided otherwise
+        self.iterator, iter = tee(self.iterator, 2)
+        matches = [gene for gene in iter if gene.name == name]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            raise KeyError(f'Duplicate gene: {name}')
+        return matches[0]
 
     def pipe(self, op: Operator) -> GeneStream:
         return GeneStream((op.iter(self)))
