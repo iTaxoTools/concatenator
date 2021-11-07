@@ -9,7 +9,7 @@ from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
     OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
-    OpReverseNegativeReadingFrames)
+    OpReverseNegativeReadingFrames, OpPadReadingFrames)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -56,28 +56,28 @@ def test_case_unchanged(gene_case_mixed):
     gene = gene_case_mixed
     altered = OpSequenceCase(TextCase.Unchanged)(gene)
     assert_gene_meta_equal(altered, gene)
-    assert altered.series.iloc[0] == 'gcaGTATAA'
+    assert altered.series.loc['seq1'] == 'gcaGTATAA'
 
 
 def test_case_upper(gene_case_mixed):
     gene = gene_case_mixed
     altered = OpSequenceCase(TextCase.Upper)(gene)
     assert_gene_meta_equal(altered, gene)
-    assert altered.series.iloc[0] == 'GCAGTATAA'
+    assert altered.series.loc['seq1'] == 'GCAGTATAA'
 
 
 def test_case_lower(gene_case_mixed):
     gene = gene_case_mixed
     altered = OpSequenceCase(TextCase.Lower)(gene)
     assert_gene_meta_equal(altered, gene)
-    assert altered.series.iloc[0] == 'gcagtataa'
+    assert altered.series.loc['seq1'] == 'gcagtataa'
 
 
 def test_reverse_complement(gene_case_mixed):
     gene = gene_case_mixed
     altered = OpReverseComplement()(gene)
     assert_gene_meta_equal(altered, gene)
-    assert altered.series.iloc[0] == 'TTATACtgc'
+    assert altered.series.loc['seq1'] == 'TTATACtgc'
 
 
 @pytest.fixture
@@ -93,21 +93,21 @@ def test_replace_missing(gene_missing_gap):
     gene = gene_missing_gap
     altered = OpTranslateMissing('?')(gene)
     assert altered.missing == '?'
-    assert altered.series.iloc[0] == '--GTA??-TAA'
+    assert altered.series.loc['seq1'] == '--GTA??-TAA'
 
 
 def test_replace_missing(gene_missing_gap):
     gene = gene_missing_gap
     altered = OpTranslateGap('*')(gene)
     assert altered.gap == '*'
-    assert altered.series.iloc[0] == '**GTAN?*TAA'
+    assert altered.series.loc['seq1'] == '**GTAN?*TAA'
 
 
 def test_spreadsheet_compatibility(gene_missing_gap):
     gene = gene_missing_gap
     altered = OpSpreadsheetCompatibility()(gene)
     assert_gene_meta_equal(altered, gene)
-    assert altered.series.iloc[0] == 'N-GTAN?-TAA'
+    assert altered.series.loc['seq1'] == 'N-GTAN?-TAA'
 
 
 @pytest.fixture
@@ -152,12 +152,12 @@ def stream_reading_frames() -> GeneStream:
             'seq1': 'GCCTAA',
         }, name='gene2')
     series2.index.name = 'seqid'
-    gene2 = GeneSeries(series2, reading_frame=ReadingFrame(-2))
+    gene2 = GeneSeries(series2, reading_frame=ReadingFrame(-2), missing='n')
     series3 = pd.Series({
             'seq1': 'TAA',
         }, name='gene3')
     series3.index.name = 'seqid'
-    gene3 = GeneSeries(series3, reading_frame=ReadingFrame(3))
+    gene3 = GeneSeries(series3, reading_frame=ReadingFrame(3), missing='Nn?')
     return GeneStream(iter([gene1, gene2, gene3]))
 
 
@@ -168,4 +168,16 @@ def test_negative_reading_frames(stream_reading_frames):
     assert altered['gene1'].reading_frame == ReadingFrame(1)
     assert altered['gene2'].reading_frame == ReadingFrame(2)
     assert altered['gene3'].reading_frame == ReadingFrame(3)
-    assert altered['gene2'].series.iloc[0] == 'TTAGGC'
+    assert altered['gene2'].series.loc['seq1'] == 'TTAGGC'
+
+
+def test_pad_reading_frames(stream_reading_frames):
+    stream = stream_reading_frames
+    altered = stream.pipe(OpPadReadingFrames())
+    assert len(altered) == 3
+    assert altered['gene1'].reading_frame == ReadingFrame(1)
+    assert altered['gene2'].reading_frame == ReadingFrame(1)
+    assert altered['gene3'].reading_frame == ReadingFrame(1)
+    assert altered['gene1'].series.loc['seq1'] == 'ATCGCCTAA'
+    assert altered['gene2'].series.loc['seq1'] == 'GCCTAAnn'
+    assert altered['gene3'].series.loc['seq1'] == '?TAA'

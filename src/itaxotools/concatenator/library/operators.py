@@ -259,6 +259,30 @@ class OpReverseNegativeReadingFrames(Operator):
         return OpReverseComplement()(gene)
 
 
+class OpPadReadingFrames(Operator):
+    lengths = {2: 2, 3: 1}
+
+    @staticmethod
+    def pad_left(seq: str, pad: str) -> str:
+        return f'{pad}{seq}'
+
+    @staticmethod
+    def pad_right(seq: str, pad: str) -> str:
+        return f'{seq}{pad}'
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        if gene.reading_frame in [0, 1, -1]:
+            return gene
+        gene = gene.copy()
+        func = self.pad_left if gene.reading_frame > 0 else self.pad_right
+        reading_frame = abs(gene.reading_frame)
+        missing = '?' if '?' in gene.missing else gene.missing[0]
+        padding = missing * self.lengths[reading_frame]
+        gene.series = gene.series.apply(lambda seq: func(seq, padding))
+        gene.reading_frame = ReadingFrame(1)
+        return gene
+
+
 class OpApplyToGene(Operator):
     func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
 
