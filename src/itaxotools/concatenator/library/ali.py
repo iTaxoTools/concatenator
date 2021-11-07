@@ -105,7 +105,7 @@ def chunk_reader(infile: TextIO) -> Iterator[AliTuple]:
         yield AliTuple(
             species=parts[0][1:],
             ali_tag=''.join(parts[1:]),
-            sequence=chunk[1].replace('*', '-'),)
+            sequence=chunk[1])
 
 
 def ali_reader(infile: TextIO) -> pd.Series:
