@@ -18,6 +18,16 @@ class InvalidGeneSeries(Exception):
         super().__init__(error)
 
 
+class OpPass(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        return gene
+
+
+class OpBlock(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        return None
+
+
 class OpCheckDuplicates(Operator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -137,12 +147,22 @@ class OpTranslateGap(Operator):
         return gene
 
 
-class OpFilterCharsets(Operator):
-    filter: Set = Field('filter', value=set())
+class OpFilterGenes(Operator):
+    genes: Set = Field('genes', value=set())
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        if gene.name not in self.filter:
+        if gene.name not in self.genes:
             return None
+        return gene
+
+
+class OpStencilGenes(Operator):
+    operator: Operator = Field('operator', value=OpPass())
+    genes: Set = Field('genes', value=set())
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        if gene.name in self.genes:
+            return self.operator(gene)
         return gene
 
 

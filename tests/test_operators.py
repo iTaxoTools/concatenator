@@ -8,7 +8,7 @@ from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
-    OpReverseComplement)
+    OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -107,3 +107,34 @@ def test_spreadsheet_compatibility(gene_missing_gap):
     altered = OpSpreadsheetCompatibility()(gene)
     assert_gene_meta_equal(altered, gene)
     assert altered.series.iloc[0] == 'N-GTAN?-TAA'
+
+
+@pytest.fixture
+def stream_simple() -> GeneStream:
+    series1 = pd.Series({
+            'seq1': 'ATCGCCTAA',
+        }, name='gene1')
+    series1.index.name = 'seqid'
+    gene1 = GeneSeries(series1)
+    series2 = pd.Series({
+            'seq1': 'GCCTAA',
+        }, name='gene2')
+    series2.index.name = 'seqid'
+    gene2 = GeneSeries(series2)
+    return GeneStream(iter([gene1, gene2]))
+
+
+def test_filter(stream_simple):
+    stream = stream_simple
+    altered = stream.pipe(OpFilterGenes({'gene1'}))
+    listed = list(altered)
+    assert len(listed) == 1
+    assert listed[0].name == 'gene1'
+
+
+def test_filter(stream_simple):
+    stream = stream_simple
+    altered = stream.pipe(OpStencilGenes(OpBlock(), {'gene1'}))
+    listed = list(altered)
+    assert len(listed) == 1
+    assert listed[0].name == 'gene2'
