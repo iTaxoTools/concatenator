@@ -177,7 +177,7 @@ class OpTranslateGenes(Operator):
         return gene
 
 
-class OpChainCharsets(Operator):
+class OpChainGenes(Operator):
     allow_duplicates: bool = Field('allow_duplicates', value=False)
 
     def __init__(self, *args, **kwargs):
@@ -187,7 +187,7 @@ class OpChainCharsets(Operator):
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.allow_duplicates:
             return gene
-        if gene.name in gene._memory:
+        if gene.name in self._memory:
             return None
         self._memory.add(gene.name)
         return gene
