@@ -56,7 +56,7 @@ def gene_from_path(path: PathLike) -> GeneSeries:
         series = column_reader(file)
     series.index.name = 'seqid'
     series.name = path.stem
-    return GeneSeries(series, missing='?N', gap='-')
+    return GeneSeries(series, missing='Nn?', gap='-')
 
 
 def phylip_writer(gene: GeneSeries, outfile: TextIO, relaxed: bool = True) -> None:

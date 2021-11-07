@@ -49,17 +49,17 @@ def dataframe_multi() -> pd.DataFrame:
 
 
 simple_tests = [
-    ReadTest(File('simple.tsv', FileType.File, FileFormat.Tab), {}, '?N', '-'),
-    ReadTest(File('simple.nex', FileType.File, FileFormat.Nexus), {}, '?N', '-'),
-    ReadTest(File('simple.fas', FileType.File, FileFormat.Fasta), {}, '?N', '-'),
-    ReadTest(File('simple.phy', FileType.File, FileFormat.Phylip), {}, '?N', '-'),
+    ReadTest(File('simple.tsv', FileType.File, FileFormat.Tab), {}, 'Nn?', '-'),
+    ReadTest(File('simple.nex', FileType.File, FileFormat.Nexus), {}, 'Nn?', '-'),
+    ReadTest(File('simple.fas', FileType.File, FileFormat.Fasta), {}, 'Nn?', '-'),
+    ReadTest(File('simple.phy', FileType.File, FileFormat.Phylip), {}, 'Nn?', '-'),
     ReadTest(File('simple.ali', FileType.File, FileFormat.Ali), {}, '?', '*'),
     ReadTest(File('altered.nex', FileType.File, FileFormat.Nexus), {}, '?', '*'),
 ]
 
 multi_tests = [
-    ReadTest(File('multi.tsv', FileType.File, FileFormat.Tab), {}, '?N', '-'),
-    ReadTest(File('multi.nex', FileType.File, FileFormat.Nexus), {}, '?N', '-'),
+    ReadTest(File('multi.tsv', FileType.File, FileFormat.Tab), {}, 'Nn?', '-'),
+    ReadTest(File('multi.nex', FileType.File, FileFormat.Nexus), {}, 'Nn?', '-'),
 ]
 
 

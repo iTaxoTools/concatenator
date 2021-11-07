@@ -69,7 +69,7 @@ def gene_from_path(path: PathLike) -> GeneSeries:
             for chunk in split_file(file)})
     series.index.name = 'seqid'
     series.name = path.stem
-    return GeneSeries(series, missing='?N', gap='-')
+    return GeneSeries(series, missing='Nn?', gap='-')
 
 
 def fasta_writer(gene: GeneSeries, outfile: TextIO) -> None:

@@ -84,14 +84,12 @@ class OpIndexFilter(Operator):
 
 
 class OpDropEmpty(Operator):
-    missing: str = Field('missing', value='')
-
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.dropna(inplace=False)
-        if self.missing:
+        if gene.missing:
             gene.series = gene.series[
-                ~ gene.series.str.fullmatch(f'[{self.missing}]+')]
+                ~ gene.series.str.fullmatch(f'[{gene.missing}]+')]
         gene.series = gene.series[gene.series.str.len() > 0]
         return gene
 

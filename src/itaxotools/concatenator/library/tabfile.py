@@ -86,7 +86,7 @@ def dataframe_from_path(
     data.set_index(indices, inplace=True)
     data.columns = [
         removeprefix(col, sequence_prefix) for col in data.columns]
-    gdf = GeneDataFrame(data, missing='?N', gap='-')
+    gdf = GeneDataFrame(data, missing='Nn?', gap='-')
     return gdf
 
 

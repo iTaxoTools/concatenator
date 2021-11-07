@@ -83,7 +83,7 @@ def test_reverse_complement(gene_case_mixed):
 @pytest.fixture
 def gene_missing_gap() -> GeneSeries:
     series = pd.Series({
-            'seq1': '--GTAN?-TAA',
+            'seq1': '--GTnN?-TAA',
         }, name='gene')
     series.index.name = 'seqid'
     return GeneSeries(series, missing='N?', gap='-')
@@ -93,21 +93,21 @@ def test_replace_missing(gene_missing_gap):
     gene = gene_missing_gap
     altered = OpTranslateMissing('?')(gene)
     assert altered.missing == '?'
-    assert altered.series.loc['seq1'] == '--GTA??-TAA'
+    assert altered.series.loc['seq1'] == '--GTn??-TAA'
 
 
 def test_replace_missing(gene_missing_gap):
     gene = gene_missing_gap
     altered = OpTranslateGap('*')(gene)
     assert altered.gap == '*'
-    assert altered.series.loc['seq1'] == '**GTAN?*TAA'
+    assert altered.series.loc['seq1'] == '**GTnN?*TAA'
 
 
 def test_spreadsheet_compatibility(gene_missing_gap):
     gene = gene_missing_gap
     altered = OpSpreadsheetCompatibility()(gene)
     assert_gene_meta_equal(altered, gene)
-    assert altered.series.loc['seq1'] == 'N-GTAN?-TAA'
+    assert altered.series.loc['seq1'] == 'N-GTnN?-TAA'
 
 
 @pytest.fixture

@@ -96,8 +96,8 @@ def nexus_writer(
                 f'{separator}{sequence}\n'))
         buffer.write('\n')
         ntax = len(series)
-        missings |= set(gene.missing)
-        gaps |= set(gene.gap)
+        missings |= set(gene.missing.upper())
+        gaps |= set(gene.gap.upper())
 
     nchar = sum(charsets.values())
 
@@ -152,7 +152,9 @@ def dataframe_from_path(path: PathLike) -> GeneDataFrame:
             reader.execute(command, args)
         data = reader.return_table()
     data.set_index('seqid', inplace=True)
-    gdf = GeneDataFrame(data, missing=reader.missing, gap=reader.gap)
+    missing = ''.join(reader.missings)
+    gap = ''.join(reader.gaps)
+    gdf = GeneDataFrame(data, missing=missing, gap=gap)
     return gdf
 
 
@@ -373,8 +375,8 @@ class NexusReader:
         self.todo: Set[NexusState] = {NexusState.Data, NexusState.Sets}
         self.ntax: Optional[int] = None
         self.read_matrix = False
-        self.missing = ''
-        self.gap = ''
+        self.missings = set()
+        self.gaps = set()
 
     def begin_block(self, args: Iterator[str]) -> None:
         """
@@ -433,11 +435,13 @@ class NexusReader:
             elif arg.casefold() == "missing":
                 if next(args) != "=":
                     continue
-                self.missing += next(args)
+                missing = next(args)
+                self.missings |= {missing.upper() + missing.lower()}
             elif arg.casefold() == "gap":
                 if next(args) != "=":
                     continue
-                self.gap += next(args)
+                gap = next(args)
+                self.gaps |= {gap.upper() + gap.lower()}
             elif arg.casefold() == "interleave":
                 self.interleave = True
 
