@@ -83,22 +83,23 @@ write_tests = [
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_simple', 'simple.nex'),
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_altered', 'altered.nex'),
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_reading_frames', 'reading_frames.nex'),
+    WriteTest(FileType.Directory, FileFormat.PartitionFinder, {}, 'stream_simple', 'partition_finder_simple'),
 ]
 
 
 def assert_eq_files(type: FileType, file1: Path, file2: Path) -> None:
     if type == FileType.Directory:
-        for (part1, part2) in zip(
-            sorted(file1.iterdir()),
-            sorted(file2.iterdir())
-        ):
+        files1 = sorted(file1.iterdir())
+        files2 = sorted(file2.iterdir())
+        assert len(files1) == len(files2)
+        for (part1, part2) in zip(files1, files2):
             assert part1.name == part2.name
             assert part1.read_text() == part2.read_text()
     elif type == FileType.ZipArchive:
-        for (part1, part2) in zip(
-            sorted(ZipPath(file1).iterdir()),
-            sorted(ZipPath(file2).iterdir())
-        ):
+        files1 = sorted(ZipPath(file1).iterdir())
+        files2 = sorted(ZipPath(file2).iterdir())
+        assert len(files1) == len(files2)
+        for (part1, part2) in zip(files1, files2):
             assert part1.name == part2.name
             assert part1.read_text() == part2.read_text()
     else:

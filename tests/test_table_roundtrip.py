@@ -18,8 +18,11 @@ def assert_series_equal(s1: pd.Series, s2: pd.Series):
         assert v1 == v2
 
 
+FORMATS = list(FileFormat)
+FORMATS.remove(FileFormat.PartitionFinder)
+
 @pytest.mark.parametrize("filetype", list(FileType))
-@pytest.mark.parametrize("format", list(FileFormat))
+@pytest.mark.parametrize("format", FORMATS)
 def test_table_roundtrip(
         filetype: FileType, format: FileFormat, tmp_path: Path) -> None:
     try:

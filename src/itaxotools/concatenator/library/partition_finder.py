@@ -7,6 +7,8 @@ import pandas as pd
 
 from . import phylip
 from .utils import *
+from .model import PathLike
+from .types import Charset
 from .file_utils import ZipOutput
 
 CHARSET_START = """
@@ -30,6 +32,29 @@ CHARSET_END = """
 ## SCHEMES, search: all | user | greedy | rcluster | rclusterf | kmeans ##
 [schemes]
 search = greedy;
+"""
+
+CHARSET_FORMAT = """
+## ALIGNMENT FILE ##
+alignment = {alignment};
+
+## BRANCHLENGTHS: linked | unlinked ##
+branchlengths = {branchlengths};
+
+## MODELS OF EVOLUTION: all | allx | mrbayes | beast | gamma | gammai | <list> ##
+models = {models};
+
+# MODEL SELECCTION: AIC | AICc | BIC #
+model_selection = {model_selection};
+
+## DATA BLOCKS: see manual for how to define ##
+[data_blocks]
+
+{data_blocks}
+
+## SCHEMES, search: all | user | greedy | rcluster | rclusterf | kmeans ##
+[schemes]
+search = {search};
 """
 
 
@@ -83,3 +108,32 @@ def write_table(row_table: pd.DataFrame, output: BinaryIO) -> None:
             )
             position += length
         print(CHARSET_END, file=charset_file)
+
+
+def write_cfg(
+    path: PathLike,
+    charsets: List[Charset],
+    alignment: str,
+    branchlengths = 'linked',
+    models = 'mrbayes',
+    model_selection = 'aicc',
+    search = 'greedy',
+) -> None:
+
+    data_blocks = list()
+    for charset in charsets:
+        if charset.frame:
+            for codon in charset.codon_sets():
+                data_blocks.append(f'{str(codon)}\n')
+        else:
+            data_blocks.append(f'{str(charset)}\n')
+
+    with path.open('w') as file:
+        file.write(CHARSET_FORMAT.format(
+            alignment = alignment,
+            branchlengths = branchlengths,
+            models = models,
+            model_selection = model_selection,
+            data_blocks = ''.join(data_blocks),
+            search = search,
+        ))

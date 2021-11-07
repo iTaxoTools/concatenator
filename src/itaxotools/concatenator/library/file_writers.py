@@ -10,10 +10,12 @@ from .utils import ConfigurableCallable, Field
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
-    OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty, OpApplyToSeries)
+    OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
+    OpExtractCharsets, OpApplyToSeries)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
+from . import partition_finder
 
 
 class FileWriter(ConfigurableCallable):
@@ -136,6 +138,55 @@ for ftype, writer in {
     FileType.ZipArchive: _MultiZipWriter,
 }.items():
     _register_type_writer(ftype, writer)
+
+
+class _PartitionFinderWriter(FileWriter):
+    alignment = Field('alignment', value='alignment.phy')
+    cfg_file = Field('cfg_file', value='partition_finder.cfg')
+    padding = Field('padding', value='-')
+
+    @staticmethod
+    def create(path: Path) -> Path:
+        raise NotImplementedError
+
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = (
+            super().filter(stream)
+            .pipe(OpDropEmpty())
+            .pipe(OpIndexMerge())
+            .pipe(OpPadRight(self.padding)))
+        return stream
+
+    def call(self, stream: GeneStream, path: Path) -> None:
+        stream = self.filter(stream)
+        container = self.create(path)
+        op_charsets = OpExtractCharsets()
+        stream = stream.pipe(op_charsets)
+        joined = GeneDataFrame.from_stream(stream)
+        data = joined.dataframe.apply(
+            lambda row: ''.join(row.values.astype(str)), axis=1)
+        gene = GeneSeries(data, missing='', gap='')
+        phylip.gene_to_path(gene, container / self.alignment)
+        partition_finder.write_cfg(
+            container / self.cfg_file,
+            op_charsets.charsets,
+            self.alignment)
+
+
+@file_writer(FileType.Directory, FileFormat.PartitionFinder)
+class _PartitionFinderDirWriter(_PartitionFinderWriter):
+    @staticmethod
+    def create(path: Path) -> Path:
+        path.mkdir(exist_ok=True)
+        return path
+
+
+@file_writer(FileType.ZipArchive, FileFormat.PartitionFinder)
+class _PartitionFinderZipWriter(_PartitionFinderWriter):
+    @staticmethod
+    def create(path: Path) -> Path:
+        archive = ZipFile(path, 'w')
+        return ZipPath(archive)
 
 
 @file_writer(FileType.File, FileFormat.Nexus)

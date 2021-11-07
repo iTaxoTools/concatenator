@@ -42,6 +42,10 @@ class CodonSet(NamedTuple):
     position: int
     position_end: int
 
+    def __str__(self) -> str:
+        return (
+            f'{self.name} = {self.position}-{self.position_end}\\3;')
+
 
 class Charset(NamedTuple):
     name: str
@@ -49,6 +53,10 @@ class Charset(NamedTuple):
     length: int
     frame: int
     codons: Tuple[str, str, str]
+
+    def __str__(self) -> str:
+        return (
+            f'{self.name} = {self.position}-{self.position_end};')
 
     def codon_sets(self) -> List[CodonSet]:
         frame = self.frame
