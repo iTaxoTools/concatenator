@@ -76,6 +76,12 @@ def removeprefix(text: str, prefix: str) -> str:
     return text
 
 
+def reverse_complement(nucleotides: str) -> str:
+    reversed = nucleotides[::-1]
+    translation = str.maketrans('ACGTacgt', 'TGCAtgca')
+    return reversed.translate(translation)
+
+
 def into_seqids(table: pd.DataFrame) -> pd.Series:
     """
     Concatenates a collection of string columns into a column of seqids.

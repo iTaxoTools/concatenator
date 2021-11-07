@@ -7,7 +7,8 @@ from itaxotools.concatenator.library.types import TextCase
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
-    OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility)
+    OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
+    OpReverseComplement)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -69,6 +70,13 @@ def test_case_lower(gene_case_mixed):
     altered = OpSequenceCase(TextCase.Lower)(gene)
     assert_gene_meta_equal(altered, gene)
     assert altered.series.iloc[0] == 'gcagtataa'
+
+
+def test_reverse_complement(gene_case_mixed):
+    gene = gene_case_mixed
+    altered = OpReverseComplement()(gene)
+    assert_gene_meta_equal(altered, gene)
+    assert altered.series.iloc[0] == 'TTATACtgc'
 
 
 @pytest.fixture

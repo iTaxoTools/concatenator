@@ -7,7 +7,8 @@ from itaxotools.DNAconvert.library.utils import sanitize
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .types import TextCase
-from .utils import Translation, Field, OrderedSet, removeprefix
+from .utils import (
+    Translation, Field, OrderedSet, removeprefix, reverse_complement)
 from .codons import final_column_reading_frame
 
 
@@ -219,6 +220,13 @@ class OpSpreadsheetCompatibility(Operator):
     def call(self, gene: GeneSeries) -> GeneSeries:
         gene = gene.copy()
         gene.series = gene.series.str.replace('^-', 'N', regex=True)
+        return gene
+
+
+class OpReverseComplement(Operator):
+    def call(self, gene: GeneSeries) -> GeneSeries:
+        gene = gene.copy()
+        gene.series = gene.series.map(reverse_complement)
         return gene
 
 
