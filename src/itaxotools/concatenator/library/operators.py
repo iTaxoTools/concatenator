@@ -6,9 +6,10 @@ import pandas as pd
 from itaxotools.DNAconvert.library.utils import sanitize
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
-from .types import TextCase
+from .types import TextCase, Charset
 from .utils import (
-    Translation, Field, OrderedSet, removeprefix, reverse_complement)
+    Translation, Field, OrderedSet, removeprefix,
+    reverse_complement, has_uniform_length)
 from .codons import final_column_reading_frame, ReadingFrame
 
 
@@ -278,6 +279,23 @@ class OpPadReadingFrames(Operator):
         padding = missing * self.lengths[reading_frame]
         gene.series = gene.series.apply(lambda seq: func(seq, padding))
         gene.reading_frame = ReadingFrame(1)
+        return gene
+
+
+class OpExtractCharsets(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.charsets = list()
+        self.cursor = 1
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert has_uniform_length(gene.series)
+        length = len(gene.series.iat[0])
+        charset = Charset(
+            gene.name, self.cursor, length,
+            gene.reading_frame, gene.codon_names)
+        self.charsets.append(charset)
+        self.cursor += length
         return gene
 
 

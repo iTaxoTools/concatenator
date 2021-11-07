@@ -3,13 +3,13 @@ import pytest
 import pandas as pd
 
 from itaxotools.concatenator.library.model import GeneSeries, GeneStream
-from itaxotools.concatenator.library.types import TextCase
+from itaxotools.concatenator.library.types import TextCase, Charset
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
     OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
-    OpReverseNegativeReadingFrames, OpPadReadingFrames)
+    OpReverseNegativeReadingFrames, OpPadReadingFrames, OpExtractCharsets)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -121,7 +121,7 @@ def stream_simple() -> GeneStream:
             'seq1': 'GCCTAA',
         }, name='gene2')
     series2.index.name = 'seqid'
-    gene2 = GeneSeries(series2)
+    gene2 = GeneSeries(series2, reading_frame=ReadingFrame(-2))
     return GeneStream(iter([gene1, gene2]))
 
 
@@ -139,6 +139,29 @@ def test_stencil(stream_simple):
     assert len(altered) == 1
     assert not altered['gene1']
     assert altered['gene2']
+
+
+def test_charsets(stream_simple):
+    stream = stream_simple
+    gene1 = stream['gene1']
+    gene2 = stream['gene2']
+    op_charsets = OpExtractCharsets()
+    altered = stream.pipe(op_charsets)
+    genes = list(altered)
+    assert len(genes) == 2
+    assert_gene_meta_equal(gene1, genes[0])
+    assert_gene_meta_equal(gene2, genes[1])
+    charsets = op_charsets.charsets
+    assert charsets[0].name == 'gene1'
+    assert charsets[1].name == 'gene2'
+    assert charsets[0].frame == ReadingFrame(0)
+    assert charsets[1].frame == ReadingFrame(-2)
+    assert charsets[0].position == 1
+    assert charsets[1].position == 10
+    assert charsets[0].length == 9
+    assert charsets[1].length == 6
+    assert charsets[0].position_end == 9
+    assert charsets[1].position_end == 15
 
 
 @pytest.fixture
