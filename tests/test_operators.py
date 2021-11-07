@@ -8,7 +8,8 @@ from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
-    OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement)
+    OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
+    OpReverseNegativeReadingFrames)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -138,3 +139,33 @@ def test_stencil(stream_simple):
     assert len(altered) == 1
     assert not altered['gene1']
     assert altered['gene2']
+
+
+@pytest.fixture
+def stream_reading_frames() -> GeneStream:
+    series1 = pd.Series({
+            'seq1': 'ATCGCCTAA',
+        }, name='gene1')
+    series1.index.name = 'seqid'
+    gene1 = GeneSeries(series1, reading_frame=ReadingFrame(1))
+    series2 = pd.Series({
+            'seq1': 'GCCTAA',
+        }, name='gene2')
+    series2.index.name = 'seqid'
+    gene2 = GeneSeries(series2, reading_frame=ReadingFrame(-2))
+    series3 = pd.Series({
+            'seq1': 'TAA',
+        }, name='gene3')
+    series3.index.name = 'seqid'
+    gene3 = GeneSeries(series3, reading_frame=ReadingFrame(3))
+    return GeneStream(iter([gene1, gene2, gene3]))
+
+
+def test_negative_reading_frames(stream_reading_frames):
+    stream = stream_reading_frames
+    altered = stream.pipe(OpReverseNegativeReadingFrames())
+    assert len(altered) == 3
+    assert altered['gene1'].reading_frame == ReadingFrame(1)
+    assert altered['gene2'].reading_frame == ReadingFrame(2)
+    assert altered['gene3'].reading_frame == ReadingFrame(3)
+    assert altered['gene2'].series.iloc[0] == 'TTAGGC'

@@ -9,7 +9,7 @@ from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .types import TextCase
 from .utils import (
     Translation, Field, OrderedSet, removeprefix, reverse_complement)
-from .codons import final_column_reading_frame
+from .codons import final_column_reading_frame, ReadingFrame
 
 
 class InvalidGeneSeries(Exception):
@@ -248,6 +248,15 @@ class OpReverseComplement(Operator):
         gene = gene.copy()
         gene.series = gene.series.map(reverse_complement)
         return gene
+
+
+class OpReverseNegativeReadingFrames(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        if gene.reading_frame >= 0:
+            return gene
+        gene = gene.copy()
+        gene.reading_frame = ReadingFrame(-gene.reading_frame)
+        return OpReverseComplement()(gene)
 
 
 class OpApplyToGene(Operator):
