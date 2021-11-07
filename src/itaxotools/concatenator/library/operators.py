@@ -23,7 +23,7 @@ class OpCheckDuplicates(Operator):
         super().__init__(*args, **kwargs)
         self._memory = set()
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self._memory:
             raise InvalidGeneSeries(gene, f'Duplicate gene: {repr(gene.name)}')
         self._memory.add(gene.name)
@@ -35,7 +35,7 @@ class OpCheckValid(Operator):
         super().__init__(*args, **kwargs)
         self.op_check_duplicates = OpCheckDuplicates()
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not isinstance(gene, GeneSeries):
             raise InvalidGeneSeries(gene, 'Not a GeneSeries!')
         if not isinstance(gene.series, pd.Series):
@@ -55,7 +55,7 @@ class OpIndexMerge(Operator):
     index: str = 'seqid'
     glue: str = Field('glue', value='_')
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         indices = gene.series.index.to_frame().fillna('', inplace=False)
         gene.series.index = pd.Index(
@@ -67,7 +67,7 @@ class OpIndexMerge(Operator):
 class OpIndexFilter(Operator):
     index: str = 'seqid'
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series.index = gene.series.index.to_frame()[self.index]
         return gene
@@ -76,7 +76,7 @@ class OpIndexFilter(Operator):
 class OpDropEmpty(Operator):
     missing: str = Field('missing', value='')
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.dropna(inplace=False)
         if self.missing:
@@ -89,7 +89,7 @@ class OpDropEmpty(Operator):
 class OpPadRight(Operator):
     padding: str = Field('padding', value='-')
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not self.padding:
             return gene
         assert len(self.padding) == 1
@@ -103,7 +103,7 @@ class OpPadRight(Operator):
 class OpTranslateSequences(Operator):
     translation: Translation = Field('translation', value={})
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.str.translate(self.translation)
         return gene
@@ -112,7 +112,7 @@ class OpTranslateSequences(Operator):
 class OpTranslateMissing(Operator):
     missing: str = Field('missing', value='?')
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not self.missing or not gene.missing:
             return gene
         assert len(self.missing) == 1
@@ -126,7 +126,7 @@ class OpTranslateMissing(Operator):
 class OpTranslateGap(Operator):
     gap: str = Field('gap', value='-')
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not self.gap or not gene.gap:
             return gene
         assert len(self.gap) == 1
@@ -140,7 +140,7 @@ class OpTranslateGap(Operator):
 class OpFilterCharsets(Operator):
     filter: Set = Field('filter', value=set())
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name not in self.filter:
             return None
         return gene
@@ -149,7 +149,7 @@ class OpFilterCharsets(Operator):
 class OpTranslateGenes(Operator):
     translation: Dict = Field('translation', value=dict())
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self.translation:
             if self.translation[gene.name] is None:
                 return None
@@ -165,7 +165,7 @@ class OpChainCharsets(Operator):
         super().__init__(*args, **kwargs)
         self._memory = set()
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.allow_duplicates:
             return gene
         if gene.name in gene._memory:
@@ -177,7 +177,7 @@ class OpChainCharsets(Operator):
 class OpDetectReadingFrame(Operator):
     filter: Optional[Set[str]] = None
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.filter is not None:
             if gene.name not in self.filter:
                 return gene
@@ -189,14 +189,14 @@ class OpDetectReadingFrame(Operator):
 
 
 class OpSanitizeGeneNames(Operator):
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.name = sanitize(gene.name)
         return gene
 
 
 class OpSanitizeSpeciesNames(Operator):
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         indices = gene.series.index.names
         data = gene.series.reset_index()
@@ -208,7 +208,7 @@ class OpSanitizeSpeciesNames(Operator):
 class OpSequenceCase(Operator):
     case: TextCase = Field('case', value=TextCase.Unchanged)
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.case.method is None:
             return gene
         gene = gene.copy()
@@ -217,14 +217,14 @@ class OpSequenceCase(Operator):
 
 
 class OpSpreadsheetCompatibility(Operator):
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.str.replace('^-', 'N', regex=True)
         return gene
 
 
 class OpReverseComplement(Operator):
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.map(reverse_complement)
         return gene
@@ -233,7 +233,7 @@ class OpReverseComplement(Operator):
 class OpApplyToGene(Operator):
     func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.func is None:
             return gene
         return self.func(gene)
@@ -242,7 +242,7 @@ class OpApplyToGene(Operator):
 class OpApplyToSeries(Operator):
     func: Callable[[pd.Series], pd.Series] = Field('func', value=None)
 
-    def call(self, gene: GeneSeries) -> GeneSeries:
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.func is None:
             return gene
         gene = gene.copy()
