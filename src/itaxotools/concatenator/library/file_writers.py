@@ -15,7 +15,7 @@ from .operators import (
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
-from . import partition_finder
+from . import iqtree, partition_finder
 
 
 class FileWriter(ConfigurableCallable):
@@ -140,14 +140,12 @@ for ftype, writer in {
     _register_type_writer(ftype, writer)
 
 
-class _PartitionFinderWriter(FileWriter):
-    alignment = Field('alignment', value='alignment.phy')
-    cfg_file = Field('cfg_file', value='partition_finder.cfg')
+class _ContainerWriter(FileWriter):
     padding = Field('padding', value='-')
 
-    @staticmethod
-    def create(path: Path) -> Path:
-        raise NotImplementedError
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.op_charsets = OpExtractCharsets()
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = (
@@ -160,33 +158,68 @@ class _PartitionFinderWriter(FileWriter):
     def call(self, stream: GeneStream, path: Path) -> None:
         stream = self.filter(stream)
         container = self.create(path)
-        op_charsets = OpExtractCharsets()
-        stream = stream.pipe(op_charsets)
+        stream = stream.pipe(self.op_charsets)
         joined = GeneDataFrame.from_stream(stream)
         data = joined.dataframe.apply(
             lambda row: ''.join(row.values.astype(str)), axis=1)
         gene = GeneSeries(data, missing='', gap='')
         phylip.gene_to_path(gene, container / self.alignment)
+        self.write_config(container)
+
+    @staticmethod
+    def create(path: Path) -> Path:
+        raise NotImplementedError
+
+    def write_config(self, container: Path) -> None:
+        raise NotImplementedError
+
+
+class _IQTreeWriter(_ContainerWriter):
+    alignment = Field('alignment', value='alignment.phy')
+
+    def write_config(self, container: Path) -> None:
+        cfg_name = self.alignment.split('.')[0] + '.nex'
+        iqtree.write_nexus(
+            container / cfg_name,
+            self.op_charsets.charsets)
+
+
+class _PartitionFinderWriter(_ContainerWriter):
+    alignment = Field('alignment', value='alignment.phy')
+    cfg_file = Field('cfg_file', value='partition_finder.cfg')
+
+    def write_config(self, container: Path) -> None:
         partition_finder.write_cfg(
             container / self.cfg_file,
-            op_charsets.charsets,
+            self.op_charsets.charsets,
             self.alignment)
 
 
-@file_writer(FileType.Directory, FileFormat.PartitionFinder)
-class _PartitionFinderDirWriter(_PartitionFinderWriter):
-    @staticmethod
-    def create(path: Path) -> Path:
-        path.mkdir(exist_ok=True)
-        return path
+def _register_container_writer(
+    format: FileFormat,
+    writer: _ContainerWriter,
+) -> None:
+
+    @file_writer(FileType.Directory, format)
+    class _ContainerDirWriter(writer):
+        @staticmethod
+        def create(path: Path) -> Path:
+            path.mkdir(exist_ok=True)
+            return path
+
+    @file_writer(FileType.ZipArchive, format)
+    class _ContainerZipWriter(writer):
+        @staticmethod
+        def create(path: Path) -> Path:
+            archive = ZipFile(path, 'w')
+            return ZipPath(archive)
 
 
-@file_writer(FileType.ZipArchive, FileFormat.PartitionFinder)
-class _PartitionFinderZipWriter(_PartitionFinderWriter):
-    @staticmethod
-    def create(path: Path) -> Path:
-        archive = ZipFile(path, 'w')
-        return ZipPath(archive)
+for format, writer in {
+    FileFormat.PartitionFinder: _PartitionFinderWriter,
+    FileFormat.IQTree: _IQTreeWriter,
+}.items():
+    _register_container_writer(format, writer)
 
 
 @file_writer(FileType.File, FileFormat.Nexus)

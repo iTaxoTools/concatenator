@@ -84,6 +84,7 @@ write_tests = [
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_altered', 'altered.nex'),
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_reading_frames', 'reading_frames.nex'),
     WriteTest(FileType.Directory, FileFormat.PartitionFinder, {}, 'stream_simple', 'partition_finder_simple'),
+    WriteTest(FileType.Directory, FileFormat.IQTree, {}, 'stream_simple', 'iqtree_simple'),
 ]
 
 

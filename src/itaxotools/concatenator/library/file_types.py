@@ -13,6 +13,7 @@ class FileFormat(Enum):
     Fasta = ("Fasta", ".fas", False)
     Phylip = ("Phylip", ".phy", False)
     PartitionFinder = ("PartitionFinder", ".cfg", False)
+    IQTree = ("IQTree", ".nex", False)
 
     # Pending cleanup
 

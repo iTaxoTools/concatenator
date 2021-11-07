@@ -20,6 +20,7 @@ def assert_series_equal(s1: pd.Series, s2: pd.Series):
 
 FORMATS = list(FileFormat)
 FORMATS.remove(FileFormat.PartitionFinder)
+FORMATS.remove(FileFormat.IQTree)
 
 @pytest.mark.parametrize("filetype", list(FileType))
 @pytest.mark.parametrize("format", FORMATS)

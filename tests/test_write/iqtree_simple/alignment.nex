@@ -1,0 +1,7 @@
+#NEXUS
+
+BEGIN SETS;
+
+charset gene = 1-9;
+
+END;
