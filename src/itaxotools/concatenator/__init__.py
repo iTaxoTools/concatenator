@@ -10,9 +10,9 @@ from .concatenator import main  # noqa
 from .library.model import GeneSeries, GeneStream, GeneDataFrame
 from .library.file_types import FileType, FileFormat, get_extension
 from .library.file_identify import autodetect
-from .library.file_readers import read_from_path, get_reader
-from .library.file_writers import write_to_path, get_writer
-from .library.file_loaders import load_from_path, get_loader
+from .library.file_readers import read_from_path, get_reader, FileReader
+from .library.file_writers import write_to_path, get_writer, FileWriter
+from .library.file_loaders import load_from_path, get_loader, FileLoader
 from .library import operators
 
 

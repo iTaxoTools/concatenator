@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from typing import Callable, Dict, Iterator, Optional, Any
+from itertools import chain
 from enum import Enum
 
 import pandas as pd
@@ -63,10 +64,16 @@ class OrderedSet(dict):
         self.update(iterator)
 
     def __and__(self, other):
-        return OrderedSet({key for key in self if key in other})
+        return OrderedSet(key for key in self if key in other)
+
+    def __or__(self, other):
+        return OrderedSet(chain((key for key in self), (key for key in other)))
 
     def update(self, iterator: Iterator):
         super().update({key: None for key in iterator})
+
+    def add(self, item):
+        super().update({item: None})
 
 
 # For Python 3.8 compatibility

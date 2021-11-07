@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict
+from typing import (
+    NamedTuple, TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict)
 from enum import Enum
 import tempfile
 import re
@@ -72,6 +73,13 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     buf.close()
 
 
+class Charset(NamedTuple):
+    name: str
+    length: int
+    frame: int
+    codon_names: Tuple[str, str, str]
+
+
 def nexus_writer(
     stream: GeneStream,
     out: TextIO,
@@ -79,16 +87,20 @@ def nexus_writer(
     separator: str = ' ',
 ) -> None:
     buffer = tempfile.TemporaryFile(mode="w+")
-    charsets = {}
+    charsets = OrderedSet()
+    missings = OrderedSet()
+    gaps = OrderedSet()
     ntax = 0
-    missings = set()
-    gaps = set()
 
     for gene in stream:
         series = gene.series
         assert has_uniform_length(series)
 
-        charsets[series.name] = len(series.iat[0])
+        charsets.add(Charset(
+            gene.name,
+            len(series.iat[0]),
+            gene.reading_frame,
+            gene.codon_names))
         index_len = series.index.str.len().max()
         for index, sequence in series.iteritems():
             buffer.write((
@@ -99,7 +111,7 @@ def nexus_writer(
         missings |= set(gene.missing.upper())
         gaps |= set(gene.gap.upper())
 
-    nchar = sum(charsets.values())
+    nchar = sum(charset.length for charset in charsets)
 
     out.write('#NEXUS\n\n')
     out.write('BEGIN DATA;\n\n')
@@ -120,10 +132,10 @@ def nexus_writer(
     buffer.close()
 
     position = 1
-    for name, length in charsets.items():
-        position_end = position + length - 1
-        out.write(f'charset {name} = {position}-{position_end};\n')
-        position += length
+    for charset in charsets:
+        position_end = position + charset.length - 1
+        out.write(f'charset {charset.name} = {position}-{position_end};\n')
+        position += charset.length
     out.write('\nEND;\n')
 
 

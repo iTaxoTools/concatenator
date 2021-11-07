@@ -9,9 +9,8 @@ import pandas as pd
 
 from itaxotools.concatenator import (
     FileType, FileFormat, GeneSeries, GeneStream,
-    autodetect, get_writer)
-from itaxotools.concatenator.library.file_writers import (
-    FileWriter)
+    autodetect, get_writer, FileWriter)
+from itaxotools.concatenator.library.codons import ReadingFrame
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -45,9 +44,30 @@ def stream_altered() -> GeneStream:
     return GeneStream(iter([gene]))
 
 
+@pytest.fixture
+def stream_reading_frames() -> GeneStream:
+    series1 = pd.Series({
+            'seq1': 'ATCGCCTAA',
+        }, name='gene1')
+    series1.index.name = 'seqid'
+    gene1 = GeneSeries(series1, reading_frame=ReadingFrame(1))
+    series2 = pd.Series({
+            'seq1': 'GCCTAA',
+        }, name='gene2')
+    series2.index.name = 'seqid'
+    gene2 = GeneSeries(series2, reading_frame=ReadingFrame(-2), missing='n')
+    series3 = pd.Series({
+            'seq1': 'TAA',
+        }, name='gene3')
+    series3.index.name = 'seqid'
+    gene3 = GeneSeries(series3, reading_frame=ReadingFrame(3), missing='Nn?')
+    return GeneStream(iter([gene1, gene2, gene3]))
+
+
 write_tests = [
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_simple', 'simple.nex'),
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_altered', 'altered.nex'),
+    WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_reading_frames', 'reading_frames.nex'),
 ]
 
 
