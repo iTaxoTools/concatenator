@@ -2,15 +2,23 @@
 
 BEGIN DATA;
 
-Dimensions Nchar=18 Ntax=1;
+Dimensions Nchar=28 Ntax=1;
 Format Datatype=DNA Missing=N Missing=? Gap=- Interleave=yes;
 Matrix
 
-seq1 ATCGCCTAA
+seq1 GCTA
 
-seq1 GCCTAA
+seq1 GCTA
 
-seq1 TAA
+seq1 GCTA
+
+seq1 GCTA
+
+seq1 GCTA
+
+seq1 GCTA
+
+seq1 GCTA
 
 ;
 END;
@@ -18,8 +26,40 @@ END;
 
 BEGIN SETS;
 
-charset gene1 = 1-9;
-charset gene2 = 10-15;
-charset gene3 = 16-18;
+charset gene0 = 1-4;
+charset gene1 = 5-8;
+charset gene2 = 9-12;
+charset gene3 = 13-16;
+charset gene4 = 17-20;
+charset gene5 = 21-24;
+charset gene6 = 25-28;
+
+charset gene0_1st = 1-4\3;
+charset gene0_2nd = 2-4\3;
+charset gene0_3rd = 3-4\3;
+
+charset gene1_A = 5-8\3;
+charset gene1_B = 6-8\3;
+charset genus1_C = 7-8\3;
+
+charset gene2_3rd = 9-12\3;
+charset gene2_1st = 10-12\3;
+charset gene2_2nd = 11-12\3;
+
+charset gene3_2nd = 13-16\3;
+charset gene3_3rd = 14-16\3;
+charset gene3_1st = 15-16\3;
+
+charset gene4_1st = 17-20\3;
+charset gene4_3rd = 18-20\3;
+charset gene4_2nd = 19-20\3;
+
+charset gene5_2nd = 21-24\3;
+charset gene5_1st = 22-24\3;
+charset gene5_3rd = 23-24\3;
+
+charset gene6_3rd = 25-28\3;
+charset gene6_2nd = 26-28\3;
+charset gene6_1st = 27-28\3;
 
 END;

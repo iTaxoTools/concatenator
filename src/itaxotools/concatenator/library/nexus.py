@@ -2,6 +2,7 @@
 
 from typing import (
     NamedTuple, TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict)
+from collections import deque
 from enum import Enum
 import tempfile
 import re
@@ -75,9 +76,10 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
 
 class Charset(NamedTuple):
     name: str
+    position: int
     length: int
     frame: int
-    codon_names: Tuple[str, str, str]
+    codons: Tuple[str, str, str]
 
 
 def nexus_writer(
@@ -91,16 +93,20 @@ def nexus_writer(
     missings = OrderedSet()
     gaps = OrderedSet()
     ntax = 0
+    cursor = 1
 
     for gene in stream:
         series = gene.series
         assert has_uniform_length(series)
 
+        length = len(series.iat[0])
         charsets.add(Charset(
             gene.name,
-            len(series.iat[0]),
+            cursor,
+            length,
             gene.reading_frame,
             gene.codon_names))
+        cursor += length
         index_len = series.index.str.len().max()
         for index, sequence in series.iteritems():
             buffer.write((
@@ -111,11 +117,9 @@ def nexus_writer(
         missings |= set(gene.missing.upper())
         gaps |= set(gene.gap.upper())
 
-    nchar = sum(charset.length for charset in charsets)
-
     out.write('#NEXUS\n\n')
     out.write('BEGIN DATA;\n\n')
-    out.write(f'Dimensions Nchar={nchar} Ntax={ntax};\n')
+    out.write(f'Dimensions Nchar={cursor-1} Ntax={ntax};\n')
     out.write('Format Datatype=DNA')
     for missing in sorted(missings, reverse=True):
         out.write(f' Missing={missing}')
@@ -131,12 +135,33 @@ def nexus_writer(
     out.write('BEGIN SETS;\n\n')
     buffer.close()
 
-    position = 1
     for charset in charsets:
-        position_end = position + charset.length - 1
-        out.write(f'charset {charset.name} = {position}-{position_end};\n')
-        position += charset.length
-    out.write('\nEND;\n')
+        position_end = charset.position + charset.length - 1
+        out.write(
+            f'charset {charset.name} = '
+            f'{charset.position}-{position_end};\n')
+    out.write('\n')
+
+    for charset in (cs for cs in charsets if cs.frame):
+        frame = charset.frame
+
+        position_end = charset.position + charset.length - 1
+        codons = deque(
+            re.sub(r'\*\*', charset.name, codon)
+            for codon in charset.codons)
+        if frame < 0:
+            offset = charset.length % 3
+            frame = - frame
+            codons.reverse()
+            codons.rotate(offset)
+        codons.rotate(frame - 1)
+        for offset, codon in enumerate(codons):
+            out.write(
+                f'charset {codon} = '
+                f'{charset.position + offset}-{position_end}\\3;\n')
+        out.write('\n')
+
+    out.write('END;\n')
 
 
 def stream_to_path(
