@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 from typing import (
-    NamedTuple, TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict)
-from collections import deque
+    TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict)
 from enum import Enum
 import tempfile
 import re
@@ -10,7 +9,7 @@ import re
 import pandas as pd
 
 from .model import GeneStream, GeneDataFrame, PathLike
-from .types import Justification
+from .types import Justification, Charset
 from .utils import *
 
 
@@ -74,14 +73,6 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
     buf.close()
 
 
-class Charset(NamedTuple):
-    name: str
-    position: int
-    length: int
-    frame: int
-    codons: Tuple[str, str, str]
-
-
 def nexus_writer(
     stream: GeneStream,
     out: TextIO,
@@ -89,7 +80,7 @@ def nexus_writer(
     separator: str = ' ',
 ) -> None:
     buffer = tempfile.TemporaryFile(mode="w+")
-    charsets = OrderedSet()
+    charsets = list()
     missings = OrderedSet()
     gaps = OrderedSet()
     ntax = 0
@@ -100,7 +91,7 @@ def nexus_writer(
         assert has_uniform_length(series)
 
         length = len(series.iat[0])
-        charsets.add(Charset(
+        charsets.append(Charset(
             gene.name,
             cursor,
             length,
@@ -136,29 +127,16 @@ def nexus_writer(
     buffer.close()
 
     for charset in charsets:
-        position_end = charset.position + charset.length - 1
         out.write(
             f'charset {charset.name} = '
-            f'{charset.position}-{position_end};\n')
+            f'{charset.position}-{charset.position_end};\n')
     out.write('\n')
 
     for charset in (cs for cs in charsets if cs.frame):
-        frame = charset.frame
-
-        position_end = charset.position + charset.length - 1
-        codons = deque(
-            re.sub(r'\*\*', charset.name, codon)
-            for codon in charset.codons)
-        if frame < 0:
-            offset = charset.length % 3
-            frame = - frame
-            codons.reverse()
-            codons.rotate(offset)
-        codons.rotate(frame - 1)
-        for offset, codon in enumerate(codons):
+        for codon in charset.codon_sets():
             out.write(
-                f'charset {codon} = '
-                f'{charset.position + offset}-{position_end}\\3;\n')
+                f'charset {codon.name} = '
+                f'{codon.position}-{codon.position_end}\\3;\n')
         out.write('\n')
 
     out.write('END;\n')

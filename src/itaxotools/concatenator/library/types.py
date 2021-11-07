@@ -1,6 +1,9 @@
 
-from typing import Callable, Optional
+from typing import NamedTuple, Callable, List, Optional, Tuple
+from collections import deque
 from enum import Enum
+
+import re
 
 
 class Justification(Enum):
@@ -32,3 +35,38 @@ class TextCase(Enum):
         if not self.method:
             return text
         return self.method(text, *args, **kwargs)
+
+
+class CodonSet(NamedTuple):
+    name: str
+    position: int
+    position_end: int
+
+
+class Charset(NamedTuple):
+    name: str
+    position: int
+    length: int
+    frame: int
+    codons: Tuple[str, str, str]
+
+    def codon_sets(self) -> List[CodonSet]:
+        frame = self.frame
+        codons = deque(
+            re.sub(r'\*\*', self.name, codon)
+            for codon in self.codons)
+        if frame < 0:
+            offset = self.length % 3
+            frame = - frame
+            codons.reverse()
+            codons.rotate(offset)
+        codons.rotate(frame - 1)
+        result = list()
+        for offset, codon in enumerate(codons):
+            result.append(CodonSet(
+                codon, self.position + offset, self.position_end))
+        return result
+
+    @property
+    def position_end(self) -> int:
+        return self.position + self.length - 1
