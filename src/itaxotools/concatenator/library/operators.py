@@ -194,12 +194,7 @@ class OpChainGenes(Operator):
 
 
 class OpDetectReadingFrame(Operator):
-    filter: Optional[Set[str]] = None
-
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        if self.filter is not None:
-            if gene.name not in self.filter:
-                return gene
         gene = gene.copy()
         final_reading_frame = final_column_reading_frame(
             gene.series, gene.genetic_code, gene.reading_frame)
