@@ -3,13 +3,13 @@ from typing import Callable, Dict
 from pathlib import Path
 
 from .model import GeneSeries, GeneDataFrame, GeneStream, GeneIO
-from .types import Justification
+from .types import Justification, TextCase
 from .utils import ConfigurableCallable, Field, Group
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
-    OpExtractCharsets, OpApplyToSeries)
+    OpSequenceCase, OpExtractCharsets, OpApplyToSeries)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -20,9 +20,21 @@ class FileWriter(ConfigurableCallable):
     type: FileType = None
     format: FileFormat = None
 
+    case = Field(
+        key='case',
+        label='Sequence Case',
+        doc=('...'),
+        type=TextCase,
+        list={case: case.description for case in TextCase},
+        default=TextCase.Unchanged)
+
     def filter(self, stream: GeneStream) -> GeneStream:
         """Stream operations, obeys inheritance"""
-        return stream.pipe(OpCheckValid())
+        return (
+            stream
+            .pipe(OpCheckValid())
+            .pipe(OpSequenceCase(self.case))
+            )
 
     def call(self, stream: GeneStream, path: Path) -> None:
         """Write to path after applying filter operations"""
@@ -248,6 +260,7 @@ class NexusWriter(FileWriter):
     def params(self) -> Group:
         return Group(key='root', children=[
             self._params_[param] for param in [
+                'case',
                 'justification',
                 'separator',
                 'padding',
