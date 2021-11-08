@@ -1,5 +1,5 @@
 from typing import List, Tuple, Optional
-from enum import IntEnum
+from enum import IntEnum, Enum
 import random
 
 import pandas as pd
@@ -47,6 +47,23 @@ def generate_sequence(seq_len: int, gc: GeneticCode,
         the_slice = last_codon_slice(seq, frame_with_last_codon)
         seq = seq[:the_slice.start] + random.choice(gc.stops) + seq[the_slice.stop:]
     return seq
+
+
+@pytest.fixture(params=[
+    {'frames_with_two_stops': [-3, -2, -1, 2, 3], 'frame_with_last_codon': None},
+    {'frames_with_two_stops': [-3, -1, 2, 3], 'frame_with_last_codon': None},
+    {'frames_with_two_stops': [-3, -2, -1, 2, 3],
+        'frame_with_last_codon': ReadingFrame(1)},
+    {'frames_with_two_stops': [-3, -1, 2, 3], 'frame_with_last_codon': ReadingFrame(1)}
+])
+def generated_series(request) -> pd.Series:
+    series = pd.Series((generate_sequence(300,
+                                          GeneticCode(1),
+                                          request.param['frames_with_two_stops'],
+                                          request.param['frame_with_last_codon'])
+                        for _ in range(8)))
+    series.name = 'gene1'
+    return series
 
 
 @pytest.fixture
