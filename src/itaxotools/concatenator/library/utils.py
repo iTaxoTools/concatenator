@@ -47,6 +47,11 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
             self._params_[kwarg].value = kwargs[kwarg]
         return self
 
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            param for param in self._params_.values()])
+
     def __getattr__(self, attr):
         if attr in self._params_:
             return self._params_[attr].value

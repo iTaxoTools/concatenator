@@ -1,12 +1,10 @@
 
-from typing import Callable, Dict, TextIO
+from typing import Callable, Dict
 from pathlib import Path
-
-import pandas as pd
 
 from .model import GeneSeries, GeneDataFrame, GeneStream, GeneIO
 from .types import Justification
-from .utils import ConfigurableCallable, Field
+from .utils import ConfigurableCallable, Field, Group
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
@@ -224,9 +222,36 @@ for format, writer in {
 
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusWriter(FileWriter):
-    padding = Field('padding', value='-')
-    justification = Field('justification', value=Justification.Left)
-    separator = Field('separator', value=' ')
+    padding = Field(
+        key='padding',
+        label='Padding',
+        doc=('...'),
+        type=str,
+        list=list('-?*Nn'),
+        default='-')
+    justification = Field(
+        key='justification',
+        label='Justification',
+        doc=('...'),
+        type=Justification,
+        list={just: just.description for just in Justification},
+        default=Justification.Left)
+    separator = Field(
+        key='separator',
+        label='Separator',
+        doc=('...'),
+        type=str,
+        list={' ': 'Space', '\t': 'Tab'},
+        default=' ')
+
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            self._params_[param] for param in [
+                'justification',
+                'separator',
+                'padding',
+            ]])
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
