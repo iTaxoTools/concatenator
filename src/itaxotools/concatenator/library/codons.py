@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
 from typing import (Dict, Optional, Iterator, Tuple, Set,
                     TypeVar, Iterable, List, Any, Counter, DefaultDict)
 import json
@@ -25,6 +26,13 @@ class ReadingFrame(IntEnum):
 
     def __str__(self):
         return f'{self.label} ({self.text})'
+
+    @classmethod
+    def from_int(cls, value: int) -> ReadingFrame:
+        """
+        Constructor for `ReadingFrame` that passes type-checking
+        """
+        return cls(value)  # type: ignore
 
     @property
     def label(self):
@@ -134,19 +142,18 @@ class _GeneticCodePrototype(int):
         return obj
 
 
-GeneticCode = Enum(
-    'GeneticCode',  # type: ignore
+GeneticCode = Enum(  # type: ignore
+    'GeneticCode',
     dict(
         **{"Unknown": 0},
         **{"SGC"+str(gc_id - 1): gc_id for gc_id in _GC_DESCRIPTIONS},
-        ),
+    ),
     type=_GeneticCodePrototype)
 
 
 class NoReadingFrames(Exception):
     def __init__(self, gene_name: str):
         self.gene_name = gene_name
-        self.reading_frame_set = reading_frame_set
         super().__init__(
             f'No possible reading frames exist for gene {repr(gene_name)}')
 
@@ -319,13 +326,13 @@ def column_reading_frames(
             reading_combinations = reading_combinations.intersection(
                 seq_reading_combinations)
     assert reading_combinations is not None
-    return {ReadingFrame(frame) for _, frame in reading_combinations}
+    return {ReadingFrame.from_int(frame) for _, frame in reading_combinations}
 
 
 def final_column_reading_frame(
     column: pd.Series,
     genetic_code: GeneticCode = GeneticCode(0),
-    reading_frame: ReadingFrame = ReadingFrame(0),
+    reading_frame: ReadingFrame = ReadingFrame.from_int(0),
 ) -> ReadingFrame:
     """
     Determine the correct reading frame for a given Series,
@@ -341,11 +348,13 @@ def final_column_reading_frame(
             # Could still determine a reading frame here
             # if a singular possible frame ends with a stop codon
             raise AmbiguousReadingFrame(column.name, possible_frames)
-        return ReadingFrame(possible_frames.pop())
+        return ReadingFrame.from_int(possible_frames.pop())
     elif reading_frame:
-        if not reading_frame in possible_frames:
+        if reading_frame not in possible_frames:
             raise BadReadingFrame(column.name, reading_frame)
         return reading_frame
+    else:
+        assert False, "Unreachable 'else' branch in 'final_column_reading_frame'"
 
 
 def split_codon_charsets(
