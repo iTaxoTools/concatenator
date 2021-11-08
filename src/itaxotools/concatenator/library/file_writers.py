@@ -9,7 +9,8 @@ from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
-    OpSequenceCase, OpExtractCharsets, OpApplyToSeries)
+    OpSequenceCase, OpExtractCharsets, OpApplyToSeries,
+    OpSanitizeGeneNames, OpSanitizeSpeciesNames)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -28,13 +29,32 @@ class FileWriter(ConfigurableCallable):
         list={case: case.description for case in TextCase},
         default=TextCase.Unchanged)
 
+    sanitize_genes = Field(
+        key='sanitize_genes',
+        label='Sanitize Gene Names',
+        doc=('...'),
+        type=bool,
+        default=True)
+
+    sanitize_species = Field(
+        key='sanitize_species',
+        label='Sanitize Species Names',
+        doc=('...'),
+        type=bool,
+        default=True)
+
     def filter(self, stream: GeneStream) -> GeneStream:
         """Stream operations, obeys inheritance"""
-        return (
+        stream =  (
             stream
             .pipe(OpCheckValid())
             .pipe(OpSequenceCase(self.case))
             )
+        if self.sanitize_genes:
+            stream = stream.pipe(OpSanitizeGeneNames())
+        if self.sanitize_species:
+            stream = stream.pipe(OpSanitizeSpeciesNames())
+        return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
         """Write to path after applying filter operations"""
@@ -261,9 +281,11 @@ class NexusWriter(FileWriter):
         return Group(key='root', children=[
             self._params_[param] for param in [
                 'case',
+                'sanitize_genes',
+                'sanitize_species',
+                'padding',
                 'justification',
                 'separator',
-                'padding',
             ]])
 
     def filter(self, stream: GeneStream) -> GeneStream:

@@ -79,7 +79,7 @@ def nexus_writer(
     justification: Justification = Justification.Left,
     separator: str = ' ',
 ) -> None:
-    buffer = tempfile.TemporaryFile(mode="w+")
+    buffer = tempfile.TemporaryFile(mode='w+', encoding='utf-8')
     charsets = list()
     missings = OrderedSet()
     gaps = OrderedSet()
@@ -143,7 +143,7 @@ def stream_to_path(
     path: PathLike,
     *args, **kwargs
 ) -> None:
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         nexus_writer(stream, file, *args, **kwargs)
 
 

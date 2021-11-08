@@ -105,5 +105,5 @@ def stream_to_path(
 ) -> None:
     data = GeneDataFrame.from_stream(stream).dataframe
     data.columns = [sequence_prefix + col for col in data.columns]
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         data.to_csv(file, sep="\t", line_terminator="\n")

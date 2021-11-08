@@ -128,7 +128,7 @@ def write_cfg(
         else:
             data_blocks.append(f'{str(charset)}\n')
 
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         file.write(CHARSET_FORMAT.format(
             alignment = alignment,
             branchlengths = branchlengths,

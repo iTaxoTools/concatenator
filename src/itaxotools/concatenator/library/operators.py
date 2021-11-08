@@ -215,7 +215,7 @@ class OpSanitizeSpeciesNames(Operator):
         indices = gene.series.index.names
         data = gene.series.reset_index()
         data[indices] = data[indices].applymap(sanitize)
-        gene.series = data.set_index(indices)
+        gene.series = data.set_index(indices).iloc[:, 0]
         return gene
 
 

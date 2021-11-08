@@ -75,5 +75,5 @@ def phylip_writer(gene: GeneSeries, outfile: TextIO, relaxed: bool = True) -> No
 
 
 def gene_to_path(gene: GeneSeries, path: PathLike, relaxed: bool = True) -> None:
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         phylip_writer(gene, file, relaxed)

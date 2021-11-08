@@ -153,5 +153,5 @@ def ali_writer(gene: GeneSeries, outfile: TextIO) -> None:
 
 
 def gene_to_path(gene: GeneSeries, path: PathLike) -> None:
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         ali_writer(gene, file)
