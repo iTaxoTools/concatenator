@@ -309,10 +309,42 @@ def detect_reading_combinations(sequence: str,
             stops, STOP_CODONS).items() for gc_id in gcs}
 
 
-def column_reading_frames(
+def last_codon(seq: str, reading_frame: int) -> Optional[str]:
+    """
+    Return last codon in `seq` according to `reading_frame`
+    """
+    read_offset = abs(reading_frame) - 1
+    if len(seq) < read_offset + 3:
+        return None
+    leftover = (len(seq) - read_offset) % 3
+    stop = len(seq) - leftover
+    start = stop - 3
+    if reading_frame < 0:
+        stop = - stop - 1
+        start = - start - 1
+    return seq[start:stop]
+
+
+ReadingCombination = Tuple[GeneticCode, int]
+
+
+def filter_by_last_codons(column: pd.Series,
+                          reading_combinations: Set[ReadingCombination]) -> None:
+    """
+    Removes elements of `reading_combinations`,
+    which don't correspond to the last codon
+    of at least one sequence from `column`
+    """
+    for _, seq in column.items():
+        for gc, frame in reading_combinations.copy():
+            if last_codon(seq, frame) not in gc.stops:  # type: ignore
+                reading_combinations.remove((gc, frame))
+
+
+def column_reading_combinations(
     column: pd.Series,
     gc_table: GeneticCode = GeneticCode(0)
-) -> Set[ReadingFrame]:
+) -> Set[ReadingCombination]:
     """
     Returns the set of reading frames that are valid for all sequences in `column`.
 
@@ -326,6 +358,10 @@ def column_reading_frames(
             reading_combinations = reading_combinations.intersection(
                 seq_reading_combinations)
     assert reading_combinations is not None
+    return reading_combinations
+
+
+def extract_frames(reading_combinations: Set[ReadingCombination]) -> Set[ReadingFrame]:
     return {ReadingFrame.from_int(frame) for _, frame in reading_combinations}
 
 
@@ -340,14 +376,18 @@ def final_column_reading_frame(
     """
     if column.empty:
         raise AmbiguousReadingFrame(column.name, set())
-    possible_frames = column_reading_frames(column, genetic_code)
+    reading_combinations = column_reading_combinations(column, genetic_code)
+    possible_frames = extract_frames(reading_combinations)
     if not possible_frames:
         raise NoReadingFrames(column.name)
     elif not reading_frame:
         if len(possible_frames) > 1:
             # Could still determine a reading frame here
             # if a singular possible frame ends with a stop codon
-            raise AmbiguousReadingFrame(column.name, possible_frames)
+            filter_by_last_codons(column, reading_combinations)
+            possible_frames = extract_frames(reading_combinations)
+            if len(possible_frames) > 1:
+                raise AmbiguousReadingFrame(column.name, possible_frames)
         return ReadingFrame.from_int(possible_frames.pop())
     elif reading_frame:
         if reading_frame not in possible_frames:
