@@ -1,5 +1,6 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from enum import IntEnum
+import random
 
 import pandas as pd
 import pytest
@@ -7,8 +8,46 @@ import pytest
 from itaxotools.concatenator.library.model import GeneSeries
 from itaxotools.concatenator.library.codons import (
     GeneticCode, ReadingFrame, NoReadingFrames,
-    BadReadingFrame, AmbiguousReadingFrame)
+    BadReadingFrame, AmbiguousReadingFrame, last_codon_slice)
 from itaxotools.concatenator.library.operators import OpDetectReadingFrame
+
+
+def no_stop_sequence(len: int, gc: GeneticCode) -> str:
+    seq = "".join(random.choices("ACGT", k=len))
+    for stop in gc.stops:  # type: ignore
+        seq = seq.replace(stop, "")
+    return seq
+
+
+def generate_sequence(seq_len: int, gc: GeneticCode,
+                      frames_with_two_stops: List[ReadingFrame],
+                      frame_with_last_codon: Optional[ReadingFrame]) -> str:
+    """
+    Generates a random sequence with approximate length `len`.
+
+    All frames in `frames_with_two_stops` will contains at two stops.
+
+    The frame `frame_with_last_codon` will contain a stop in last codon.
+    """
+    assert ReadingFrame.Unknown not in frames_with_two_stops
+    assert frame_with_last_codon != ReadingFrame.Unknown
+    segment_codon_len = (seq_len // len(frames_with_two_stops)) // 3
+    positive_frames = [frame for frame in frames_with_two_stops if frame > 0]
+    negative_frames = [-frame for frame in frames_with_two_stops if frame < 0]
+    positive_part = ""
+    for frame in positive_frames:
+        positive_part += no_stop_sequence(segment_codon_len * 3 + frame - 1, gc)
+        positive_part += random.choice(gc.stops)
+    negative_part = ""
+    for frame in negative_frames:
+        negative_part += no_stop_sequence(segment_codon_len * 3 + frame - 1, gc)
+        negative_part += random.choice(gc.stops)
+    seq = positive_part + negative_part[::-1]
+    if frame_with_last_codon:
+        the_slice = last_codon_slice(seq, frame_with_last_codon)
+        seq = seq[:the_slice.start] + random.choice(gc.stops) + seq[the_slice.stop:]
+    return seq
+
 
 @pytest.fixture
 def series_good() -> pd.Series:
