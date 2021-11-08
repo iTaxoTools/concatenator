@@ -139,6 +139,13 @@ def make_equal_length(
         return column
 
 
+def fill_empty(column: pd.Series, filler: str) -> pd.Series:
+    column = column.fillna('')
+    max_length = column.str.len().max()
+    column = column.str.ljust(max_length, filler)
+    return column
+
+
 def has_uniform_length(series: pd.Series) -> bool:
     max_length = series.str.len().max()
     min_length = series.str.len().min()

@@ -30,6 +30,14 @@ class FileWriter(ConfigurableCallable):
         list={case: case.description for case in TextCase},
         default=TextCase.Unchanged)
 
+    padding = Field(
+        key='padding',
+        label='Padding',
+        doc=('...'),
+        type=str,
+        list=dict(**{k: k for k in '-?*Nn'}, **{'': 'Unpadded'}),
+        default='-')
+
     translate_missing = Field(
         key='translate_missing',
         label='Translate Missing',
@@ -67,6 +75,7 @@ class FileWriter(ConfigurableCallable):
             stream = stream.pipe(OpTranslateMissing(self.translate_missing))
         if self.translate_gap:
             stream = stream.pipe(OpTranslateGap(self.translate_gap))
+        stream = stream.pipe(OpDropEmpty())
         stream = stream.pipe(OpSequenceCase(self.case))
         if self.sanitize_genes:
             stream = stream.pipe(OpSanitizeGeneNames())
@@ -106,7 +115,9 @@ class _GeneWriter(FileWriter):
 
 
 class _ConcatenatedWriter(_GeneWriter):
-    padding = Field('padding', value='')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.params.padding.value = ''
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = (
@@ -125,7 +136,9 @@ class _ConcatenatedWriter(_GeneWriter):
 
 
 class _MultiFileWriter(_GeneWriter):
-    padding = Field('padding', value='')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.params.padding.value = ''
 
     @staticmethod
     def create(path: Path) -> Path:
@@ -189,16 +202,16 @@ for ftype, writer in {
 
 
 class _ContainerWriter(FileWriter):
-    padding = Field('padding', value='-')
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.op_charsets = OpExtractCharsets()
+        self.params.translate_missing.value = '?'
+        self.params.translate_gap.value = '-'
+        self.params.padding.value = '-'
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = (
             super().filter(stream)
-            .pipe(OpDropEmpty())
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
         return stream
@@ -207,7 +220,7 @@ class _ContainerWriter(FileWriter):
         stream = self.filter(stream)
         container = self.create(path)
         stream = stream.pipe(self.op_charsets)
-        joined = GeneDataFrame.from_stream(stream)
+        joined = GeneDataFrame.from_stream(stream, filler=self.padding)
         data = joined.dataframe.apply(
             lambda row: ''.join(row.values.astype(str)), axis=1)
         gene = GeneSeries(data, missing='', gap='')
@@ -233,8 +246,33 @@ class _IQTreeWriter(_ContainerWriter):
 
 
 class _PartitionFinderWriter(_ContainerWriter):
-    alignment = Field('alignment', value='alignment.phy')
-    cfg_file = Field('cfg_file', value='partition_finder.cfg')
+    alignment = Field(
+        key='alignment',
+        label='Alignment File',
+        doc=('...'),
+        type=str,
+        default='alignment.phy')
+
+    cfg_file = Field(
+        key='cfg_file',
+        label='Configuration File',
+        doc=('...'),
+        type=str,
+        default='partition_finder.cfg')
+
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            self._params_[param] for param in [
+                'alignment',
+                'cfg_file',
+                'padding',
+                'case',
+                'translate_missing',
+                'translate_gap',
+                'sanitize_genes',
+                'sanitize_species',
+            ]])
 
     def write_config(self, container: Path) -> None:
         partition_finder.write_cfg(
@@ -272,14 +310,6 @@ for format, writer in {
 
 @file_writer(FileType.File, FileFormat.Nexus)
 class NexusWriter(FileWriter):
-    padding = Field(
-        key='padding',
-        label='Padding',
-        doc=('...'),
-        type=str,
-        list={k: k for k in '-?*Nn'},
-        default='-')
-
     justification = Field(
         key='justification',
         label='Justification',

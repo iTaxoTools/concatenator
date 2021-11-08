@@ -6,7 +6,7 @@ from copy import copy
 
 import pandas as pd
 
-from .utils import ConfigurableCallable
+from .utils import ConfigurableCallable, fill_empty
 from .file_utils import PathLike
 from .codons import GeneticCode, ReadingFrame
 
@@ -129,10 +129,14 @@ class GeneDataFrame:
         return gene
 
     @classmethod
-    def from_stream(cls, stream: GeneStream) -> GeneDataFrame:
+    def from_stream(cls, stream: GeneStream, filler = '') -> GeneDataFrame:
         obj = cls()
         for gene in stream:
             obj.add_gene(gene)
+        if filler:
+            assert len(filler) == 1
+            for col in obj.dataframe:
+                obj.dataframe[col] = fill_empty(obj.dataframe[col], filler)
         return obj
 
     def to_stream(self) -> GeneStream:
