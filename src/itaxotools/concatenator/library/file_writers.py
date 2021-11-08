@@ -236,7 +236,25 @@ class _ContainerWriter(FileWriter):
 
 
 class _IQTreeWriter(_ContainerWriter):
-    alignment = Field('alignment', value='alignment.phy')
+    alignment = Field(
+        key='alignment',
+        label='Alignment File',
+        doc=('...'),
+        type=str,
+        default='alignment.phy')
+
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            self._params_[param] for param in [
+                'alignment',
+                'padding',
+                'case',
+                'translate_missing',
+                'translate_gap',
+                'sanitize_genes',
+                'sanitize_species',
+            ]])
 
     def write_config(self, container: Path) -> None:
         cfg_name = self.alignment.split('.')[0] + '.nex'
