@@ -10,7 +10,8 @@ from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
     OpSequenceCase, OpExtractCharsets, OpApplyToSeries,
-    OpSanitizeGeneNames, OpSanitizeSpeciesNames)
+    OpSanitizeGeneNames, OpSanitizeSpeciesNames,
+    OpTranslateMissing, OpTranslateGap)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -29,6 +30,22 @@ class FileWriter(ConfigurableCallable):
         list={case: case.description for case in TextCase},
         default=TextCase.Unchanged)
 
+    translate_missing = Field(
+        key='translate_missing',
+        label='Translate Missing',
+        doc=('...'),
+        type=str,
+        list={'': 'Unchanged', '?': '?', 'N': 'N', 'n': 'n'},
+        default='')
+
+    translate_gap = Field(
+        key='translate_gap',
+        label='Translate Gap',
+        doc=('...'),
+        type=str,
+        list={'': 'Unchanged', '-': '-', '*': '*'},
+        default='')
+
     sanitize_genes = Field(
         key='sanitize_genes',
         label='Sanitize Gene Names',
@@ -45,11 +62,12 @@ class FileWriter(ConfigurableCallable):
 
     def filter(self, stream: GeneStream) -> GeneStream:
         """Stream operations, obeys inheritance"""
-        stream =  (
-            stream
-            .pipe(OpCheckValid())
-            .pipe(OpSequenceCase(self.case))
-            )
+        stream = stream.pipe(OpCheckValid())
+        if self.translate_missing:
+            stream = stream.pipe(OpTranslateMissing(self.translate_missing))
+        if self.translate_gap:
+            stream = stream.pipe(OpTranslateGap(self.translate_gap))
+        stream = stream.pipe(OpSequenceCase(self.case))
         if self.sanitize_genes:
             stream = stream.pipe(OpSanitizeGeneNames())
         if self.sanitize_species:
@@ -259,8 +277,9 @@ class NexusWriter(FileWriter):
         label='Padding',
         doc=('...'),
         type=str,
-        list=list('-?*Nn'),
+        list={k: k for k in '-?*Nn'},
         default='-')
+
     justification = Field(
         key='justification',
         label='Justification',
@@ -268,6 +287,7 @@ class NexusWriter(FileWriter):
         type=Justification,
         list={just: just.description for just in Justification},
         default=Justification.Left)
+
     separator = Field(
         key='separator',
         label='Separator',
@@ -280,13 +300,20 @@ class NexusWriter(FileWriter):
     def params(self) -> Group:
         return Group(key='root', children=[
             self._params_[param] for param in [
-                'case',
-                'sanitize_genes',
-                'sanitize_species',
                 'padding',
+                'case',
+                'translate_missing',
+                'translate_gap',
                 'justification',
                 'separator',
+                'sanitize_genes',
+                'sanitize_species',
             ]])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.params.translate_missing.value = '?'
+        self.params.translate_gap.value = '-'
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
