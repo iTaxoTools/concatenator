@@ -106,6 +106,18 @@ def file_writer(
 class _GeneWriter(FileWriter):
     geneIO: GeneIO = None
 
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            self._params_[param] for param in [
+                'case',
+                'padding',
+                'translate_missing',
+                'translate_gap',
+                'sanitize_genes',
+                'sanitize_species',
+            ]])
+
     def write(self, stream: GeneStream, path: Path) -> None:
         raise NotImplementedError
 
@@ -115,10 +127,6 @@ class _GeneWriter(FileWriter):
 
 
 class _ConcatenatedWriter(_GeneWriter):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.params.padding.value = ''
-
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = (
             super().filter(stream)
@@ -128,7 +136,7 @@ class _ConcatenatedWriter(_GeneWriter):
 
     def write(self, stream: GeneStream, path: Path) -> None:
         stream = self.filter(stream)
-        joined = GeneDataFrame.from_stream(stream)
+        joined = GeneDataFrame.from_stream(stream, filler=self.padding)
         data = joined.dataframe.apply(
             lambda row: ''.join(row.values.astype(str)), axis=1)
         gene = GeneSeries(data, missing='', gap='')
@@ -136,10 +144,6 @@ class _ConcatenatedWriter(_GeneWriter):
 
 
 class _MultiFileWriter(_GeneWriter):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.params.padding.value = ''
-
     @staticmethod
     def create(path: Path) -> Path:
         raise NotImplementedError
@@ -184,13 +188,31 @@ def _register_type_writer(
     class FastaWriter(writer):
         geneIO = fasta
 
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.params.translate_missing.value = '?'
+            self.params.translate_gap.value = '-'
+            self.params.padding.value = '-'
+
     @file_writer(ftype, FileFormat.Phylip)
     class PhylipWriter(writer):
         geneIO = phylip
 
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.params.translate_missing.value = '?'
+            self.params.translate_gap.value = '-'
+            self.params.padding.value = '-'
+
     @file_writer(ftype, FileFormat.Ali)
     class AliWriter(writer):
         geneIO = ali
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.params.translate_missing.value = '?'
+            self.params.translate_gap.value = '*'
+            self.params.padding.value = '*'
 
 
 for ftype, writer in {
@@ -248,8 +270,8 @@ class _IQTreeWriter(_ContainerWriter):
         return Group(key='root', children=[
             self._params_[param] for param in [
                 'alignment',
-                'padding',
                 'case',
+                'padding',
                 'translate_missing',
                 'translate_gap',
                 'sanitize_genes',
@@ -284,8 +306,8 @@ class _PartitionFinderWriter(_ContainerWriter):
             self._params_[param] for param in [
                 'alignment',
                 'cfg_file',
-                'padding',
                 'case',
+                'padding',
                 'translate_missing',
                 'translate_gap',
                 'sanitize_genes',
@@ -348,8 +370,8 @@ class NexusWriter(FileWriter):
     def params(self) -> Group:
         return Group(key='root', children=[
             self._params_[param] for param in [
-                'padding',
                 'case',
+                'padding',
                 'translate_missing',
                 'translate_gap',
                 'justification',
@@ -366,7 +388,9 @@ class NexusWriter(FileWriter):
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
         stream = (
-            GeneDataFrame.from_stream(stream).to_stream()
+            GeneDataFrame
+            .from_stream(stream, filler=self.padding)
+            .to_stream()
             .pipe(OpIndexMerge())
             .pipe(OpApplyToSeries(lambda x: x.fillna('')))
             .pipe(OpPadRight(self.padding)))
