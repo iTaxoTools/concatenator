@@ -309,10 +309,7 @@ def detect_reading_combinations(sequence: str,
             stops, STOP_CODONS).items() for gc_id in gcs}
 
 
-def last_codon(seq: str, reading_frame: int) -> Optional[str]:
-    """
-    Return last codon in `seq` according to `reading_frame`
-    """
+def last_codon_slice(seq: str, reading_frame: int) -> Optional[slice]:
     read_offset = abs(reading_frame) - 1
     if len(seq) < read_offset + 3:
         return None
@@ -322,7 +319,17 @@ def last_codon(seq: str, reading_frame: int) -> Optional[str]:
     if reading_frame < 0:
         stop = - stop - 1
         start = - start - 1
-    return seq[start:stop]
+    return slice(start, stop)
+
+
+def last_codon(seq: str, reading_frame: int) -> Optional[str]:
+    """
+    Return last codon in `seq` according to `reading_frame`
+    """
+    the_slice = last_codon_slice(seq, reading_frame)
+    if the_slice is None:
+        return None
+    return seq[the_slice]
 
 
 ReadingCombination = Tuple[GeneticCode, int]
