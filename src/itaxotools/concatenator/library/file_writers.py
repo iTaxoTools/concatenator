@@ -10,7 +10,7 @@ from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
     OpSequenceCase, OpExtractCharsets, OpApplyToSeries,
-    OpSanitizeGeneNames, OpSanitizeSpeciesNames,
+    OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSpreadsheetCompatibility,
     OpTranslateMissing, OpTranslateGap)
 
 from . import ali, fasta, phylip
@@ -24,7 +24,7 @@ class FileWriter(ConfigurableCallable):
 
     case = Field(
         key='case',
-        label='Sequence Case',
+        label='Nucleotide Case',
         doc=('...'),
         type=TextCase,
         list={case: case.description for case in TextCase},
@@ -331,7 +331,43 @@ class NexusWriter(FileWriter):
 
 @file_writer(FileType.File, FileFormat.Tab)
 class TabWriter(FileWriter):
-    sequence_prefix = Field('sequence_prefix', value='sequence_')
+    sequence_prefix = Field(
+        key='sequence_prefix',
+        label='Sequence Prefix',
+        doc=('...'),
+        type=str,
+        default='sequence_')
+
+    spreadsheet = Field(
+        key='spreadsheet',
+        label='Spreadsheet Compatibility',
+        doc=('...'),
+        type=bool,
+        default=False)
+
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            self._params_[param] for param in [
+                'sequence_prefix',
+                'case',
+                'translate_missing',
+                'translate_gap',
+                'sanitize_genes',
+                'sanitize_species',
+                'spreadsheet',
+            ]])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.params.translate_missing.value = '?'
+        self.params.translate_gap.value = '-'
+
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = super().filter(stream)
+        if self.spreadsheet:
+            stream = stream.pipe(OpSpreadsheetCompatibility())
+        return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
         stream = self.filter(stream)
