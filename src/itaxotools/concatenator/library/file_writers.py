@@ -387,13 +387,11 @@ class NexusWriter(FileWriter):
 
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = super().filter(stream)
+        stream = stream.pipe(OpIndexMerge())
         stream = (
             GeneDataFrame
             .from_stream(stream, filler=self.padding)
-            .to_stream()
-            .pipe(OpIndexMerge())
-            .pipe(OpApplyToSeries(lambda x: x.fillna('')))
-            .pipe(OpPadRight(self.padding)))
+            .to_stream())
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:

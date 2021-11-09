@@ -302,7 +302,6 @@ class OpUpdateMetadata(Operator):
             return gene
         gene = gene.copy()
         for k, v in self.metas[gene.name].items():
-            print(k, v)
             setattr(gene, k, v)
         return gene
 
