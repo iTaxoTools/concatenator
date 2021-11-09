@@ -3,12 +3,10 @@ from typing import Callable, Dict, List, Iterator, Optional, Set
 
 import pandas as pd
 
-from itaxotools.DNAconvert.library.utils import sanitize
-
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .types import TextCase, Charset
 from .utils import (
-    Translation, Field, OrderedSet, removeprefix,
+    Translation, Field, OrderedSet, removeprefix, sanitize,
     reverse_complement, has_uniform_length)
 from .codons import final_column_reading_frame, ReadingFrame
 
@@ -234,7 +232,11 @@ class OpSanitizeSpeciesNames(Operator):
         gene = gene.copy()
         indices = gene.series.index.names
         data = gene.series.reset_index()
-        data[indices] = data[indices].applymap(sanitize)
+        try:
+            data[indices] = data[indices].applymap(sanitize)
+        except Exception as e:
+            print(data[indices])
+            raise e
         gene.series = data.set_index(indices).iloc[:, 0]
         return gene
 

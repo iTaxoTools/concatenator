@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-from typing import Callable, Dict, Iterator, Optional, Any
+from typing import Callable, Dict, Iterator, Optional, Union, Any
 from itertools import chain
 from enum import Enum
 
 import pandas as pd
 
 from itaxotools.common.param.core import Field, Group
-
+from itaxotools.DNAconvert.library.utils import sanitize as _sanitize
 
 # Such as returned by str.maketrans
 Translation = Dict[int, int]
@@ -150,3 +150,9 @@ def has_uniform_length(series: pd.Series) -> bool:
     max_length = series.str.len().max()
     min_length = series.str.len().min()
     return (max_length == min_length)
+
+
+def sanitize(text: Any) -> Any:
+    if isinstance(text, str):
+        return _sanitize(text)
+    return text
