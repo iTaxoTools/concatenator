@@ -109,6 +109,26 @@ class OpPadRight(Operator):
         return gene
 
 
+class OpMakeUniform(Operator):
+    padding: str = Field('padding', value='')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert len(self.padding) in [0, 1]
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        if not self.padding:
+            return gene
+        gene = gene.copy()
+        gene.series = gene.series.fillna('')
+        max_length = gene.series.str.len().max()
+        if gene.reading_frame < 0:
+            gene.series = gene.series.str.rjust(max_length, self.padding)
+        else:
+            gene.series = gene.series.str.ljust(max_length, self.padding)
+        return gene
+
+
 class OpTranslateSequences(Operator):
     translation: Translation = Field('translation', value={})
 

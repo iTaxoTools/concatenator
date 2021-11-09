@@ -8,7 +8,7 @@ from .utils import ConfigurableCallable, Field, Group
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
-    OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
+    OpCheckValid, OpIndexMerge, OpMakeUniform, OpDropEmpty,
     OpSequenceCase, OpExtractCharsets, OpApplyToSeries, OpTranslateGap,
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSpreadsheetCompatibility,
     OpTranslateMissing, OpReverseNegativeReadingFrames, OpPadReadingFrames)
@@ -122,7 +122,7 @@ class _ConcatenatedWriter(_GeneWriter):
         stream = (
             super().filter(stream)
             .pipe(OpIndexMerge())
-            .pipe(OpPadRight(self.padding)))
+            .pipe(OpMakeUniform(self.padding)))
         return stream
 
     def write(self, stream: GeneStream, path: Path) -> None:
@@ -144,7 +144,7 @@ class _MultiFileWriter(_GeneWriter):
             super().filter(stream)
             .pipe(OpDropEmpty())
             .pipe(OpIndexMerge())
-            .pipe(OpPadRight(self.padding)))
+            .pipe(OpMakeUniform(self.padding)))
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
@@ -234,7 +234,7 @@ class _ContainerWriter(FileWriter):
         stream = (
             super().filter(stream)
             .pipe(OpIndexMerge())
-            .pipe(OpPadRight(self.padding)))
+            .pipe(OpMakeUniform(self.padding)))
         if self.adjust_frames:
             padding = self.padding
             if self.translate_missing:

@@ -10,7 +10,7 @@ from itaxotools.concatenator.library.operators import (
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
     OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
     OpReverseNegativeReadingFrames, OpPadReadingFrames,
-    OpExtractCharsets, OpUpdateMetadata)
+    OpExtractCharsets, OpUpdateMetadata, OpMakeUniform)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -232,3 +232,26 @@ def test_replace_missing(gene_meta_simple):
     assert altered.genetic_code == GeneticCode(11)
     assert altered.names == ('g1', 'g2', 'g3')
     assert altered.series.loc['seq1'] == 'TAA'
+
+
+def test_make_uniform():
+    series = pd.Series({
+            'seq1': 'TAA',
+            'seq2': 'GCATAA',
+        }, name='gene')
+    series.index.name = 'seqid'
+
+    gene = GeneSeries(series)
+    altered = OpMakeUniform('')(gene)
+    assert_gene_meta_equal(gene, altered)
+    assert altered.series.loc['seq1'] == 'TAA'
+
+    gene = GeneSeries(series, gap='*')
+    altered = OpMakeUniform('-')(gene)
+    assert_gene_meta_equal(gene, altered)
+    assert altered.series.loc['seq1'] == 'TAA---'
+
+    gene = GeneSeries(series, reading_frame=ReadingFrame(-1))
+    altered = OpMakeUniform('?')(gene)
+    assert_gene_meta_equal(gene, altered)
+    assert altered.series.loc['seq1'] == '???TAA'
