@@ -9,7 +9,8 @@ from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
     OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
-    OpReverseNegativeReadingFrames, OpPadReadingFrames, OpExtractCharsets)
+    OpReverseNegativeReadingFrames, OpPadReadingFrames,
+    OpExtractCharsets, OpUpdateMetadata)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -204,3 +205,30 @@ def test_pad_reading_frames(stream_reading_frames):
     assert altered['gene1'].series.loc['seq1'] == 'ATCGCCTAA'
     assert altered['gene2'].series.loc['seq1'] == 'GCCTAAnn'
     assert altered['gene3'].series.loc['seq1'] == '?TAA'
+
+
+@pytest.fixture
+def gene_meta_simple() -> GeneSeries:
+    series = pd.Series({
+            'seq1': 'TAA',
+        }, name='gene')
+    series.index.name = 'seqid'
+    return GeneSeries(series)
+
+
+def test_replace_missing(gene_meta_simple):
+    gene = gene_meta_simple
+    metas = {'gene': {
+        'missing': 'X',
+        'gap': 'Y',
+        'reading_frame': ReadingFrame(3),
+        'genetic_code': GeneticCode(11),
+        'names': ('g1', 'g2', 'g3'),
+    }}
+    altered = OpUpdateMetadata(metas)(gene)
+    assert altered.missing == 'X'
+    assert altered.gap == 'Y'
+    assert altered.reading_frame == ReadingFrame(3)
+    assert altered.genetic_code == GeneticCode(11)
+    assert altered.names == ('g1', 'g2', 'g3')
+    assert altered.series.loc['seq1'] == 'TAA'

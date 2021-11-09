@@ -294,6 +294,19 @@ class OpExtractCharsets(Operator):
         return gene
 
 
+class OpUpdateMetadata(Operator):
+    metas: Dict[str, Dict] = Field('metas', value={})
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        if gene.name not in self.metas:
+            return gene
+        gene = gene.copy()
+        for k, v in self.metas[gene.name].items():
+            print(k, v)
+            setattr(gene, k, v)
+        return gene
+
+
 class OpApplyToGene(Operator):
     func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
 
