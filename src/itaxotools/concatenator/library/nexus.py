@@ -105,8 +105,8 @@ def nexus_writer(
                 f'{separator}{sequence}\n'))
         buffer.write('\n')
         ntax = len(series)
-        missings |= set(gene.missing.upper())
-        gaps |= set(gene.gap.upper())
+        missings |= OrderedSet(gene.missing.upper())
+        gaps |= OrderedSet(gene.gap.upper())
 
     out.write('#NEXUS\n\n')
     out.write('BEGIN DATA;\n\n')
