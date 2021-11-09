@@ -9,9 +9,9 @@ from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpPadRight, OpDropEmpty,
-    OpSequenceCase, OpExtractCharsets, OpApplyToSeries,
+    OpSequenceCase, OpExtractCharsets, OpApplyToSeries, OpTranslateGap,
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSpreadsheetCompatibility,
-    OpTranslateMissing, OpTranslateGap)
+    OpTranslateMissing, OpReverseNegativeReadingFrames, OpPadReadingFrames)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -54,16 +54,9 @@ class FileWriter(ConfigurableCallable):
         list={'': 'Unchanged', '-': '-', '*': '*'},
         default='')
 
-    sanitize_genes = Field(
-        key='sanitize_genes',
-        label='Sanitize Gene Names',
-        doc=('...'),
-        type=bool,
-        default=True)
-
-    sanitize_species = Field(
-        key='sanitize_species',
-        label='Sanitize Species Names',
+    sanitize = Field(
+        key='sanitize',
+        label='Sanitize names',
         doc=('...'),
         type=bool,
         default=True)
@@ -77,9 +70,8 @@ class FileWriter(ConfigurableCallable):
             stream = stream.pipe(OpTranslateGap(self.translate_gap))
         stream = stream.pipe(OpDropEmpty())
         stream = stream.pipe(OpSequenceCase(self.case))
-        if self.sanitize_genes:
+        if self.sanitize:
             stream = stream.pipe(OpSanitizeGeneNames())
-        if self.sanitize_species:
             stream = stream.pipe(OpSanitizeSpeciesNames())
         return stream
 
@@ -114,8 +106,7 @@ class _GeneWriter(FileWriter):
                 'padding',
                 'translate_missing',
                 'translate_gap',
-                'sanitize_genes',
-                'sanitize_species',
+                'sanitize',
             ]])
 
     def write(self, stream: GeneStream, path: Path) -> None:
@@ -224,6 +215,14 @@ for ftype, writer in {
 
 
 class _ContainerWriter(FileWriter):
+
+    adjust_frames = Field(
+        key='adjust_frames',
+        label='Adjust reading frames',
+        doc=('...'),
+        type=bool,
+        default=True)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.op_charsets = OpExtractCharsets()
@@ -236,6 +235,9 @@ class _ContainerWriter(FileWriter):
             super().filter(stream)
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
+        if self.adjust_frames:
+            stream = stream.pipe(OpReverseNegativeReadingFrames())
+            stream = stream.pipe(OpPadReadingFrames())
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
@@ -274,8 +276,8 @@ class _IQTreeWriter(_ContainerWriter):
                 'padding',
                 'translate_missing',
                 'translate_gap',
-                'sanitize_genes',
-                'sanitize_species',
+                'adjust_frames',
+                'sanitize',
             ]])
 
     def write_config(self, container: Path) -> None:
@@ -310,8 +312,8 @@ class _PartitionFinderWriter(_ContainerWriter):
                 'padding',
                 'translate_missing',
                 'translate_gap',
-                'sanitize_genes',
-                'sanitize_species',
+                'adjust_frames',
+                'sanitize',
             ]])
 
     def write_config(self, container: Path) -> None:
@@ -366,6 +368,13 @@ class NexusWriter(FileWriter):
         list={' ': 'Space', '\t': 'Tab'},
         default=' ')
 
+    adjust_frames = Field(
+        key='adjust_frames',
+        label='Adjust reading frames',
+        doc=('...'),
+        type=bool,
+        default=True)
+
     @property
     def params(self) -> Group:
         return Group(key='root', children=[
@@ -376,8 +385,8 @@ class NexusWriter(FileWriter):
                 'translate_gap',
                 'justification',
                 'separator',
-                'sanitize_genes',
-                'sanitize_species',
+                'adjust_frames',
+                'sanitize',
             ]])
 
     def __init__(self, *args, **kwargs):
@@ -392,6 +401,9 @@ class NexusWriter(FileWriter):
             GeneDataFrame
             .from_stream(stream, filler=self.padding)
             .to_stream())
+        if self.adjust_frames:
+            stream = stream.pipe(OpReverseNegativeReadingFrames())
+            stream = stream.pipe(OpPadReadingFrames())
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
@@ -423,8 +435,7 @@ class TabWriter(FileWriter):
                 'case',
                 'translate_missing',
                 'translate_gap',
-                'sanitize_genes',
-                'sanitize_species',
+                'sanitize',
                 'spreadsheet',
             ]])
 
