@@ -25,7 +25,7 @@ class FileWriter(ConfigurableCallable):
     case = Field(
         key='case',
         label='Nucleotide Case',
-        doc=('...'),
+        doc=('Transform all nucleotides to UPPERCASE/lowercase.'),
         type=TextCase,
         list={case: case.description for case in TextCase},
         default=TextCase.Unchanged)
@@ -33,23 +33,26 @@ class FileWriter(ConfigurableCallable):
     padding = Field(
         key='padding',
         label='Padding',
-        doc=('...'),
+        doc=('Used when making sequence length uniform \n'
+             'or filling empty sequences.'),
         type=str,
         list=dict(**{k: k for k in '-?*Nn'}, **{'': 'Unpadded'}),
         default='-')
 
     translate_missing = Field(
         key='translate_missing',
-        label='Translate Missing',
-        doc=('...'),
+        label='Missing',
+        doc=('Character used to indicate a missing nucleotide.\n'
+             'Enforced globally.'),
         type=str,
         list={'': 'Unchanged', '?': '?', 'N': 'N', 'n': 'n'},
         default='')
 
     translate_gap = Field(
         key='translate_gap',
-        label='Translate Gap',
-        doc=('...'),
+        label='Gap',
+        doc=('Character used to indicate a sequence gap.\n'
+             'Enforced globally.'),
         type=str,
         list={'': 'Unchanged', '-': '-', '*': '*'},
         default='')
@@ -57,7 +60,8 @@ class FileWriter(ConfigurableCallable):
     sanitize = Field(
         key='sanitize',
         label='Sanitize names',
-        doc=('...'),
+        doc=('Replace unusual characters from species and gene names,\n'
+             'either by an underscore or a similar ASCII character.'),
         type=bool,
         default=True)
 
@@ -219,7 +223,8 @@ class _ContainerWriter(FileWriter):
     adjust_frames = Field(
         key='adjust_frames',
         label='Adjust reading frames',
-        doc=('...'),
+        doc=('Genes with negative reading frames are reverse-complemented.\n'
+             'Pad coding sequences to start with first codon position.'),
         type=bool,
         default=True)
 
@@ -266,7 +271,8 @@ class _IQTreeWriter(_ContainerWriter):
     alignment = Field(
         key='alignment',
         label='Alignment File',
-        doc=('...'),
+        doc=('The name for the PHYLIP alignment file.\n'
+             'The NEXUS configuration file will have the same base name.'),
         type=str,
         default='alignment.phy')
 
@@ -294,14 +300,14 @@ class _PartitionFinderWriter(_ContainerWriter):
     alignment = Field(
         key='alignment',
         label='Alignment File',
-        doc=('...'),
+        doc=('The name for the PHYLIP alignment file.'),
         type=str,
         default='alignment.phy')
 
     cfg_file = Field(
         key='cfg_file',
         label='Configuration File',
-        doc=('...'),
+        doc=('The name for the PartitionFinder configuration file.'),
         type=str,
         default='partition_finder.cfg')
 
@@ -358,7 +364,7 @@ class NexusWriter(FileWriter):
     justification = Field(
         key='justification',
         label='Justification',
-        doc=('...'),
+        doc=('Text justification for the species names.'),
         type=Justification,
         list={just: just.description for just in Justification},
         default=Justification.Left)
@@ -366,7 +372,7 @@ class NexusWriter(FileWriter):
     separator = Field(
         key='separator',
         label='Separator',
-        doc=('...'),
+        doc=('Used to separate species names and sequence data.'),
         type=str,
         list={' ': 'Space', '\t': 'Tab'},
         default=' ')
@@ -374,7 +380,8 @@ class NexusWriter(FileWriter):
     adjust_frames = Field(
         key='adjust_frames',
         label='Adjust reading frames',
-        doc=('...'),
+        doc=('Genes with negative reading frames are reverse-complemented.\n'
+             'Pad coding sequences to start with first codon position.'),
         type=bool,
         default=True)
 
@@ -422,14 +429,14 @@ class TabWriter(FileWriter):
     sequence_prefix = Field(
         key='sequence_prefix',
         label='Sequence Prefix',
-        doc=('...'),
+        doc=('Added to the beginning of all sequence names.'),
         type=str,
         default='sequence_')
 
     spreadsheet = Field(
         key='spreadsheet',
         label='Spreadsheet Compatibility',
-        doc=('...'),
+        doc=('Coding sequences starting with "-" will start with "N" instead'),
         type=bool,
         default=False)
 

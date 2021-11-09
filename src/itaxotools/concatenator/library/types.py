@@ -24,8 +24,8 @@ class Justification(Enum):
 
 class TextCase(Enum):
     Unchanged = 'Unchanged', None
-    Upper = 'Upper Case', str.upper
-    Lower = 'Lower Case', str.lower
+    Upper = 'Uppercase', str.upper
+    Lower = 'Lowercase', str.lower
 
     def __init__(self, description: str, method: Optional[Callable]):
         self.description = description
