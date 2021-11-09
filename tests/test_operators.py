@@ -200,7 +200,7 @@ def test_pad_reading_frames(stream_reading_frames):
     altered = stream.pipe(OpPadReadingFrames())
     assert len(altered) == 3
     assert altered['gene1'].reading_frame == ReadingFrame(1)
-    assert altered['gene2'].reading_frame == ReadingFrame(1)
+    assert altered['gene2'].reading_frame == ReadingFrame(-1)
     assert altered['gene3'].reading_frame == ReadingFrame(1)
     assert altered['gene1'].series.loc['seq1'] == 'ATCGCCTAA'
     assert altered['gene2'].series.loc['seq1'] == 'GCCTAAnn'

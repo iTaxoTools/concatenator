@@ -236,8 +236,11 @@ class _ContainerWriter(FileWriter):
             .pipe(OpIndexMerge())
             .pipe(OpPadRight(self.padding)))
         if self.adjust_frames:
+            padding = self.padding
+            if self.translate_missing:
+                padding = self.translate_missing
             stream = stream.pipe(OpReverseNegativeReadingFrames())
-            stream = stream.pipe(OpPadReadingFrames())
+            stream = stream.pipe(OpPadReadingFrames(padding))
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
@@ -402,8 +405,11 @@ class NexusWriter(FileWriter):
             .from_stream(stream, filler=self.padding)
             .to_stream())
         if self.adjust_frames:
+            padding = self.padding
+            if self.translate_missing:
+                padding = self.translate_missing
             stream = stream.pipe(OpReverseNegativeReadingFrames())
-            stream = stream.pipe(OpPadReadingFrames())
+            stream = stream.pipe(OpPadReadingFrames(padding))
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:

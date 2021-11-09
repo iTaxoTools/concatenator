@@ -254,7 +254,12 @@ class OpReverseNegativeReadingFrames(Operator):
 
 
 class OpPadReadingFrames(Operator):
+    padding: str = Field('padding', value='')
     lengths = {2: 2, 3: 1}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert len(self.padding) in [0, 1]
 
     @staticmethod
     def pad_left(seq: str, pad: str) -> str:
@@ -270,10 +275,14 @@ class OpPadReadingFrames(Operator):
         gene = gene.copy()
         func = self.pad_left if gene.reading_frame > 0 else self.pad_right
         reading_frame = abs(gene.reading_frame)
-        missing = '?' if '?' in gene.missing else gene.missing[0]
-        padding = missing * self.lengths[reading_frame]
+        if self.padding:
+            padding = self.padding
+        else:
+            padding = '?' if '?' in gene.missing else gene.missing[0]
+        padding = padding * self.lengths[reading_frame]
         gene.series = gene.series.apply(lambda seq: func(seq, padding))
-        gene.reading_frame = ReadingFrame(1)
+        sign = 1 - 2 * int(gene.reading_frame < 0)
+        gene.reading_frame = ReadingFrame(sign)
         return gene
 
 
