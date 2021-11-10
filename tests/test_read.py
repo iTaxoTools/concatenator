@@ -8,7 +8,7 @@ import pytest
 import pandas as pd
 
 from itaxotools.concatenator import (
-    FileType, FileFormat, GeneSeries, GeneStream, GeneDataFrame,
+    FileType, FileFormat, GeneSeries, GeneStream,
     autodetect, get_reader, get_loader, load_from_path)
 from itaxotools.concatenator.library.operators import OpCheckValid
 
@@ -49,16 +49,17 @@ def dataframe_multi() -> pd.DataFrame:
 
 
 simple_tests = [
-    ReadTest(File('simple.tsv', FileType.File, FileFormat.Tab), {}, '?N', '-'),
-    ReadTest(File('simple.nex', FileType.File, FileFormat.Nexus), {}, '?N', '-'),
-    ReadTest(File('simple.fas', FileType.File, FileFormat.Fasta), {}, '?N', '-'),
-    ReadTest(File('simple.phy', FileType.File, FileFormat.Phylip), {}, '?N', '-'),
+    ReadTest(File('simple.tsv', FileType.File, FileFormat.Tab), {}, 'Nn?', '-'),
+    ReadTest(File('simple.nex', FileType.File, FileFormat.Nexus), {}, 'Nn?', '-'),
+    ReadTest(File('simple.fas', FileType.File, FileFormat.Fasta), {}, 'Nn?', '-'),
+    ReadTest(File('simple.phy', FileType.File, FileFormat.Phylip), {}, 'Nn?', '-'),
     ReadTest(File('simple.ali', FileType.File, FileFormat.Ali), {}, '?', '*'),
+    ReadTest(File('altered.nex', FileType.File, FileFormat.Nexus), {}, '?', '*'),
 ]
 
 multi_tests = [
-    ReadTest(File('multi.tsv', FileType.File, FileFormat.Tab), {}, '?N', '-'),
-    ReadTest(File('multi.nex', FileType.File, FileFormat.Nexus), {}, '?N', '-'),
+    ReadTest(File('multi.tsv', FileType.File, FileFormat.Tab), {}, 'Nn?', '-'),
+    ReadTest(File('multi.nex', FileType.File, FileFormat.Nexus), {}, 'Nn?', '-'),
 ]
 
 
@@ -80,8 +81,8 @@ def assert_matches(test: ReadTest, gene: GeneSeries, series: pd.Series) -> None:
     assert isinstance(gene, GeneSeries)
     assert_series_equal(gene.series, series)
     assert gene.name == series.name
-    assert gene.missing == test.missing
-    assert gene.gap == test.gap
+    assert set(gene.missing) == set(test.missing)
+    assert set(gene.gap) == set(test.gap)
 
 
 @pytest.mark.parametrize("test", simple_tests)
@@ -105,8 +106,6 @@ def test_read_multi(test: ReadTest, dataframe_multi: pd.DataFrame) -> None:
 def test_load_simple(test: ReadTest, series_simple: pd.Series) -> None:
     input_path = TEST_DATA_DIR / test.input.name
     gdf = load_from_path(input_path)
-    assert gdf.missing == test.missing
-    assert gdf.gap == test.gap
     for col in gdf.dataframe:
         assert_series_equal(gdf.dataframe[col], series_simple)
 

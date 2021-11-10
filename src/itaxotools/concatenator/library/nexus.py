@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict
+from typing import (
+    TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict)
 from enum import Enum
 import tempfile
 import re
@@ -8,6 +9,7 @@ import re
 import pandas as pd
 
 from .model import GeneStream, GeneDataFrame, PathLike
+from .types import Justification, Charset
 from .utils import *
 
 
@@ -77,16 +79,25 @@ def nexus_writer(
     justification: Justification = Justification.Left,
     separator: str = ' ',
 ) -> None:
-    buffer = tempfile.TemporaryFile(mode="w+")
-    charsets = {}
+    buffer = tempfile.TemporaryFile(mode='w+', encoding='utf-8')
+    charsets = list()
+    missings = OrderedSet()
+    gaps = OrderedSet()
     ntax = 0
+    cursor = 1
 
     for gene in stream:
         series = gene.series
         assert has_uniform_length(series)
-        assert not isinstance(series.index, pd.MultiIndex)
 
-        charsets[series.name] = len(series.iat[0])
+        length = len(series.iat[0])
+        charsets.append(Charset(
+            gene.name,
+            cursor,
+            length,
+            gene.reading_frame,
+            gene.codon_names))
+        cursor += length
         index_len = series.index.str.len().max()
         for index, sequence in series.iteritems():
             buffer.write((
@@ -94,14 +105,18 @@ def nexus_writer(
                 f'{separator}{sequence}\n'))
         buffer.write('\n')
         ntax = len(series)
-
-    nchar = sum(charsets.values())
+        missings |= OrderedSet(gene.missing.upper())
+        gaps |= OrderedSet(gene.gap.upper())
 
     out.write('#NEXUS\n\n')
     out.write('BEGIN DATA;\n\n')
-    out.write(f'Dimensions Nchar={nchar} Ntax={ntax};\n')
-    out.write('Format Datatype=DNA Missing=N Missing=? Gap=- ')
-    out.write('Interleave=yes;\n')
+    out.write(f'Dimensions Nchar={cursor-1} Ntax={ntax};\n')
+    out.write('Format Datatype=DNA')
+    for missing in sorted(missings, reverse=True):
+        out.write(f' Missing={missing}')
+    for gap in sorted(gaps, reverse=True):
+        out.write(f' Gap={gap}')
+    out.write(' Interleave=yes;\n')
     out.write('Matrix\n\n')
 
     buffer.seek(0)
@@ -111,12 +126,16 @@ def nexus_writer(
     out.write('BEGIN SETS;\n\n')
     buffer.close()
 
-    position = 1
-    for name, length in charsets.items():
-        position_end = position + length - 1
-        out.write(f'charset {name} = {position}-{position_end};\n')
-        position += length
-    out.write('\nEND;\n')
+    for charset in charsets:
+        out.write(f'charset {str(charset)}\n')
+    out.write('\n')
+
+    for charset in (cs for cs in charsets if cs.frame):
+        for codon in charset.codon_sets():
+            out.write(f'charset {str(codon)}\n')
+        out.write('\n')
+
+    out.write('END;\n')
 
 
 def stream_to_path(
@@ -124,35 +143,35 @@ def stream_to_path(
     path: PathLike,
     *args, **kwargs
 ) -> None:
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         nexus_writer(stream, file, *args, **kwargs)
 
 
-def read(input: TextIO, sequence_prefix: str='sequence_') -> pd.DataFrame:
+def read(input: TextIO) -> pd.DataFrame:
     commands = NexusCommands(input)
-    reader = NexusReader(sequence_prefix=sequence_prefix)
+    reader = NexusReader()
     for command, args in commands:
         reader.execute(command, args)
     return reader.return_table()
 
 
-def dataframe_from_path(
-    path: PathLike,
-    sequence_prefix: str = 'sequence_',
-) -> GeneDataFrame:
+def dataframe_from_path(path: PathLike) -> GeneDataFrame:
     with path.open() as file:
-        data = read(file, sequence_prefix='')
+        commands = NexusCommands(file)
+        reader = NexusReader()
+        for command, args in commands:
+            reader.execute(command, args)
+        data = reader.return_table()
     data.set_index('seqid', inplace=True)
-    gdf = GeneDataFrame(data, missing='?N', gap='-')
+    missing = ''.join(reader.missings)
+    gap = ''.join(reader.gaps)
+    gdf = GeneDataFrame(data, missing=missing, gap=gap)
     return gdf
 
 
-def stream_from_path(
-    path: PathLike,
-    sequence_prefix: str = 'sequence_',
-) -> GeneStream:
-    gdf = dataframe_from_path(path, sequence_prefix)
-    return gdf.stream()
+def stream_from_path(path: PathLike) -> GeneStream:
+    gdf = dataframe_from_path(path)
+    return gdf.to_stream()
 
 
 class Tokenizer:
@@ -360,14 +379,15 @@ class NexusReader:
         data=NexusState.Data, sets=NexusState.Sets
     )
 
-    def __init__(self, sequence_prefix: str = 'sequence_') -> None:
+    def __init__(self) -> None:
         self.table = pd.DataFrame()
         self.columns = ["seqid"]
-        self.sequence_prefix = sequence_prefix
         self.state: Optional[NexusState] = None
         self.todo: Set[NexusState] = {NexusState.Data, NexusState.Sets}
         self.ntax: Optional[int] = None
         self.read_matrix = False
+        self.missings = set()
+        self.gaps = set()
 
     def begin_block(self, args: Iterator[str]) -> None:
         """
@@ -423,6 +443,16 @@ class NexusReader:
                     continue
                 if re.search(r"DNA|RNA|Nucleotide", next(args), flags=re.IGNORECASE):
                     self.read_matrix = True
+            elif arg.casefold() == "missing":
+                if next(args) != "=":
+                    continue
+                missing = next(args)
+                self.missings |= {missing.upper() + missing.lower()}
+            elif arg.casefold() == "gap":
+                if next(args) != "=":
+                    continue
+                gap = next(args)
+                self.gaps |= {gap.upper() + gap.lower()}
             elif arg.casefold() == "interleave":
                 self.interleave = True
 
@@ -462,7 +492,7 @@ class NexusReader:
         """
         if self.state == NexusState.Sets:
             try:
-                self.columns.append(self.sequence_prefix + next(args))
+                self.columns.append(next(args))
             except StopIteration:
                 self.columns.append("")
 

@@ -1,0 +1,19 @@
+#NEXUS
+
+BEGIN DATA;
+
+Dimensions Nchar=9 Ntax=1;
+Format Datatype=DNA Missing=? Gap=* Interleave=yes;
+Matrix
+
+seq1 gc*???TAA
+
+;
+END;
+
+
+BEGIN SETS;
+
+charset gene = 1-9;
+
+END;

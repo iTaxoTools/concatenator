@@ -57,6 +57,7 @@ setup(
         'zipp>=3.6.0',  # BUGFIX: backport from Python 3.9.1
         'pandas>=1.3.0',
         'regex>=2021.8.28',
+        'itaxotools-common==0.2.dev2',
         'DNAconvert>=0.1.dev1',
     ],
 
@@ -73,10 +74,6 @@ setup(
     entry_points={
         'console_scripts': [
             'concatenator=itaxotools.concatenator:main',
-        ],
-        'pyinstaller40': [
-            'hook-dirs = itaxotools.__pyinstaller:get_hook_dirs',
-            'tests = itaxotools.__pyinstaller:get_pyinstaller_tests'
         ]
     },
 

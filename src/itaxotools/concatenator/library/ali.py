@@ -105,7 +105,7 @@ def chunk_reader(infile: TextIO) -> Iterator[AliTuple]:
         yield AliTuple(
             species=parts[0][1:],
             ali_tag=''.join(parts[1:]),
-            sequence=chunk[1].replace('*', '-'),)
+            sequence=chunk[1])
 
 
 def ali_reader(infile: TextIO) -> pd.Series:
@@ -153,5 +153,5 @@ def ali_writer(gene: GeneSeries, outfile: TextIO) -> None:
 
 
 def gene_to_path(gene: GeneSeries, path: PathLike) -> None:
-    with path.open('w') as file:
+    with path.open('w', encoding='utf-8') as file:
         ali_writer(gene, file)

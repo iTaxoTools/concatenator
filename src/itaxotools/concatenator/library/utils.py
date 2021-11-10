@@ -1,32 +1,31 @@
 #!/usr/bin/env python
 
-from typing import Callable, Dict, Iterator, Optional, Any
+from typing import Callable, Dict, Iterator, Optional, Union, Any
+from itertools import chain
 from enum import Enum
 
 import pandas as pd
 
+from itaxotools.common.param.core import Field, Group
+from itaxotools.DNAconvert.library.utils import sanitize as _sanitize
 
 # Such as returned by str.maketrans
 Translation = Dict[int, int]
 
 
-class Param:
-    def __init__(self, default: Any = None):
-        self.default = default
-
-
 class _ConfigurableCallable_meta(type):
     def __new__(cls, name, bases, classdict):
-        result = super().__new__(cls, name, bases, classdict)
-        if hasattr(result, '_params_'):
-            _inherited_params = result._params_.copy()
-        else:
-            _inherited_params = list()
-        _new_params = [x for x in classdict if isinstance(classdict[x], Param)]
-        for param in _new_params:
-            setattr(result, param, classdict[param].default)
-        result._params_ = _inherited_params + _new_params
-        return result
+        new_params = {
+            param: classdict[param] for param in classdict
+            if isinstance(classdict[param], Field)}
+        for param in new_params:
+            classdict.pop(param)
+        obj = super().__new__(cls, name, bases, classdict)
+        inherited_params = dict()
+        if hasattr(obj, '_class_params_'):
+            inherited_params = obj._class_params_.copy()
+        obj._class_params_ = dict(**inherited_params, **new_params)
+        return obj
 
 
 class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
@@ -34,16 +33,28 @@ class ConfigurableCallable(metaclass=_ConfigurableCallable_meta):
         self.update(*args, **kwargs)
 
     def update(self, *args, **kwargs):
-        members = self._params_.copy()
+        self._params_ = {
+            param: self._class_params_[param].copy()
+            for param in self._class_params_}
+        keys = list(self._params_.keys())
         for arg in args:
-            if not members:
+            if not keys:
                 raise TypeError('Too many arguments')
-            setattr(self, members.pop(0), arg)
+            self._params_[keys.pop(0)].value = arg
         for kwarg in kwargs:
-            if kwarg not in members:
+            if kwarg not in keys:
                 raise TypeError(f'Unexpected keyword: {kwarg}')
-            setattr(self, kwarg, kwargs[kwarg])
+            self._params_[kwarg].value = kwargs[kwarg]
         return self
+
+    @property
+    def params(self) -> Group:
+        return Group(key='root', children=[
+            param for param in self._params_.values()])
+
+    def __getattr__(self, attr):
+        if attr in self._params_:
+            return self._params_[attr].value
 
     def __call__(self, *args, **kwargs) -> Any:
         return self.call(*args, **kwargs)
@@ -58,26 +69,16 @@ class OrderedSet(dict):
         self.update(iterator)
 
     def __and__(self, other):
-        return OrderedSet({key for key in self if key in other})
+        return OrderedSet(key for key in self if key in other)
+
+    def __or__(self, other):
+        return OrderedSet(chain((key for key in self), (key for key in other)))
 
     def update(self, iterator: Iterator):
         super().update({key: None for key in iterator})
 
-
-class Justification(Enum):
-    Left = 'Left', str.ljust
-    Right = 'Right', str.rjust
-    Center = 'Center', str.center
-    NoJust = 'None', None
-
-    def __init__(self, description: str, method: Optional[Callable]):
-        self.description = description
-        self.method = method
-
-    def apply(self, text: str, *args, **kwargs):
-        if not self.method:
-            return text
-        return self.method(text, *args, **kwargs)
+    def add(self, item):
+        super().update({item: None})
 
 
 # For Python 3.8 compatibility
@@ -85,6 +86,12 @@ def removeprefix(text: str, prefix: str) -> str:
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
+
+
+def reverse_complement(nucleotides: str) -> str:
+    reversed = nucleotides[::-1]
+    translation = str.maketrans('ACGTacgt', 'TGCAtgca')
+    return reversed.translate(translation)
 
 
 def into_seqids(table: pd.DataFrame) -> pd.Series:
@@ -132,7 +139,20 @@ def make_equal_length(
         return column
 
 
+def fill_empty(column: pd.Series, filler: str) -> pd.Series:
+    column = column.fillna('')
+    max_length = column.str.len().max()
+    column = column.str.ljust(max_length, filler)
+    return column
+
+
 def has_uniform_length(series: pd.Series) -> bool:
     max_length = series.str.len().max()
     min_length = series.str.len().min()
     return (max_length == min_length)
+
+
+def sanitize(text: Any) -> Any:
+    if isinstance(text, str):
+        return _sanitize(text)
+    return text

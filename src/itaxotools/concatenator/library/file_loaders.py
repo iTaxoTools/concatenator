@@ -6,7 +6,6 @@ from .model import GeneDataFrame
 from .utils import ConfigurableCallable
 from .file_types import FileType, FileFormat
 from .file_identify import autodetect
-from .operators import join_any
 from .file_readers import file_readers, read_from_path
 
 from . import nexus, tabfile
@@ -63,5 +62,5 @@ def load_from_path(path: Path) -> GeneDataFrame:
     if format in file_loaders[type]:
         return file_loaders[type][format]()(path)
     elif format in file_readers[type]:
-        return join_any(read_from_path(path))
+        return GeneDataFrame.from_stream(read_from_path(path))
     raise LoaderNotFound(type)

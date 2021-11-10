@@ -9,7 +9,7 @@ import pytest
 from itaxotools.concatenator import (
     FileType, FileFormat, get_reader, get_writer)
 from itaxotools.concatenator.library.file_utils import ZipPath
-from itaxotools.concatenator.library.utils import Justification
+from itaxotools.concatenator.library.types import Justification
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -40,13 +40,15 @@ self_test_data = [
     SelfTest(File('sequences_ali', FileType.Directory, FileFormat.Ali), {}, {}),
     SelfTest(File('sequences_ali.zip', FileType.ZipArchive, FileFormat.Ali), {}, {}),
     SelfTest(File('sequences.phy', FileType.File, FileFormat.Phylip), {}, {}),
-    SelfTest(File('sequences.fas', FileType.File, FileFormat.Fasta), {}, {}),
+    SelfTest(File('sequences.fas', FileType.File, FileFormat.Fasta), {},
+        dict(padding='')),
     SelfTest(File('sequences.tsv', FileType.File, FileFormat.Tab), {}, {}),
-    SelfTest(File('sequences.nex', FileType.File, FileFormat.Nexus), {}, {}),
+    SelfTest(File('sequences.nex', FileType.File, FileFormat.Nexus), {},\
+        dict(padding='N')),
     SelfTest(File('sequences_pad.fas', FileType.File, FileFormat.Fasta), {},
         dict(padding='-')),
     SelfTest(File('sequences_right_tab.nex', FileType.File, FileFormat.Nexus), {},
-        dict(justification=Justification.Right, separator='\t')),
+        dict(justification=Justification.Right, separator='\t', padding='N')),
 ]
 
 test_data = [
