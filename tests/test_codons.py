@@ -1,6 +1,7 @@
 from typing import List, Tuple, Optional
 from enum import IntEnum, Enum
 import random
+import itertools
 
 import pandas as pd
 import pytest
@@ -49,21 +50,68 @@ def generate_sequence(seq_len: int, gc: GeneticCode,
     return seq
 
 
-@pytest.fixture(params=[
-    {'frames_with_two_stops': [-3, -2, -1, 2, 3], 'frame_with_last_codon': None},
-    {'frames_with_two_stops': [-3, -1, 2, 3], 'frame_with_last_codon': None},
-    {'frames_with_two_stops': [-3, -2, -1, 2, 3],
-        'frame_with_last_codon': ReadingFrame(1)},
-    {'frames_with_two_stops': [-3, -1, 2, 3], 'frame_with_last_codon': ReadingFrame(1)}
-])
-def generated_series(request) -> pd.Series:
+def generated_series(
+    frames_with_two_stops: List[ReadingFrame],
+    frame_with_last_codon: Optional[ReadingFrame]
+) -> pd.Series:
     series = pd.Series((generate_sequence(300,
                                           GeneticCode(1),
-                                          request.param['frames_with_two_stops'],
-                                          request.param['frame_with_last_codon'])
+                                          frames_with_two_stops,
+                                          frame_with_last_codon)
                         for _ in range(8)))
     series.name = 'gene1'
     return series
+
+
+class FrameRejection(Enum):
+    Ambiguous = 0
+    Unambiguos = 1
+    Total = 2
+
+    def frames(self):
+        frames = {
+            FrameRejection.Ambiguous: [-3, -1, 2, 3],
+            FrameRejection.Unambiguos: [-3, -2, -1, 2, 3],
+            FrameRejection.Total: [-3, -2, -1, 1, 2, 3]
+        }[self]
+        return [ReadingFrame.from_int(frame) for frame in frames]
+
+
+@pytest.mark.parametrize("frame_rejection,last_codon_frame,series_frame,series_gc",
+                         itertools.product(
+                             tuple(FrameRejection),
+                             (None, ReadingFrame.from_int(1)),
+                             (ReadingFrame.Unknown,
+                                 ReadingFrame.from_int(1),
+                                 ReadingFrame.from_int(2)),
+                             (GeneticCode.Unknown, GeneticCode(1))
+                         )
+                         )
+def test_generated_series(frame_rejection: FrameRejection,
+                          last_codon_frame: Optional[ReadingFrame],
+                          series_frame: ReadingFrame,
+                          series_gc: GeneticCode) -> None:
+    rejected_frames = frame_rejection.frames()
+    series = generated_series(rejected_frames, last_codon_frame)
+    data = GeneSeries(series)
+    data.reading_frame = series_frame
+    data.genetic_code = series_gc
+    expected_exception: Optional[Exception] = None
+    possible_frames = [frame for frame in list(
+        ReadingFrame) if frame not in rejected_frames]
+    if not possible_frames:
+        expected_exception = NoReadingFrames
+    elif series_frame == ReadingFrame.from_int(2):
+        expected_exception = BadReadingFrame
+    elif not last_codon_frame and len(possible_frames) > 1:
+        expected_exception = AmbiguousReadingFrame
+
+    if expected_exception is not None:
+        with pytest.raises(expected_exception):
+            OpDetectReadingFrame()(data)
+    else:
+        result = OpDetectReadingFrame()(data)
+        assert result.reading_frame == ReadingFrame.from_int(1)
 
 
 @pytest.fixture
