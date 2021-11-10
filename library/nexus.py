@@ -4,6 +4,7 @@ from enum import Enum
 from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict
 import tempfile
 import re
+import logging
 
 import pandas as pd
 
@@ -21,7 +22,7 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
         output_fragment["seqid"] = into_seqids(gene.iloc[:, :-1].copy())
         output_fragment["sequence"] = gene.iloc[:, -1]
 
-        gene_name = gene.columns[-1][len("sequence_") :]
+        gene_name = gene.columns[-1][len("sequence_"):]
         gene_len = len(gene.iat[0, -1])
         charsets[gene_name] = gene_len
 
@@ -285,7 +286,8 @@ class NexusReader:
 
     def __init__(self) -> None:
         self.table = pd.DataFrame()
-        self.columns = ["seqid"]
+        # maps starts of charsets to their names, should only contain gene charsets
+        self.charsets: Dict[int, str] = {}
         self.state: Optional[NexusState] = None
         self.todo: Set[NexusState] = {NexusState.Data, NexusState.Sets}
         self.ntax: Optional[int] = None
@@ -297,7 +299,7 @@ class NexusReader:
         """
         try:
             arg = next(args)
-            state = NexusReader.nexus_state[arg]
+            state = NexusReader.nexus_state[arg.lower()]
             if state in self.todo:
                 self.state = state
         except KeyError:
@@ -375,20 +377,42 @@ class NexusReader:
                     break
                 self.table[column_count] = pd.Series(column)
                 column_count += 1
-        self.read_matrix == False
-        self.ntax == None
+        self.read_matrix = False
+        self.ntax = None
 
     def add_charset(self, args: Iterator[str]) -> None:
         """
         Adds charset name to self.columns
         """
         if self.state == NexusState.Sets:
-            try:
-                self.columns.append("sequence_" + next(args))
-            except StopIteration:
-                self.columns.append("")
+            args_tuple = tuple(args)
+            if len(args_tuple) != 3 or args_tuple[1] != "=":
+                raise ValueError(f"Invalid arguments for 'charset': {args_tuple}")
+            name, _, position = args_tuple
+            if '\\' in position:
+                return
+            start_s, hyphen, _ = position.partition('-')
+            if not (hyphen and start_s.isdigit()):
+                raise ValueError(f"Invalid charset position: {repr(position)}")
+            self.charsets[int(start_s)] = name
+
+    def columns(self) -> List[str]:
+        return (["seqid"] +
+                [self.charsets[position] for position in sorted(self.charsets.keys())])
 
     def return_table(self) -> pd.DataFrame:
         self.table.reset_index(inplace=True)
-        self.table.columns = self.columns
-        return self.table
+        columns = self.columns()
+        if len(self.table.columns) == len(columns):
+            self.table.columns = columns
+            return self.table
+        else:
+            logging.warning(
+                "Several blocks of sequences in interleaved format detected, "
+                "but character sets missing or wrongly specified. "
+                "All sequences will be read in as a single gene.")
+            concat_table = self.table.iloc[:, 0:1].copy()
+            if len(self.table.columns) >= 2:
+                concat_table['sequence_gene'] = (
+                    self.table.iloc[:, 1].str.cat(self.table.iloc[:, 2:]))
+            return concat_table
