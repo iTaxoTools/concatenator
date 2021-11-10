@@ -483,8 +483,8 @@ class NexusReader:
                     break
                 self.table[column_count] = pd.Series(column)
                 column_count += 1
-        self.read_matrix == False
-        self.ntax == None
+        self.read_matrix = False
+        self.ntax = None
 
     def add_charset(self, args: Iterator[str]) -> None:
         """
