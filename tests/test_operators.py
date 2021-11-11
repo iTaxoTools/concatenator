@@ -9,7 +9,7 @@ from itaxotools.concatenator.library.operators import (
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSequenceCase,
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
     OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
-    OpReverseNegativeReadingFrames, OpPadReadingFrames,
+    OpReverseNegativeReadingFrames, OpPadReadingFrames, OpDropEmpty,
     OpExtractCharsets, OpUpdateMetadata, OpMakeUniform)
 
 
@@ -255,3 +255,28 @@ def test_make_uniform():
     altered = OpMakeUniform('?')(gene)
     assert_gene_meta_equal(gene, altered)
     assert altered.series.loc['seq1'] == '???TAA'
+
+
+def test_drop_empty():
+    series = pd.Series({
+            'seq1': '---NNNTAA',
+            'seq2': 'N--?-***-nn-',
+        }, name='gene')
+    series.index.name = 'seqid'
+
+    gene = GeneSeries(series, missing='Nn?', gap='*-')
+    altered = OpDropEmpty()(gene)
+    assert_gene_meta_equal(gene, altered)
+    assert len(altered.series) == 1
+    assert altered.series.loc['seq1'] == '---NNNTAA'
+
+
+def test_drop_empty_all():
+    series = pd.Series({
+            'seq1': '----',
+        }, name='gene')
+    series.index.name = 'seqid'
+
+    gene = GeneSeries(series, missing='-')
+    altered = OpDropEmpty()(gene)
+    assert altered is None

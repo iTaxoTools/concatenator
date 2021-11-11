@@ -32,7 +32,7 @@ def test_gene_dataframe_simple():
     stream = [gene1, gene2]
     gdf = GeneDataFrame.from_stream(stream)
     assert gdf['gene1'].series.loc['seq1'] == series1.loc['seq1']
-    assert pd.isnull(gdf['gene1'].series.loc['seq2'])
+    assert gdf['gene1'].series.loc['seq2'] == ''
     assert gdf['gene2'].series.loc['seq1'] == series2.loc['seq1']
     assert gdf['gene2'].series.loc['seq2'] == series2.loc['seq2']
     assert_gene_meta_equal(gdf['gene1'], gene1)
