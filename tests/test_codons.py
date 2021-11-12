@@ -9,7 +9,8 @@ import pytest
 from itaxotools.concatenator.library.model import GeneSeries
 from itaxotools.concatenator.library.codons import (
     GeneticCode, ReadingFrame, NoReadingFrames,
-    BadReadingFrame, AmbiguousReadingFrame, last_codon_slice)
+    BadReadingFrame, AmbiguousReadingFrame, last_codon_slice,
+    detect_reading_combinations)
 from itaxotools.concatenator.library.operators import OpDetectReadingFrame
 
 
@@ -77,16 +78,31 @@ class FrameRejection(Enum):
         return [ReadingFrame.from_int(frame) for frame in frames]
 
 
-@pytest.mark.parametrize("frame_rejection,last_codon_frame,series_frame,series_gc",
+@pytest.mark.parametrize("frame_rejection,last_codon_frame, series_gc",
                          itertools.product(
                              tuple(FrameRejection),
                              (None, ReadingFrame.from_int(1)),
-                             (ReadingFrame.Unknown,
-                                 ReadingFrame.from_int(1),
-                                 ReadingFrame.from_int(2)),
-                             (GeneticCode.Unknown, GeneticCode(1))
-                         )
-                         )
+                             (GeneticCode.Unknown,
+                              GeneticCode(1))))
+def test_generated_sequence(frame_rejection, last_codon_frame, series_gc):
+    seq = generate_sequence(300, GeneticCode(
+        1), frame_rejection.frames(), last_codon_frame)
+    if FrameRejection == FrameRejection.Total:
+        assert detect_reading_combinations(seq, series_gc) == set()
+    else:
+        assert (GeneticCode(1), 1) in detect_reading_combinations(seq, series_gc)
+
+
+@ pytest.mark.parametrize("frame_rejection,last_codon_frame,series_frame,series_gc",
+                          itertools.product(
+                              tuple(FrameRejection),
+                              (None, ReadingFrame.from_int(1)),
+                              (ReadingFrame.Unknown,
+                               ReadingFrame.from_int(1),
+                               ReadingFrame.from_int(2)),
+                              (GeneticCode.Unknown, GeneticCode(1))
+                          )
+                          )
 def test_generated_series(frame_rejection: FrameRejection,
                           last_codon_frame: Optional[ReadingFrame],
                           series_frame: ReadingFrame,
@@ -98,13 +114,14 @@ def test_generated_series(frame_rejection: FrameRejection,
     data.genetic_code = series_gc
     expected_exception: Optional[Exception] = None
     possible_frames = [frame for frame in list(
-        ReadingFrame) if frame not in rejected_frames]
+        ReadingFrame) if frame not in rejected_frames and frame != ReadingFrame.Unknown]
     if not possible_frames:
         expected_exception = NoReadingFrames
     elif series_frame == ReadingFrame.from_int(2):
         expected_exception = BadReadingFrame
-    elif not last_codon_frame and len(possible_frames) > 1:
-        expected_exception = AmbiguousReadingFrame
+    elif (not last_codon_frame and len(possible_frames) > 1 and
+          series_frame == ReadingFrame.Unknown):
+        expected_exception = NoReadingFrames
 
     if expected_exception is not None:
         with pytest.raises(expected_exception):
