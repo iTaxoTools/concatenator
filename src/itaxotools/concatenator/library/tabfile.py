@@ -81,7 +81,7 @@ def dataframe_from_path(
     path: PathLike,
     sequence_prefix: str = 'sequence_'
 ) -> GeneDataFrame:
-    data = pd.read_csv(path, sep='\t', dtype=str)
+    data = pd.read_csv(path, sep='\t', dtype=str, keep_default_na=False)
     indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
     data.set_index(indices, inplace=True)
     data.columns = [

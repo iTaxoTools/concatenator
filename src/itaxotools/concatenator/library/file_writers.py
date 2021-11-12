@@ -72,8 +72,8 @@ class FileWriter(ConfigurableCallable):
             stream = stream.pipe(OpTranslateMissing(self.translate_missing))
         if self.translate_gap:
             stream = stream.pipe(OpTranslateGap(self.translate_gap))
-        stream = stream.pipe(OpDropEmpty())
-        stream = stream.pipe(OpSequenceCase(self.case))
+        if self.case != TextCase.Unchanged:
+            stream = stream.pipe(OpSequenceCase(self.case))
         if self.sanitize:
             stream = stream.pipe(OpSanitizeGeneNames())
             stream = stream.pipe(OpSanitizeSpeciesNames())
@@ -102,6 +102,13 @@ def file_writer(
 class _GeneWriter(FileWriter):
     geneIO: GeneIO = None
 
+    drop_empty = Field(
+        key='drop_empty',
+        label='Drop Empty Sequences',
+        doc=('Exclude all taxa that consist only of gaps and missing data.'),
+        type=bool,
+        default=True)
+
     @property
     def params(self) -> Group:
         return Group(key='root', children=[
@@ -110,8 +117,15 @@ class _GeneWriter(FileWriter):
                 'padding',
                 'translate_missing',
                 'translate_gap',
+                'drop_empty',
                 'sanitize',
             ]])
+
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = super().filter(stream)
+        if self.drop_empty:
+            stream = stream.pipe(OpDropEmpty())
+        return stream
 
     def write(self, stream: GeneStream, path: Path) -> None:
         raise NotImplementedError
@@ -146,7 +160,6 @@ class _MultiFileWriter(_GeneWriter):
     def filter(self, stream: GeneStream) -> GeneStream:
         stream = (
             super().filter(stream)
-            .pipe(OpDropEmpty())
             .pipe(OpIndexMerge())
             .pipe(OpMakeUniform(self.padding)))
         return stream

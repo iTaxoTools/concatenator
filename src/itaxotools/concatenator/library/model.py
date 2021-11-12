@@ -151,6 +151,7 @@ class GeneDataFrame:
         # unique indices and join the common ones, then set them back.
         # In case of no common index, should concatenate instead?
         df = self.dataframe.join(series, how='outer')
+        df = df.fillna('')
         self.dataframe = df
 
     def _concat(self, gene: GeneSeries) -> None:

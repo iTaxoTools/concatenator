@@ -2,6 +2,7 @@
 from typing import Callable, Dict, List, Iterator, Optional, Set
 
 import pandas as pd
+import re
 
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .types import TextCase, Charset
@@ -86,10 +87,13 @@ class OpDropEmpty(Operator):
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.dropna(inplace=False)
-        if gene.missing:
+        empty = ''.join(set(gene.missing + gene.gap))
+        if empty:
             gene.series = gene.series[
-                ~ gene.series.str.fullmatch(f'[{gene.missing}]+')]
+                ~ gene.series.str.fullmatch(f'[{re.escape(empty)}]+')]
         gene.series = gene.series[gene.series.str.len() > 0]
+        if not len(gene.series):
+            return None
         return gene
 
 
