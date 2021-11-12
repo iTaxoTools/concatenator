@@ -189,7 +189,8 @@ def collect_stop_codons() -> Dict[str, Set[int]]:
 STOP_CODONS: Dict[str, Set[int]] = collect_stop_codons()
 STOP_CODONS_SET = set(STOP_CODONS.keys())
 
-TABLE_SET = set(gc_table._value_ for gc_table in GeneticCode)
+TABLE_SET = set(
+    gc_table._value_ for gc_table in GeneticCode if gc_table != GeneticCode.Unknown)
 
 
 def detect_stop_codons(
@@ -393,7 +394,9 @@ def final_column_reading_frame(
             # if a singular possible frame ends with a stop codon
             filter_by_last_codons(column, reading_combinations)
             possible_frames = extract_frames(reading_combinations)
-            if len(possible_frames) > 1:
+            if not possible_frames:
+                raise NoReadingFrames(column.name)
+            elif len(possible_frames) > 1:
                 raise AmbiguousReadingFrame(column.name, possible_frames)
         return ReadingFrame.from_int(possible_frames.pop())
     elif reading_frame:
