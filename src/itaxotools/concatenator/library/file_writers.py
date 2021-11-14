@@ -9,9 +9,9 @@ from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
     OpCheckValid, OpIndexMerge, OpMakeUniform, OpDropEmpty,
-    OpSequenceCase, OpExtractCharsets, OpApplyToSeries, OpTranslateGap,
+    OpSequenceCase, OpExtractCharsets, OpTranslateGap, OpPadReadingFrames,
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSpreadsheetCompatibility,
-    OpTranslateMissing, OpReverseNegativeReadingFrames, OpPadReadingFrames)
+    OpTranslateMissing, OpReverseNegativeReadingFrames)
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile

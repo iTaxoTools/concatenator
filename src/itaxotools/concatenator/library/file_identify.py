@@ -25,26 +25,26 @@ def test(type: FileType, format: FileFormat) -> CallableTestDecorator:
 
 @test(FileType.File, FileFormat.Nexus)
 def isNexusFile(path: Path) -> bool:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         return bool(file.read(6) == '#NEXUS')
 
 
 @test(FileType.File, FileFormat.Fasta)
 def isFastaFile(path: Path) -> bool:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         return bool(file.read(1) == '>')
 
 
 @test(FileType.File, FileFormat.Phylip)
 def isPhylipFile(path: Path) -> bool:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         line = file.readline()
         return bool(fullmatch(r'\s*\d+\s+\d+\s*', line))
 
 
 @test(FileType.File, FileFormat.Tab)
 def isTabFile(path: Path) -> bool:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         line = file.readline()
         return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
 
@@ -52,7 +52,7 @@ def isTabFile(path: Path) -> bool:
 @test(FileType.File, FileFormat.Ali)
 def isAliFile(path: Path) -> bool:
     # Also catches Fasta format, check this last
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         for line in file:
             if line[0] in ['#', '\n']:
                 continue

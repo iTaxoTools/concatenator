@@ -63,7 +63,7 @@ def column_reader(infile: TextIO) -> pd.Series:
 
 
 def gene_from_path(path: PathLike) -> GeneSeries:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         series = pd.Series({
             chunk[0][1:]: ''.join(chunk[1:])
             for chunk in split_file(file)})

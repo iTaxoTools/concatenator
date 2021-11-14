@@ -157,7 +157,7 @@ def read(input: TextIO) -> pd.DataFrame:
 
 
 def dataframe_from_path(path: PathLike) -> GeneDataFrame:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         commands = NexusCommands(file)
         reader = NexusReader()
         for command, args in commands:

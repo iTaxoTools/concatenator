@@ -118,7 +118,7 @@ def ali_reader(infile: TextIO) -> pd.Series:
 
 
 def gene_from_path(path: PathLike) -> GeneSeries:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         series = pd.Series({
             (x.species, x.ali_tag): x.sequence for x in chunk_reader(file)})
     series.index.names = ['seqid', 'ali_tag']

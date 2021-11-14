@@ -52,7 +52,7 @@ def column_reader(infile: TextIO) -> pd.Series:
 
 
 def gene_from_path(path: PathLike) -> GeneSeries:
-    with path.open() as file:
+    with path.open(encoding='utf-8') as file:
         series = column_reader(file)
     series.index.name = 'seqid'
     series.name = path.stem
