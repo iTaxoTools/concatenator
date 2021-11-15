@@ -80,7 +80,7 @@ def nexus_writer(
     justification: Justification = Justification.Left,
     separator: str = ' ',
 ) -> None:
-    buffer = tempfile.TemporaryFile(mode='w+', encoding='utf-8')
+    buffer = tempfile.TemporaryFile(mode='w+', encoding='utf-8', errors='surrogateescape')
     charsets = list()
     missings = OrderedSet()
     gaps = OrderedSet()
@@ -144,7 +144,7 @@ def stream_to_path(
     path: PathLike,
     *args, **kwargs
 ) -> None:
-    with path.open('w', encoding='utf-8') as file:
+    with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
         nexus_writer(stream, file, *args, **kwargs)
 
 
@@ -157,7 +157,7 @@ def read(input: TextIO) -> pd.DataFrame:
 
 
 def dataframe_from_path(path: PathLike) -> GeneDataFrame:
-    with path.open() as file:
+    with path.open(encoding='utf-8', errors='surrogateescape') as file:
         commands = NexusCommands(file)
         reader = NexusReader()
         for command, args in commands:

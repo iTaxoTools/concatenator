@@ -63,7 +63,7 @@ def column_reader(infile: TextIO) -> pd.Series:
 
 
 def gene_from_path(path: PathLike) -> GeneSeries:
-    with path.open() as file:
+    with path.open(encoding='utf-8', errors='surrogateescape') as file:
         series = pd.Series({
             chunk[0][1:]: ''.join(chunk[1:])
             for chunk in split_file(file)})
@@ -82,5 +82,5 @@ def fasta_writer(gene: GeneSeries, outfile: TextIO) -> None:
 
 
 def gene_to_path(gene: GeneSeries, path: PathLike) -> None:
-    with path.open('w', encoding='utf-8') as file:
+    with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
         fasta_writer(gene, file)

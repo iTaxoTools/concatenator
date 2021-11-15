@@ -7,7 +7,7 @@ from .types import Charset
 
 def write_nexus(path: PathLike, charsets: List[Charset]) -> None:
 
-    with path.open('w', encoding='utf-8') as file:
+    with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
         file.write('#NEXUS\n\n')
         file.write('BEGIN SETS;\n\n')
 
