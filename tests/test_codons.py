@@ -1,7 +1,8 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 from enum import IntEnum, Enum
 import random
 import itertools
+import json
 
 import pandas as pd
 import pytest
@@ -14,91 +15,52 @@ from itaxotools.concatenator.library.codons import (
 from itaxotools.concatenator.library.operators import OpDetectReadingFrame
 
 
-def no_stop_sequence(len: int, gc: GeneticCode) -> str:
-    seq = "".join(random.choices("ACGT", k=len))
-    for stop in gc.stops:  # type: ignore
-        seq = seq.replace(stop, "")
-    return seq
-
-
-def generate_sequence(seq_len: int, gc: GeneticCode,
-                      frames_with_two_stops: List[ReadingFrame],
-                      frame_with_last_codon: Optional[ReadingFrame]) -> str:
-    """
-    Generates a random sequence with approximate length `len`.
-
-    All frames in `frames_with_two_stops` will contains at two stops.
-
-    The frame `frame_with_last_codon` will contain a stop in last codon.
-    """
-    assert ReadingFrame.Unknown not in frames_with_two_stops
-    assert frame_with_last_codon != ReadingFrame.Unknown
-    segment_codon_len = (seq_len // len(frames_with_two_stops)) // 3
-    positive_frames = [frame for frame in frames_with_two_stops if frame > 0]
-    negative_frames = [-frame for frame in frames_with_two_stops if frame < 0]
-    positive_part = ""
-    for frame in positive_frames:
-        positive_part += no_stop_sequence(segment_codon_len * 3 + frame - 1, gc)
-        positive_part += random.choice(gc.stops)
-    negative_part = ""
-    for frame in negative_frames:
-        negative_part += no_stop_sequence(segment_codon_len * 3 + frame - 1, gc)
-        negative_part += random.choice(gc.stops)
-    seq = positive_part + negative_part[::-1]
-    if frame_with_last_codon:
-        the_slice = last_codon_slice(seq, frame_with_last_codon)
-        seq = seq[:the_slice.start] + random.choice(gc.stops) + seq[the_slice.stop:]
-    return seq
-
-
-def generated_series(
-    frames_with_two_stops: List[ReadingFrame],
-    frame_with_last_codon: Optional[ReadingFrame]
-) -> pd.Series:
-    series = pd.Series((generate_sequence(300,
-                                          GeneticCode(1),
-                                          frames_with_two_stops,
-                                          frame_with_last_codon)
-                        for _ in range(8)))
-    series.name = 'gene1'
-    return series
-
-
-class FrameRejection(Enum):
+class FrameRejection(IntEnum):
     Ambiguous = 0
-    Unambiguos = 1
+    Unambiguous = 1
     Total = 2
 
     def frames(self):
         frames = {
             FrameRejection.Ambiguous: [-3, -1, 2, 3],
-            FrameRejection.Unambiguos: [-3, -2, -1, 2, 3],
+            FrameRejection.Unambiguous: [-3, -2, -1, 2, 3],
             FrameRejection.Total: [-3, -2, -1, 1, 2, 3]
         }[self]
         return [ReadingFrame.from_int(frame) for frame in frames]
 
 
-@pytest.mark.skip(reason="Fail because of incorrect sequence generation")
+def load_test_sequences() -> Dict[Tuple[FrameRejection, bool], List[str]]:
+    with open("tests/sequences_test_codons.json") as file:
+        sequences = json.load(file)
+    return {
+        (FrameRejection(entry['rejection']), entry['hasLastStop']): entry['sequences']
+        for entry in sequences
+    }
+
+
+TEST_SEQUENCES = load_test_sequences()
+
+
 @pytest.mark.parametrize("frame_rejection,last_codon_frame, series_gc",
                          itertools.product(
                              tuple(FrameRejection),
-                             (None, ReadingFrame.from_int(1)),
+                             (False, True),
                              (GeneticCode.Unknown,
                               GeneticCode(1))))
-def test_generated_sequence(frame_rejection, last_codon_frame, series_gc):
-    seq = generate_sequence(300, GeneticCode(
-        1), frame_rejection.frames(), last_codon_frame)
-    if FrameRejection == FrameRejection.Total:
-        assert detect_reading_combinations(seq, series_gc) == set()
-    else:
-        assert (GeneticCode(1), 1) in detect_reading_combinations(seq, series_gc)
+def test_generated_sequences(frame_rejection: FrameRejection,
+                             last_codon_frame: bool,
+                             series_gc: GeneticCode):
+    for seq in TEST_SEQUENCES[(frame_rejection, last_codon_frame)]:
+        if FrameRejection == FrameRejection.Total:
+            assert detect_reading_combinations(seq, series_gc) == set()
+        else:
+            assert (GeneticCode(1), 1) in detect_reading_combinations(seq, series_gc)
 
 
-@pytest.mark.skip(reason="Fail because of incorrect sequence generation")
 @pytest.mark.parametrize("frame_rejection,last_codon_frame,series_frame,series_gc",
                          itertools.product(
                              tuple(FrameRejection),
-                             (None, ReadingFrame.from_int(1)),
+                             (False, True),
                              (ReadingFrame.Unknown,
                               ReadingFrame.from_int(1),
                               ReadingFrame.from_int(2)),
@@ -106,11 +68,11 @@ def test_generated_sequence(frame_rejection, last_codon_frame, series_gc):
                          )
                          )
 def test_generated_series(frame_rejection: FrameRejection,
-                          last_codon_frame: Optional[ReadingFrame],
+                          last_codon_frame: bool,
                           series_frame: ReadingFrame,
                           series_gc: GeneticCode) -> None:
     rejected_frames = frame_rejection.frames()
-    series = generated_series(rejected_frames, last_codon_frame)
+    series = pd.Series(TEST_SEQUENCES[frame_rejection, last_codon_frame])
     data = GeneSeries(series)
     data.reading_frame = series_frame
     data.genetic_code = series_gc
