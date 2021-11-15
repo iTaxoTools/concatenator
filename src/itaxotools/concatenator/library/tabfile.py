@@ -81,8 +81,8 @@ def dataframe_from_path(
     path: PathLike,
     sequence_prefix: str = 'sequence_'
 ) -> GeneDataFrame:
-    data = pd.read_csv(
-        path, sep='\t', dtype=str, keep_default_na=False, encoding='utf-8')
+    with path.open(encoding='utf-8', errors='surrogateescape') as file:
+        data = pd.read_csv(file, sep='\t', dtype=str, keep_default_na=False)
     indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
     data.set_index(indices, inplace=True)
     data.columns = [
@@ -106,5 +106,5 @@ def stream_to_path(
 ) -> None:
     data = GeneDataFrame.from_stream(stream).dataframe
     data.columns = [sequence_prefix + col for col in data.columns]
-    with path.open('w', encoding='utf-8') as file:
+    with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
         data.to_csv(file, sep="\t", line_terminator="\n")
