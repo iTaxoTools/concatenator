@@ -225,11 +225,11 @@ def detect_reverse_stop_codons(
     stops_regex = regex.compile(
         "|".join(codon[::-1] for codon in stop_codons), regex.IGNORECASE
     )
-    end_frame = len(sequence)
+    seq_len = len(sequence)
     for stop_match in stops_regex.finditer(sequence, overlapped=True):
         if stop_match.start() < 3:
             continue
-        frame = -((end_frame - stop_match.start()) % 3) - 1
+        frame = - ((seq_len - stop_match.end() - 1) % 3 + 1)
         yield stop_match.group()[::-1], frame
 
 
