@@ -200,14 +200,10 @@ def detect_stop_codons(
     Iterator over forward-sense stop codons in sequence.
 
     Yields codon with a reading frame (1, 2 or 3)
-
-    Ignores stop codons in the end
     """
     stops_regex = regex.compile("|".join(stop_codons), regex.IGNORECASE)
     sequence_length = len(sequence)
     for stop_match in stops_regex.finditer(sequence, overlapped=True):
-        if sequence_length - stop_match.start() < 6:
-            continue
         frame = stop_match.start() % 3 + 1
         yield stop_match.group(), frame
 
@@ -219,16 +215,12 @@ def detect_reverse_stop_codons(
     Iterator over reverse-sense stop codons in sequence.
 
     Yields codon with a reading frame (-1, -2 or -3)
-
-    Ignores stop codons in the end (from the reverse perspective, i.e. the beginning)
     """
     stops_regex = regex.compile(
         "|".join(codon[::-1] for codon in stop_codons), regex.IGNORECASE
     )
     seq_len = len(sequence)
     for stop_match in stops_regex.finditer(sequence, overlapped=True):
-        if stop_match.start() < 3:
-            continue
         frame = - ((seq_len - stop_match.end() - 1) % 3 + 1)
         yield stop_match.group()[::-1], frame
 
@@ -247,16 +239,20 @@ def collect_non_unique(iter: Iterable[T]) -> Set[T]:
 
 
 def allowed_translations(
-    stops: Set[Tuple[str, int]], stop_codons: Dict[str, Set[int]]
+    stops: List[Tuple[str, int]], stop_codons: Dict[str, Set[int]]
 ) -> Dict[int, Set[int]]:
     """
     Returns mapping from reading frame to possible translation tables
     """
-    result: Dict[int, Set[int]] = {
-        frame: TABLE_SET.copy() for frame in [-3, -2, -1, 1, 2, 3]
-    }
-    for stop_codon, frame in stops:
-        result[frame] -= stop_codons[stop_codon]
+
+    gc_frames = collect_non_unique((gc, frame)
+                                   for stop, frame in stops for gc in stop_codons[stop])
+
+    result: DefaultDict[int, Set[int]] = DefaultDict(set)
+    for gc, frame in gc_frames:
+        result[frame].add(gc)
+    for frame in [-3, -2, -1, 1, 2, 3]:
+        result[frame] = TABLE_SET - result[frame]
     return result
 
 
@@ -270,7 +266,7 @@ def detect_reading_frame(sequence: str,
         stop_codons_set = set(gc_table.stops)  # type: ignore
     else:
         stop_codons_set = STOP_CODONS_SET
-    stops = set(
+    stops = list(
         itertools.chain(
             detect_stop_codons(sequence, stop_codons_set),
             detect_reverse_stop_codons(sequence, stop_codons_set),
@@ -279,7 +275,7 @@ def detect_reading_frame(sequence: str,
     if gc_table:
         disallowed_frames = {frame for frame, count in
                              Counter((frame for codon, frame in stops)).items()
-                             if count == 1}
+                             if count > 1}
         return [frame for frame in [1, 2, 3, -1, -2, -3]
                 if frame not in disallowed_frames]
     else:
@@ -293,7 +289,7 @@ def detect_reading_combinations(sequence: str,
         stop_codons_set = set(gc_table.stops)  # type: ignore
     else:
         stop_codons_set = STOP_CODONS_SET
-    stops = set(
+    stops = list(
         itertools.chain(
             detect_stop_codons(sequence, stop_codons_set),
             detect_reverse_stop_codons(sequence, stop_codons_set),
@@ -302,7 +298,7 @@ def detect_reading_combinations(sequence: str,
     if gc_table:
         disallowed_frames = {frame for frame, count in
                              Counter((frame for codon, frame in stops)).items()
-                             if count == 1}
+                             if count > 1}
         return {(gc_table, frame) for frame in [1, 2, 3, -1, -2, -3]
                 if frame not in disallowed_frames}
     else:
