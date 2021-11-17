@@ -12,6 +12,7 @@ from itaxotools.concatenator.library.codons import (
     GeneticCode, ReadingFrame, NoReadingFrames,
     BadReadingFrame, AmbiguousReadingFrame, last_codon_slice,
     detect_reading_combinations)
+import itaxotools.concatenator.library.codons as lib_codons
 from itaxotools.concatenator.library.operators import OpDetectReadingFrame
 
 
@@ -51,10 +52,14 @@ def test_generated_sequences(frame_rejection: FrameRejection,
                              last_codon_frame: bool,
                              series_gc: GeneticCode):
     for seq in TEST_SEQUENCES[(frame_rejection, last_codon_frame)]:
-        if FrameRejection == FrameRejection.Total:
-            assert detect_reading_combinations(seq, series_gc) == set()
+        reading_combinations = detect_reading_combinations(seq, series_gc)
+        if frame_rejection == FrameRejection.Total:
+            assert ({(gc, frame)
+                     for gc, frame in reading_combinations if gc == GeneticCode(1)}
+                    ==
+                    set())
         else:
-            assert (GeneticCode(1), 1) in detect_reading_combinations(seq, series_gc)
+            assert (GeneticCode(1), 1) in reading_combinations
 
 
 @pytest.mark.parametrize("frame_rejection,last_codon_frame,series_frame,series_gc",
