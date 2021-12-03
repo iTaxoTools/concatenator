@@ -1,0 +1,6 @@
+seqid	species	specimen-voucher	locality	sequence_16S	sequence_cytb	sequence_coi
+sample1	Mantella_aurantiaca	ZCMV1234	Andasibe	ACGTTTTTZC	GATTTAGA	TAAGGCTGC
+sample2	Mantella_aurantiaca	ZCMV9876	Andasibe	ACGTTTTAC	GATCTAGA	TAAGGGTGA
+sample3	Mantella_aurantiaca	FGZC345	Andasibe	ATGTTTTAC		TAAGGCTGA
+sample4	Mantella_crocea	FGZC346	Ranomafana	ACGTAATAC	GATTTATA	TATGGCTGA
+sample5	Mantella_crocea	MNHN1991	Ranomafana	ACGTAATAG	AATTTATA	TATGGCTGA

@@ -1,0 +1,175 @@
+{
+  "_comment": "Retrieved from https://www.ncbi.nlm.nih.gov/IEB/ToolBox/C_DOC/lxr/source/data/gc.prt on 2021-10-25",
+  "Genetic_code_tables": [
+    {
+      "name": "Standard",
+      "abbr_name": "SGC0",
+      "id": 1,
+      "ncbieaa": "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------**--*----M---------------M----------------------------"
+    },
+    {
+      "name": "Vertebrate Mitochondrial",
+      "abbr_name": "SGC1",
+      "id": 2,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**--------------------MMMM----------**---M------------"
+    },
+    {
+      "name": "Yeast Mitochondrial",
+      "abbr_name": "SGC2",
+      "id": 3,
+      "ncbieaa": "FFLLSSSSYY**CCWWTTTTPPPPHHQQRRRRIIMMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**----------------------MM---------------M------------"
+    },
+    {
+      "name": "Mold Mitochondrial; Protozoan Mitochondrial; Coelenterate Mitochondrial; Mycoplasma; Spiroplasma",
+      "abbr_name": "SGC3",
+      "id": 4,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "--MM------**-------M------------MMMM---------------M------------"
+    },
+    {
+      "name": "Invertebrate Mitochondrial",
+      "abbr_name": "SGC4",
+      "id": 5,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSSSVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------**--------------------MMMM---------------M------------"
+    },
+    {
+      "name": "Ciliate Nuclear; Dasycladacean Nuclear; Hexamita Nuclear",
+      "abbr_name": "SGC5",
+      "id": 6,
+      "ncbieaa": "FFLLSSSSYYQQCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "--------------*--------------------M----------------------------"
+    },
+    {
+      "name": "Echinoderm Mitochondrial; Flatworm Mitochondrial",
+      "abbr_name": "SGC8",
+      "id": 9,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**-----------------------M---------------M------------"
+    },
+    {
+      "name": "Euplotid Nuclear",
+      "abbr_name": "SGC9",
+      "id": 10,
+      "ncbieaa": "FFLLSSSSYY**CCCWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**-----------------------M----------------------------"
+    },
+    {
+      "name": "Bacterial, Archaeal and Plant Plastid",
+      "id": 11,
+      "ncbieaa": "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------**--*----M------------MMMM---------------M------------"
+    },
+    {
+      "name": "Alternative Yeast Nuclear",
+      "id": 12,
+      "ncbieaa": "FFLLSSSSYY**CC*WLLLSPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**--*----M---------------M----------------------------"
+    },
+    {
+      "name": "Ascidian Mitochondrial",
+      "id": 13,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSSGGVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------**----------------------MM---------------M------------"
+    },
+    {
+      "name": "Alternative Flatworm Mitochondrial",
+      "id": 14,
+      "ncbieaa": "FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+      "sncbieaa": "-----------*-----------------------M----------------------------"
+    },
+    {
+      "name": "Blepharisma Macronuclear",
+      "id": 15,
+      "ncbieaa": "FFLLSSSSYY*QCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------*---*--------------------M----------------------------"
+    },
+    {
+      "name": "Chlorophycean Mitochondrial",
+      "id": 16,
+      "ncbieaa": "FFLLSSSSYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------*---*--------------------M----------------------------"
+    },
+    {
+      "name": "Trematode Mitochondrial",
+      "id": 21,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNNKSSSSVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**-----------------------M---------------M------------"
+    },
+    {
+      "name": "Scenedesmus obliquus Mitochondrial",
+      "id": 22,
+      "ncbieaa": "FFLLSS*SYY*LCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "------*---*---*--------------------M----------------------------"
+    },
+    {
+      "name": "Thraustochytrium Mitochondrial",
+      "id": 23,
+      "ncbieaa": "FF*LSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "--*-------**--*-----------------M--M---------------M------------"
+    },
+    {
+      "name": "Rhabdopleuridae Mitochondrial",
+      "id": 24,
+      "ncbieaa": "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------**-------M---------------M---------------M------------"
+    },
+    {
+      "name": "Candidate Division SR1 and Gracilibacteria",
+      "id": 25,
+      "ncbieaa": "FFLLSSSSYY**CCGWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------**-----------------------M---------------M------------"
+    },
+    {
+      "name": "Pachysolen tannophilus Nuclear",
+      "id": 26,
+      "ncbieaa": "FFLLSSSSYY**CC*WLLLAPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**--*----M---------------M----------------------------"
+    },
+    {
+      "name": "Karyorelict Nuclear",
+      "id": 27,
+      "ncbieaa": "FFLLSSSSYYQQCCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "--------------*--------------------M----------------------------"
+    },
+    {
+      "name": "Condylostoma Nuclear",
+      "id": 28,
+      "ncbieaa": "FFLLSSSSYYQQCCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**--*--------------------M----------------------------"
+    },
+    {
+      "name": "Mesodinium Nuclear",
+      "id": 29,
+      "ncbieaa": "FFLLSSSSYYYYCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "--------------*--------------------M----------------------------"
+    },
+    {
+      "name": "Peritrich Nuclear",
+      "id": 30,
+      "ncbieaa": "FFLLSSSSYYEECC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "--------------*--------------------M----------------------------"
+    },
+    {
+      "name": "Blastocrithidia Nuclear",
+      "id": 31,
+      "ncbieaa": "FFLLSSSSYYEECCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "----------**-----------------------M----------------------------"
+    },
+    {
+      "name": "Balanophoraceae Plastid",
+      "id": 32,
+      "ncbieaa": "FFLLSSSSYY*WCC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M------*---*----M------------MMMM---------------M------------"
+    },
+    {
+      "name": "Cephalodiscidae Mitochondrial",
+      "id": 33,
+      "ncbieaa": "FFLLSSSSYYY*CCWWLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSSKVVVVAAAADDEEGGGG",
+      "sncbieaa": "---M-------*-------M---------------M---------------M------------"
+    }
+  ]
+}
