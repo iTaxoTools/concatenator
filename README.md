@@ -1,16 +1,29 @@
 # Concatenator
-Performs a sequence of transformations on an input file.
+Performs a sequence of transformations on an input file.<br>
+[*You may also be interested in the new GUI*](https://github.com/iTaxoTools/ConcatenatorGui)
 
-# Usage
+### Installation
+Clone and install the latest version (requires Python 3.8 or later):
 ```
-pipenv shell
-pip install .
+git clone https://github.com/iTaxoTools/concatenator.git
+cd concatenator
+pip install . -f packages.html
+```
+
+### Executables
+Download and run the standalone executables without installing Python.</br>
+[See the latest release here.](https://github.com/iTaxoTools/concatenator/releases/latest)
+
+## Usage
+Launch the GUI:
+```
 concatenator
 ```
 
-Construct a sequence of operations by clicking the buttons on the left side (`Operation` panel), then click `Execute` button.
+Construct a sequence of operations by clicking the buttons on the left side
+(`Operation` panel), then click `Execute` button.
 
-# Supported operations
+### Supported operations
 * `Tabfile to NEXUS`: Converts a Tab file to a NEXUS file.
   - Input: Tab file with separate gene columns.
   - Output: Nexus file.
@@ -50,3 +63,15 @@ Construct a sequence of operations by clicking the buttons on the left side (`Op
 * `Split codon positions in tabfile`: Separates genes in a Tabfile into codon position charsets
   - Input: Tab file with separate gene columns
   - Output: Tab file with separate codon position charsets
+
+### Python API
+
+The API exposes the new backend. See `scripts/convert.py` for an example.
+
+### Packaging
+
+It is advised to use PyInstaller within a virtual environment:
+```
+pip install ".[dev]" -f packages.html
+pyinstaller scripts/concatenator.spec
+```
