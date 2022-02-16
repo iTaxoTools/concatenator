@@ -35,9 +35,10 @@ def package_path_importlib(package: Any) -> Path:
 
 
 try:
-    import importlib.resources.files
+    import importlib.resources
+    from importlib.resources import files
     package_path = package_path_importlib
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     if hasattr(sys, '_MEIPASS'):
         package_path = package_path_pyinstaller
     else:
