@@ -150,6 +150,42 @@ class GeneralInfo:
         )
         return result
 
+    def by_taxon(self) -> pd.DataFrame:
+        dataframe = self.dataframe.reset_index()
+        result = dataframe.groupby(InfoColumns.Taxon).agg(
+            **{
+                "number of markers with data": pd.NamedAgg(
+                    column=InfoColumns.Gene, aggfunc="sum"
+                ),
+                "total number of nucleotides": pd.NamedAgg(
+                    column=InfoColumns.NucleotideCount, aggfunc="sum"
+                ),
+                "% of missing data (nucleotides)": pd.NamedAgg(
+                    column=InfoColumns.MissingCount, aggfunc="sum"
+                ),
+                "sequence length minimum": pd.NamedAgg(
+                    column=InfoColumns.SeqLenMin, aggfunc="min"
+                ),
+                "sequence length maximum": pd.NamedAgg(
+                    column=InfoColumns.SeqLenMin, aggfunc="max"
+                ),
+                "GC content of sequences": pd.NamedAgg(
+                    column=InfoColumns.GCCount, aggfunc="sum"
+                ),
+            }
+        )
+        result["% of missing data (markers)"] = (
+            result["number of markers with data"]
+            / dataframe[InfoColumns.Gene].nunique()
+        )
+        result["% of missing data (nucleotides)"] /= result[
+            "total number of nucleotides"
+        ]
+        result["GC content of sequences"] /= result["total number of nucleotides"]
+        result.index.name = "taxon name"
+
+        return result
+
 
 @dataclass
 class FileGeneralInfo:
