@@ -375,6 +375,7 @@ class OpGeneralInfo(Operator):
         self.table = GeneralInfo.empty()
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        gene = OpIndexMerge("taxon")(gene)
         assert gene.series is not None
         dataframe = pd.DataFrame(
             gene.series.str.len(), columns=[InfoColumns.NucleotideCount]
@@ -385,6 +386,11 @@ class OpGeneralInfo(Operator):
         dataframe[InfoColumns.SeqLenMax] = dataframe[InfoColumns.NucleotideCount]
         dataframe[InfoColumns.SeqLenMin] = dataframe[InfoColumns.NucleotideCount]
         dataframe[InfoColumns.GCCount] = gene.series.str.count(re.compile(r"G|g|C|c"))
+        dataframe = dataframe.reset_index().rename(columns={"taxon": InfoColumns.Taxon})
+        dataframe[InfoColumns.Gene] = gene.name
+        dataframe.set_index(
+            [InfoColumns.Gene, InfoColumns.Taxon], inplace=True, verify_integrity=True
+        )
         self.table += GeneralInfo(dataframe)
         return gene
 
