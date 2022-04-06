@@ -41,8 +41,8 @@ class ReadingFrame(IntEnum):
     Unknown = 0, 'unknown'
 
     P1 = +1, 'starts with 1st codon position'
-    P2 = +2, 'starts with 2nd codon position'
-    P3 = +3, 'starts with 3rd codon position'
+    P2 = +2, 'starts with 3rd codon position'
+    P3 = +3, 'starts with 2nd codon position'
     N1 = -1, 'reverse complement of +1'
     N2 = -2, 'reverse complement of +2'
     N3 = -3, 'reverse complement of +3'

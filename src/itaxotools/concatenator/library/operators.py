@@ -62,7 +62,7 @@ class OpCheckValid(Operator):
 
 
 class OpIndexMerge(Operator):
-    index: str = 'seqid'
+    index: str = Field('index', value='seqid')
     glue: str = Field('glue', value='_')
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:

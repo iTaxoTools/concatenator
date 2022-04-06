@@ -10,7 +10,7 @@ from itaxotools.concatenator.library.operators import (
     OpTranslateMissing, OpTranslateGap, OpSpreadsheetCompatibility,
     OpFilterGenes, OpStencilGenes, OpBlock, OpReverseComplement,
     OpReverseNegativeReadingFrames, OpPadReadingFrames, OpDropEmpty,
-    OpExtractCharsets, OpUpdateMetadata, OpMakeUniform)
+    OpExtractCharsets, OpUpdateMetadata, OpMakeUniform, OpIndexMerge)
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -280,3 +280,17 @@ def test_drop_empty_all():
     gene = GeneSeries(series, missing='-')
     altered = OpDropEmpty()(gene)
     assert altered is None
+
+
+def test_index_merge():
+    series = pd.Series({
+            ('seq1', 'voucher1', 'locality1'): 'ACGT',
+        }, name='gene')
+    series.index.names = ('seqid', 'voucher', 'locality')
+
+    gene = GeneSeries(series)
+    altered = OpIndexMerge(index='taxon', glue='+')(gene)
+    assert isinstance(altered.series.index, pd.Index)
+    assert altered.series.index.name == 'taxon'
+    assert len(altered.series.index) == 1
+    assert altered.series.index[0] == 'seq1+voucher1+locality1'
