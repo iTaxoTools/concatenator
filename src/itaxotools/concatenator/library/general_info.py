@@ -31,6 +31,21 @@ class GeneralInfo:
         }
         self.dataframe = dataframe
 
+    @classmethod
+    def empty(cls) -> GeneralInfo:
+        return cls(
+            pd.DataFrame(
+                index=pd.MultiIndex.from_tuples(
+                    [], names=[InfoColumns.Taxon, InfoColumns.Gene]
+                ),
+                columns=[
+                    column
+                    for column in InfoColumns
+                    if column not in {InfoColumns.Taxon, InfoColumns.Gene}
+                ],
+            )
+        )
+
     def __add__(self, other: GeneralInfo) -> GeneralInfo:
         result = pd.DataFrame(index=self.dataframe.index.union(other.dataframe.index))
         for add_column in (
@@ -53,6 +68,23 @@ class GeneralInfo:
         return GeneralInfo(result)
 
     def total_data(self) -> pd.Series:
+        """
+        Returns a pandas Series with index:
+                Number of taxa
+                Number of genes (markers)
+                % missing data
+                GC content of sequences
+                Total number of nucleotides in concatenated data set
+                Minimum number of nucleotides per taxon
+                Maximum number of nucleotides per taxon
+                Average number of nucleotides per taxon
+                Minimum number of markers per taxon
+                Maximum number of markers per taxon
+                Average number of markers per taxon
+                Minimum number of taxa per markers
+                Maximum number of taxa per marker
+                Average number of taxa per marker
+        """
         result = pd.Series(
             index=[
                 "Number of taxa",
@@ -114,6 +146,17 @@ class GeneralInfo:
 
     @staticmethod
     def by_input_file(tables: Iterator[FileGeneralInfo]) -> pd.DataFrame:
+        """
+        Returns a pandas DataFrame with columns:
+            input file name
+            input file format
+            number of taxa
+            number of gene (markers)
+            % missing data
+            sequence length minimum
+            sequence length maximum
+            GC content of sequences
+        """
         rows = []
         for file_info in tables:
             row = file_info.table.dataframe.reset_index().agg(
@@ -151,6 +194,16 @@ class GeneralInfo:
         return result
 
     def by_taxon(self) -> pd.DataFrame:
+        """
+        Returns a pandas DataFrame with index "taxon name" and columns:
+            number of markers with data
+            total number of nucleotides
+            % of missing data (nucleotides)
+            % of missing data (markers)
+            sequence length minimum
+            sequence length maximum
+            GC content of sequences
+        """
         dataframe = self.dataframe.reset_index()
         result = dataframe.groupby(InfoColumns.Taxon).agg(
             **{

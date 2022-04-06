@@ -1,4 +1,3 @@
-
 from typing import Callable, Dict, List, Iterator, Optional, Set
 
 import pandas as pd
@@ -7,9 +6,16 @@ import re
 from .model import Operator, GeneSeries, GeneStream, GeneDataFrame
 from .types import TextCase, Charset
 from .utils import (
-    Translation, Field, OrderedSet, removeprefix, sanitize,
-    reverse_complement, has_uniform_length)
+    Translation,
+    Field,
+    OrderedSet,
+    removeprefix,
+    sanitize,
+    reverse_complement,
+    has_uniform_length,
+)
 from .codons import final_column_reading_frame, ReadingFrame
+from .general_info import GeneralInfo, InfoColumns
 
 
 class InvalidGeneSeries(Exception):
@@ -35,7 +41,7 @@ class OpCheckDuplicates(Operator):
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self._memory:
-            raise InvalidGeneSeries(gene, f'Duplicate gene: {repr(gene.name)}')
+            raise InvalidGeneSeries(gene, f"Duplicate gene: {repr(gene.name)}")
         self._memory.add(gene.name)
         return gene
 
@@ -47,11 +53,11 @@ class OpCheckValid(Operator):
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not isinstance(gene, GeneSeries):
-            raise InvalidGeneSeries(gene, 'Not a GeneSeries!')
+            raise InvalidGeneSeries(gene, "Not a GeneSeries!")
         if not isinstance(gene.series, pd.Series):
-            raise InvalidGeneSeries(gene, 'Gene series is not pandas.Series!')
+            raise InvalidGeneSeries(gene, "Gene series is not pandas.Series!")
         if gene.series.index.duplicated().any():
-            raise InvalidGeneSeries(gene, 'Duplicate indices')
+            raise InvalidGeneSeries(gene, "Duplicate indices")
         if not gene.name:
             raise InvalidGeneSeries(gene, 'Missing gene data: "name"')
         if not gene.missing:
@@ -62,20 +68,20 @@ class OpCheckValid(Operator):
 
 
 class OpIndexMerge(Operator):
-    index: str = Field('index', value='seqid')
-    glue: str = Field('glue', value='_')
+    index: str = Field("index", value="seqid")
+    glue: str = Field("glue", value="_")
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
-        indices = gene.series.index.to_frame().fillna('', inplace=False)
+        indices = gene.series.index.to_frame().fillna("", inplace=False)
         gene.series.index = pd.Index(
-            indices.apply(self.glue.join, axis=1),
-            name=self.index)
+            indices.apply(self.glue.join, axis=1), name=self.index
+        )
         return gene
 
 
 class OpIndexFilter(Operator):
-    index: str = 'seqid'
+    index: str = "seqid"
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
@@ -87,10 +93,11 @@ class OpDropEmpty(Operator):
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         gene.series = gene.series.dropna(inplace=False)
-        empty = ''.join(set(gene.missing + gene.gap))
+        empty = "".join(set(gene.missing + gene.gap))
         if empty:
             gene.series = gene.series[
-                ~ gene.series.str.fullmatch(f'[{re.escape(empty)}]+')]
+                ~gene.series.str.fullmatch(f"[{re.escape(empty)}]+")
+            ]
         gene.series = gene.series[gene.series.str.len() > 0]
         if not len(gene.series):
             return None
@@ -98,21 +105,21 @@ class OpDropEmpty(Operator):
 
 
 class OpPadRight(Operator):
-    padding: str = Field('padding', value='-')
+    padding: str = Field("padding", value="-")
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not self.padding:
             return gene
         assert len(self.padding) == 1
         gene = gene.copy()
-        gene.series = gene.series.fillna('', inplace=False)
+        gene.series = gene.series.fillna("", inplace=False)
         max_length = gene.series.str.len().max()
         gene.series = gene.series.str.ljust(max_length, self.padding)
         return gene
 
 
 class OpMakeUniform(Operator):
-    padding: str = Field('padding', value='')
+    padding: str = Field("padding", value="")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -122,7 +129,7 @@ class OpMakeUniform(Operator):
         if not self.padding:
             return gene
         gene = gene.copy()
-        gene.series = gene.series.fillna('')
+        gene.series = gene.series.fillna("")
         max_length = gene.series.str.len().max()
         if gene.reading_frame < 0:
             gene.series = gene.series.str.rjust(max_length, self.padding)
@@ -132,7 +139,7 @@ class OpMakeUniform(Operator):
 
 
 class OpTranslateSequences(Operator):
-    translation: Translation = Field('translation', value={})
+    translation: Translation = Field("translation", value={})
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
@@ -141,7 +148,7 @@ class OpTranslateSequences(Operator):
 
 
 class OpTranslateMissing(Operator):
-    missing: str = Field('missing', value='?')
+    missing: str = Field("missing", value="?")
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not self.missing or not gene.missing:
@@ -155,7 +162,7 @@ class OpTranslateMissing(Operator):
 
 
 class OpTranslateGap(Operator):
-    gap: str = Field('gap', value='-')
+    gap: str = Field("gap", value="-")
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if not self.gap or not gene.gap:
@@ -169,7 +176,7 @@ class OpTranslateGap(Operator):
 
 
 class OpFilterGenes(Operator):
-    genes: Set = Field('genes', value=set())
+    genes: Set = Field("genes", value=set())
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name not in self.genes:
@@ -178,8 +185,8 @@ class OpFilterGenes(Operator):
 
 
 class OpStencilGenes(Operator):
-    operator: Operator = Field('operator', value=OpPass())
-    genes: Set = Field('genes', value=set())
+    operator: Operator = Field("operator", value=OpPass())
+    genes: Set = Field("genes", value=set())
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self.genes:
@@ -188,7 +195,7 @@ class OpStencilGenes(Operator):
 
 
 class OpTranslateGenes(Operator):
-    translation: Dict = Field('translation', value=dict())
+    translation: Dict = Field("translation", value=dict())
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self.translation:
@@ -200,7 +207,7 @@ class OpTranslateGenes(Operator):
 
 
 class OpChainGenes(Operator):
-    allow_duplicates: bool = Field('allow_duplicates', value=False)
+    allow_duplicates: bool = Field("allow_duplicates", value=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -219,7 +226,8 @@ class OpDetectReadingFrame(Operator):
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
         final_reading_frame = final_column_reading_frame(
-            gene.series, gene.genetic_code, gene.reading_frame)
+            gene.series, gene.genetic_code, gene.reading_frame
+        )
         gene.reading_frame = final_reading_frame
         return gene
 
@@ -246,7 +254,7 @@ class OpSanitizeSpeciesNames(Operator):
 
 
 class OpSequenceCase(Operator):
-    case: TextCase = Field('case', value=TextCase.Unchanged)
+    case: TextCase = Field("case", value=TextCase.Unchanged)
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.case.method is None:
@@ -259,7 +267,7 @@ class OpSequenceCase(Operator):
 class OpSpreadsheetCompatibility(Operator):
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         gene = gene.copy()
-        gene.series = gene.series.str.replace('^-', 'N', regex=True)
+        gene.series = gene.series.str.replace("^-", "N", regex=True)
         return gene
 
 
@@ -280,7 +288,7 @@ class OpReverseNegativeReadingFrames(Operator):
 
 
 class OpPadReadingFrames(Operator):
-    padding: str = Field('padding', value='')
+    padding: str = Field("padding", value="")
     lengths = {2: 2, 3: 1}
 
     def __init__(self, *args, **kwargs):
@@ -289,11 +297,11 @@ class OpPadReadingFrames(Operator):
 
     @staticmethod
     def pad_left(seq: str, pad: str) -> str:
-        return f'{pad}{seq}'
+        return f"{pad}{seq}"
 
     @staticmethod
     def pad_right(seq: str, pad: str) -> str:
-        return f'{seq}{pad}'
+        return f"{seq}{pad}"
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.reading_frame in [0, 1, -1]:
@@ -304,7 +312,7 @@ class OpPadReadingFrames(Operator):
         if self.padding:
             padding = self.padding
         else:
-            padding = '?' if '?' in gene.missing else gene.missing[0]
+            padding = "?" if "?" in gene.missing else gene.missing[0]
         padding = padding * self.lengths[reading_frame]
         gene.series = gene.series.apply(lambda seq: func(seq, padding))
         sign = 1 - 2 * int(gene.reading_frame < 0)
@@ -322,15 +330,15 @@ class OpExtractCharsets(Operator):
         assert has_uniform_length(gene.series)
         length = len(gene.series.iat[0])
         charset = Charset(
-            gene.name, self.cursor, length,
-            gene.reading_frame, gene.codon_names)
+            gene.name, self.cursor, length, gene.reading_frame, gene.codon_names
+        )
         self.charsets.append(charset)
         self.cursor += length
         return gene
 
 
 class OpUpdateMetadata(Operator):
-    metas: Dict[str, Dict] = Field('metas', value={})
+    metas: Dict[str, Dict] = Field("metas", value={})
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name not in self.metas:
@@ -342,7 +350,7 @@ class OpUpdateMetadata(Operator):
 
 
 class OpApplyToGene(Operator):
-    func: Callable[[GeneSeries], GeneSeries] = Field('func', value=None)
+    func: Callable[[GeneSeries], GeneSeries] = Field("func", value=None)
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.func is None:
@@ -351,7 +359,7 @@ class OpApplyToGene(Operator):
 
 
 class OpApplyToSeries(Operator):
-    func: Callable[[pd.Series], pd.Series] = Field('func', value=None)
+    func: Callable[[pd.Series], pd.Series] = Field("func", value=None)
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if self.func is None:
@@ -361,9 +369,29 @@ class OpApplyToSeries(Operator):
         return gene
 
 
+class OpGeneralInfo(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.table = GeneralInfo.empty()
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert gene.series is not None
+        dataframe = pd.DataFrame(
+            gene.series.str.len(), columns=[InfoColumns.NucleotideCount]
+        )
+        missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing))
+        dataframe[InfoColumns.MissingCount] = gene.series.str.count(missing_regex)
+        dataframe[InfoColumns.SeqCount] = 1
+        dataframe[InfoColumns.SeqLenMax] = dataframe[InfoColumns.NucleotideCount]
+        dataframe[InfoColumns.SeqLenMin] = dataframe[InfoColumns.NucleotideCount]
+        dataframe[InfoColumns.GCCount] = gene.series.str.count(re.compile(r"G|g|C|c"))
+        self.table += GeneralInfo(dataframe)
+        return gene
+
+
 # Pending removal, functionality to be merged into GeneDataFrame?
 def _join_any(stream: GeneStream) -> GeneDataFrame:
-    sentinel = '\u0000'
+    sentinel = "\u0000"
     all_keys = OrderedSet()
 
     def guarded(names: Iterator[str]) -> List[str]:
@@ -380,7 +408,8 @@ def _join_any(stream: GeneStream) -> GeneDataFrame:
             gene = gene.copy()
             keys = guard(gene.series.index.names)
             gene.series.index = pd.MultiIndex.from_frame(
-                gene.series.index.to_frame(), names=keys)
+                gene.series.index.to_frame(), names=keys
+            )
             all_keys.update(keys)
             gene.series = gene.series.reset_index(keys)
             yield gene
@@ -390,12 +419,12 @@ def _join_any(stream: GeneStream) -> GeneDataFrame:
     all = gdf.dataframe
     for gene in genes:
         merge_keys = all_keys & guarded(gene.series.columns)
-        all = pd.merge(all, gene.series, how='outer', on=list(merge_keys))
+        all = pd.merge(all, gene.series, how="outer", on=list(merge_keys))
         # We assume all gene series are compatible
         print(gene, gene.missing)
         gdf.missing = gene.missing
         gdf.gap = gene.gap
-    print('end', gdf.missing)
+    print("end", gdf.missing)
     all.set_index(list(all_keys), inplace=True)
     all.index.names = unguard(all.index.names)
     gdf.dataframe = all
