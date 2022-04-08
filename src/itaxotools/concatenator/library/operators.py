@@ -375,10 +375,10 @@ class OpGeneralInfo(Operator):
         self.table = GeneralInfo.empty()
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        gene = OpIndexMerge("taxon")(gene)
+        gene = OpIndexMerge(index="taxon")(gene)
         assert gene.series is not None
-        dataframe = pd.DataFrame(
-            gene.series.str.len(), columns=[InfoColumns.NucleotideCount]
+        dataframe = pd.DataFrame(gene.series.str.len()).rename(
+            columns=(lambda _: InfoColumns.NucleotideCount)
         )
         missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing))
         dataframe[InfoColumns.MissingCount] = gene.series.str.count(missing_regex)

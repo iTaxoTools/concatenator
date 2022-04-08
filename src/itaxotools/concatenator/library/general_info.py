@@ -47,23 +47,18 @@ class GeneralInfo:
         )
 
     def __add__(self, other: GeneralInfo) -> GeneralInfo:
-        result = pd.DataFrame(index=self.dataframe.index.union(other.dataframe.index))
-        for add_column in (
-            InfoColumns.SeqCount,
-            InfoColumns.NucleotideCount,
-            InfoColumns.MissingCount,
-            InfoColumns.SeqLenMin,
-            InfoColumns.SeqLenMax,
-            InfoColumns.GCCount,
-        ):
-            result[add_column] = self.dataframe[add_column].add(
-                other.dataframe[add_column], fill_value=0
-            )
-        result[InfoColumns.SeqLenMin] = self.dataframe[InfoColumns.SeqLenMin].combine(
-            other.dataframe[InfoColumns.SeqLenMin], min, fill_value=np.inf
-        )
-        result[InfoColumns.SeqLenMax] = self.dataframe[InfoColumns.SeqLenMax].combine(
-            other.dataframe[InfoColumns.SeqLenMax], max, fill_value=0
+        left = self.dataframe.reset_index()
+        right = other.dataframe.reset_index()
+        result = pd.concat([left, right], ignore_index=True)
+        result = result.groupby([InfoColumns.Gene, InfoColumns.Taxon]).agg(
+            {
+                InfoColumns.SeqCount: "sum",
+                InfoColumns.NucleotideCount: "sum",
+                InfoColumns.MissingCount: "sum",
+                InfoColumns.SeqLenMin: "min",
+                InfoColumns.SeqLenMax: "max",
+                InfoColumns.GCCount: "sum",
+            }
         )
         return GeneralInfo(result)
 
@@ -208,7 +203,7 @@ class GeneralInfo:
         result = dataframe.groupby(InfoColumns.Taxon).agg(
             **{
                 "number of markers with data": pd.NamedAgg(
-                    column=InfoColumns.Gene, aggfunc="sum"
+                    column=InfoColumns.Gene, aggfunc="count"
                 ),
                 "total number of nucleotides": pd.NamedAgg(
                     column=InfoColumns.NucleotideCount, aggfunc="sum"

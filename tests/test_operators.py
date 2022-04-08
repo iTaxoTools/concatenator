@@ -24,6 +24,7 @@ from itaxotools.concatenator.library.operators import (
     OpUpdateMetadata,
     OpMakeUniform,
     OpGeneralInfo,
+    OpIndexMerge,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
 
@@ -358,6 +359,7 @@ def test_general_info():
     for _ in genestream.pipe(operator):
         pass
     table = operator.table
-    print(table)
-    print(table.total_data())
-    print(table.by_taxon())
+    print(table.dataframe.to_string())
+    print(table.total_data().to_string())
+    print(table.by_taxon().to_string())
+    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
