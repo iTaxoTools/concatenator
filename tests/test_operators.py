@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Iterator
 
 import pytest
 import pandas as pd
@@ -27,6 +28,8 @@ from itaxotools.concatenator.library.operators import (
     OpIndexMerge,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
+from itaxotools.concatenator.library.general_info import FileGeneralInfo, GeneralInfo
+from itaxotools.concatenator.library.file_types import FileFormat
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -363,3 +366,13 @@ def test_general_info():
     print(table.total_data().to_string())
     print(table.by_taxon().to_string())
     genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    filenames = ["foo", "bar", "baz"]
+    file_formats = [FileFormat.Tab, FileFormat.Nexus, FileFormat.Ali]
+
+    def stream_with_files() -> Iterator[FileGeneralInfo]:
+        for filename, file_format, gene in zip(filenames, file_formats, genestream):
+            op = OpGeneralInfo()
+            op(gene)
+            yield FileGeneralInfo(filename, file_format, op.table)
+
+    print(GeneralInfo.by_input_file(stream_with_files()).to_string())

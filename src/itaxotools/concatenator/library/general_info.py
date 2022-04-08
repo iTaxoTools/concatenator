@@ -184,9 +184,21 @@ class GeneralInfo:
                 InfoColumns.SeqLenMin: "sequence length minimum",
                 InfoColumns.SeqLenMax: "sequence length maximum",
                 InfoColumns.GCCount: "GC content of sequences",
-            }
+            },
+            inplace=True,
         )
-        return result
+        return result[
+            [
+                "input file name",
+                "input file format",
+                "number of taxa",
+                "number of genes (markers)",
+                "% missing data",
+                "sequence length minimum",
+                "sequence length maximum",
+                "GC content of sequences",
+            ]
+        ]
 
     def by_taxon(self) -> pd.DataFrame:
         """
