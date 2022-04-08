@@ -223,7 +223,8 @@ class GeneralInfo:
             }
         )
         result["% of missing data (markers)"] = (
-            result["number of markers with data"]
+            1
+            - result["number of markers with data"]
             / dataframe[InfoColumns.Gene].nunique()
         )
         result["% of missing data (nucleotides)"] /= result[
