@@ -288,6 +288,10 @@ class GeneralInfo:
             100 / result["total number of nucleotides in alignment"]
         )
         result = result.join(gene_info.dataframe, how="left")
+        for yes_no_column in GeneInfoColumns:
+            result[yes_no_column] = result[yes_no_column].map(
+                {True: "yes", False: "no"}
+            )
         result.rename(
             columns={
                 GeneInfoColumns.MafftRealigned: "re-aligned by Mafft yes/no",
