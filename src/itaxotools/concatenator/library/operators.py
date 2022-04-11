@@ -382,10 +382,7 @@ class OpGeneralInfo(Operator):
         )
         missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing))
         dataframe[InfoColumns.MissingCount] = gene.series.str.count(missing_regex)
-        # sequence is only considered present if there is some non-missing data
-        dataframe[InfoColumns.SeqCount] = (
-            dataframe[InfoColumns.NucleotideCount] > dataframe[InfoColumns.MissingCount]
-        ).astype(int)
+        dataframe[InfoColumns.SeqCount] = 1
         dataframe[InfoColumns.SeqLenMax] = dataframe[InfoColumns.NucleotideCount]
         dataframe[InfoColumns.SeqLenMin] = dataframe[InfoColumns.NucleotideCount]
         dataframe[InfoColumns.GCCount] = gene.series.str.count(re.compile(r"G|g|C|c"))
@@ -394,6 +391,8 @@ class OpGeneralInfo(Operator):
         dataframe.set_index(
             [InfoColumns.Gene, InfoColumns.Taxon], inplace=True, verify_integrity=True
         )
+        # drop rows where the sequence is completely missing
+        dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > dataframe[InfoColumns.MissingCount]].copy()
         self.table += GeneralInfo(dataframe)
         return gene
 
