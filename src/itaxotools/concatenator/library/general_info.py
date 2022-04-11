@@ -216,7 +216,7 @@ class GeneralInfo:
         result = dataframe.groupby(InfoColumns.Taxon).agg(
             **{
                 "number of markers with data": pd.NamedAgg(
-                    column=InfoColumns.Gene, aggfunc="count"
+                    column=InfoColumns.Gene, aggfunc="nunique"
                 ),
                 "total number of nucleotides": pd.NamedAgg(
                     column=InfoColumns.NucleotideCount, aggfunc="sum"
@@ -239,11 +239,62 @@ class GeneralInfo:
             1
             - result["number of markers with data"]
             / dataframe[InfoColumns.Gene].nunique()
+        ) * 100
+        result["% of missing data (nucleotides)"] *= (
+            100 / result["total number of nucleotides"]
         )
-        result["% of missing data (nucleotides)"] /= result[
-            "total number of nucleotides"
-        ]
         result["GC content of sequences"] /= result["total number of nucleotides"]
+        result.index.name = "taxon name"
+
+        return result
+
+    def by_gene(self, gene_info: GeneInfo) -> pd.DataFrame:
+        """
+        Returns a pandas DataFrame with index "gene name" and columns:
+            number of taxa with data
+            total number of nucleotide in alignment
+            % of missing data (nucleotides)
+            % of missing data (taxa)
+            GC content of sequences
+            re-aligned by Mafft yes/no
+            padded to compensate for unequal sequence lengths yes/no
+            padded to start with 1st codon position yes/no
+        """
+        dataframe = self.dataframe.reset_index()
+        result = dataframe.groupby(InfoColumns.Gene).agg(
+            **{
+                "number of taxa with data": pd.NamedAgg(
+                    column=InfoColumns.Taxon, aggfunc="nunique"
+                ),
+                "total number of nucleotides in alignment": pd.NamedAgg(
+                    column=InfoColumns.NucleotideCount, aggfunc="sum"
+                ),
+                "% of missing data (nucleotides)": pd.NamedAgg(
+                    column=InfoColumns.MissingCount, aggfunc="sum"
+                ),
+                "GC content of sequences": pd.NamedAgg(
+                    column=InfoColumns.GCCount, aggfunc="sum"
+                ),
+            }
+        )
+        result["% of missing data (taxa)"] = (
+            1
+            - result["number of markers with data"]
+            / dataframe[InfoColumns.Gene].nunique()
+        ) * 100
+        result["% of missing data (nucleotides)"] *= (
+            100 / result["total number of nucleotides"]
+        )
+        result["GC content of sequences"] *= 100 / result["total number of nucleotides"]
+        result = result.join(gene_info.dataframe, how="left")
+        result.rename(
+            columns={
+                GeneInfoColumns.MafftRealigned: "re-aligned by Mafft yes/no",
+                GeneInfoColumns.PaddedLength: "padded to compensate for unequal sequence lengths yes/no",
+                GeneInfoColumns.PaddedCodonPosition: "padded to start with 1st codon position yes/no",
+            },
+            inplace=True,
+        )
         result.index.name = "taxon name"
 
         return result
@@ -254,3 +305,23 @@ class FileGeneralInfo:
     filename: str
     file_format: FileFormat
     table: GeneralInfo
+
+
+class GeneInfoColumns(Enum):
+    MafftRealigned = auto()  # re-aligned by Mafft yes/no
+    PaddedLength = auto()  # padded to compensate for unequal sequence lengths yes/no
+    PaddedCodonPosition = auto()  # padded to start with 1st codon position yes/no
+
+
+class GeneInfo:
+    """
+    Contains a pandas DataFrame with index `InfoColumns.Gene` and columns:
+        GeneInfoColumns.MafftRealigned (re-aligned by Mafft yes/no)
+        GeneInfoColumns.PaddedLength (padded to compensate for unequal sequence lengths yes/no)
+        GeneInfoColumns.PaddedCodonPosition (padded to start with 1st codon position yes/no)
+    """
+
+    def __init__(self, dataframe: pd.DataFrame):
+        assert dataframe.index.name == InfoColumns.Gene
+        assert set(dataframe.columns) == set(GeneInfoColumns)
+        self.dataframe = dataframe
