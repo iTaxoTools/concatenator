@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Iterator
+import random
 
 import pytest
 import pandas as pd
+import numpy as np
 
 from itaxotools.concatenator.library.model import GeneSeries, GeneStream
 from itaxotools.concatenator.library.types import TextCase, Charset
@@ -28,7 +30,13 @@ from itaxotools.concatenator.library.operators import (
     OpIndexMerge,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
-from itaxotools.concatenator.library.general_info import FileGeneralInfo, GeneralInfo
+from itaxotools.concatenator.library.general_info import (
+    FileGeneralInfo,
+    GeneralInfo,
+    InfoColumns,
+    GeneInfo,
+    GeneInfoColumns,
+)
 from itaxotools.concatenator.library.file_types import FileFormat
 
 
@@ -376,3 +384,23 @@ def test_general_info():
             yield FileGeneralInfo(filename, file_format, op.table)
 
     print(GeneralInfo.by_input_file(stream_with_files()).to_string())
+    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    gene_index = pd.Index([gene.name for gene in genestream])
+    gene_index.name = InfoColumns.Gene
+    gene_info = GeneInfo(
+        pd.DataFrame(
+            {
+                GeneInfoColumns.MafftRealigned: random.choices(
+                    [True, False], k=len(gene_index)
+                ),
+                GeneInfoColumns.PaddedLength: random.choices(
+                    [True, False], k=len(gene_index)
+                ),
+                GeneInfoColumns.PaddedCodonPosition: random.choices(
+                    [True, False], k=len(gene_index)
+                ),
+            },
+            index=gene_index,
+        )
+    )
+    print(table.by_gene(gene_info).to_string())

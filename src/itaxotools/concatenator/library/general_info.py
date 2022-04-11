@@ -279,13 +279,14 @@ class GeneralInfo:
         )
         result["% of missing data (taxa)"] = (
             1
-            - result["number of markers with data"]
-            / dataframe[InfoColumns.Gene].nunique()
+            - result["number of taxa with data"] / dataframe[InfoColumns.Gene].nunique()
         ) * 100
         result["% of missing data (nucleotides)"] *= (
-            100 / result["total number of nucleotides"]
+            100 / result["total number of nucleotides in alignment"]
         )
-        result["GC content of sequences"] *= 100 / result["total number of nucleotides"]
+        result["GC content of sequences"] *= (
+            100 / result["total number of nucleotides in alignment"]
+        )
         result = result.join(gene_info.dataframe, how="left")
         result.rename(
             columns={
