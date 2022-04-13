@@ -381,7 +381,7 @@ class OpGeneralInfo(Operator):
         dataframe = pd.DataFrame(gene.series.str.len()).rename(
             columns=(lambda _: InfoColumns.NucleotideCount)
         )
-        missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing))
+        missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing + gene.gap))
         dataframe[InfoColumns.MissingCount] = gene.series.str.count(missing_regex)
         dataframe[InfoColumns.SeqCount] = 1
         dataframe[InfoColumns.SeqLenMax] = dataframe[InfoColumns.NucleotideCount]

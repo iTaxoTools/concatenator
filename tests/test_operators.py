@@ -411,10 +411,11 @@ def test_general_info_per_file():
     for _ in piped: pass
 
     table = op.get_info()
-    print(table.to_string())
-    assert table.iloc[0]['number of taxa'] == 1
-    assert table.iloc[0]['number of genes (markers)'] == 2
-    assert table.iloc[0]['% missing data'] == 40.0
-    assert table.iloc[0]['sequence length minimum'] == 2
-    assert table.iloc[0]['sequence length maximum'] == 2
-    assert table.iloc[0]['GC content of sequences'] == 50.0
+    assert table.iloc[0]['input file name'] == "simple.tab"
+    assert table.iloc[0]['input file format'] == FileFormat.Tab
+    assert table.iloc[0]['number of samples'] == 1
+    assert table.iloc[0]['number of markers'] == 2
+    assert table.iloc[0]['sequence length minimum'] == 8
+    assert table.iloc[0]['sequence length maximum'] == 12
+    assert table.iloc[0]['% missing nucleotides'] == 40.0
+    assert table.iloc[0]['% GC content'] == 50.0

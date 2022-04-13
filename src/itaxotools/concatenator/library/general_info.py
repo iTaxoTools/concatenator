@@ -109,7 +109,9 @@ class GeneralInfo:
         )
         result["GC content of sequences"] = (
             dataframe[InfoColumns.GCCount].sum()
-            / dataframe[InfoColumns.NucleotideCount].sum()
+            / (dataframe[InfoColumns.NucleotideCount].sum()
+               - dataframe[InfoColumns.MissingCount].sum())
+            * 100
         )
         result["Total number of nucleotides in concatenated data set"] = dataframe[
             InfoColumns.NucleotideCount
@@ -146,12 +148,12 @@ class GeneralInfo:
         Returns a pandas DataFrame with columns:
             input file name
             input file format
-            number of taxa
-            number of gene (markers)
-            % missing data
+            number of samples
+            number of markers
             sequence length minimum
             sequence length maximum
-            GC content of sequences
+            % missing nucleotides
+            % GC content
         """
         rows = []
         for file_info in tables:
@@ -170,21 +172,24 @@ class GeneralInfo:
             row["input file format"] = file_info.file_format
             rows.append(row)
         result = pd.DataFrame(rows)
+        result[InfoColumns.GCCount] = (
+            result[InfoColumns.GCCount] / (
+                result[InfoColumns.NucleotideCount]
+                - result[InfoColumns.MissingCount])
+            * 100
+        )
         result[InfoColumns.MissingCount] = (
             result[InfoColumns.MissingCount] / result[InfoColumns.NucleotideCount] * 100
-        )
-        result[InfoColumns.GCCount] = (
-            result[InfoColumns.GCCount] / result[InfoColumns.NucleotideCount]
         )
         result.drop(columns=InfoColumns.NucleotideCount, inplace=True)
         result.rename(
             columns={
-                InfoColumns.Taxon: "number of taxa",
-                InfoColumns.Gene: "number of genes (markers)",
-                InfoColumns.MissingCount: "% missing data",
+                InfoColumns.Taxon: "number of samples",
+                InfoColumns.Gene: "number of markers",
                 InfoColumns.SeqLenMin: "sequence length minimum",
                 InfoColumns.SeqLenMax: "sequence length maximum",
-                InfoColumns.GCCount: "GC content of sequences",
+                InfoColumns.MissingCount: "% missing nucleotides",
+                InfoColumns.GCCount: "% GC content",
             },
             inplace=True,
         )
@@ -192,12 +197,12 @@ class GeneralInfo:
             [
                 "input file name",
                 "input file format",
-                "number of taxa",
-                "number of genes (markers)",
-                "% missing data",
+                "number of samples",
+                "number of markers",
                 "sequence length minimum",
                 "sequence length maximum",
-                "GC content of sequences",
+                "% missing nucleotides",
+                "% GC content",
             ]
         ]
 
