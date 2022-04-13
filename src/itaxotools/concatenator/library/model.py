@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterator, Optional, Protocol
 from dataclasses import dataclass
 from pathlib import Path
-from itertools import tee
+from itertools import tee, count
 from copy import copy
 
 import pandas as pd
@@ -87,12 +87,16 @@ class GeneStream:
         format: FileFormat
         path: Path
 
+    _counter = count(1,1)
+
     def __init__(self,
         iterator: Iterator[GeneSeries],
-        source: Optional[Source] = None
+        source: Optional[Source] = None,
+        id: Optional[int] = None
     ):
         self.iterator = iterator
         self.source = source
+        self.id = id or next(self._counter)
 
     def __iter__(self):
         return self.iterator
@@ -116,7 +120,7 @@ class GeneStream:
         return matches[0]
 
     def pipe(self, op: Operator) -> GeneStream:
-        return GeneStream((op.iter(self)), self.source)
+        return GeneStream((op.iter(self)), self.source, self.id)
 
 
 class GeneDataFrame:
