@@ -40,6 +40,8 @@ from itaxotools.concatenator.library.general_info import (
 )
 from itaxotools.concatenator.library.file_types import FileFormat
 
+TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
+
 
 def assert_gene_meta_equal(gene1, gene2):
     assert gene1.missing == gene2.missing
@@ -366,7 +368,7 @@ def test_index_merge():
 
 
 def test_general_info():
-    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    genestream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     operator = OpGeneralInfo()
     for _ in genestream.pipe(operator):
         pass
@@ -377,19 +379,7 @@ def test_general_info():
     for taxa in table.disjoint_taxon_groups():
         print(taxa)
 
-    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
-    filenames = ["foo", "bar", "baz"]
-    file_formats = [FileFormat.Tab, FileFormat.Nexus, FileFormat.Ali]
-
-    def stream_with_files() -> Iterator[FileGeneralInfo]:
-        for filename, file_format, gene in zip(filenames, file_formats, genestream):
-            op = OpGeneralInfo()
-            op(gene)
-            yield FileGeneralInfo(filename, file_format, op.table)
-
-    print(GeneralInfo.by_input_file(stream_with_files()).to_string())
-
-    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    genestream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     gene_index = pd.Index([gene.name for gene in genestream])
     gene_index.name = InfoColumns.Gene
     gene_info = GeneInfo(
@@ -413,11 +403,18 @@ def test_general_info():
 
 def test_general_info_per_file():
     op = OpGeneralInfoPerFile()
-    stream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    stream = read_from_path(TEST_DATA_DIR / "simple.tab")
     piped = stream.pipe(op)
     for _ in piped: pass
-    stream = read_from_path(Path(__file__).parent / "test_read"/ "multi.nex")
+    stream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     piped = stream.pipe(op)
     for _ in piped: pass
-    print(op.get_info().to_string())
-    # assert False
+
+    table = op.get_info()
+    print(table.to_string())
+    assert table.iloc[0]['number of taxa'] == 1
+    assert table.iloc[0]['number of genes (markers)'] == 2
+    assert table.iloc[0]['% missing data'] == 40.0
+    assert table.iloc[0]['sequence length minimum'] == 2
+    assert table.iloc[0]['sequence length maximum'] == 2
+    assert table.iloc[0]['GC content of sequences'] == 50.0
