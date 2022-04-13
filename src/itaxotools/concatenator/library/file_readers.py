@@ -1,5 +1,5 @@
 
-from typing import Callable, Dict
+from typing import Callable, Dict, Iterator
 from pathlib import Path
 
 from .model import GeneStream, GeneIO
@@ -24,6 +24,9 @@ class FileReader(ConfigurableCallable):
     def call(self, path: Path) -> GeneStream:
         """Read from path, then apply filter operations"""
         raise NotImplementedError
+
+    def _source(self, path: Path) -> GeneStream.Source:
+        return GeneStream.Source(self.type, self.format, path)
 
 
 file_readers: Dict[FileType, Dict[FileFormat, FileReader]] = {
@@ -54,22 +57,27 @@ class _GeneReader(FileReader):
 
 class _SingleFileReader(_GeneReader):
     def read(self, path: Path) -> GeneStream:
-        return GeneStream(
-            iter([self.geneIO.gene_from_path(path)]))
+        it = iter([self.geneIO.gene_from_path(path)])
+        source = self._source(path)
+        return GeneStream(it, source)
 
 
 class _MultiDirReader(_GeneReader):
     def read(self, path: Path) -> GeneStream:
-        return GeneStream(
+        it = (
             self.geneIO.gene_from_path(part)
             for part in path.iterdir())
+        source = self._source(path)
+        return GeneStream(it, source)
 
 
 class _MultiZipReader(_GeneReader):
     def read(self, path: Path) -> GeneStream:
-        return GeneStream(
+        it = (
             self.geneIO.gene_from_path(part)
             for part in ZipPath(path).iterdir())
+        source = self._source(path)
+        return GeneStream(it, source)
 
 
 def _register_type_reader(
@@ -102,6 +110,7 @@ for ftype, reader in {
 class NexusReader(FileReader):
     def call(self, path: Path) -> GeneStream:
         stream = nexus.stream_from_path(path)
+        stream.source = self._source(path)
         return self.filter(stream)
 
 
@@ -111,6 +120,7 @@ class TabFileReader(FileReader):
 
     def call(self, path: Path) -> GeneStream:
         stream = tabfile.stream_from_path(path)
+        stream.source = self._source(path)
         return self.filter(stream)
 
 

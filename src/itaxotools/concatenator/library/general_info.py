@@ -96,7 +96,8 @@ class GeneralInfo:
                 "Minimum number of taxa per markers",
                 "Maximum number of taxa per marker",
                 "Average number of taxa per marker",
-            ]
+            ],
+            dtype="object"
         )
         dataframe = self.dataframe.reset_index()
         result["Number of taxa"] = dataframe[InfoColumns.Taxon].nunique()

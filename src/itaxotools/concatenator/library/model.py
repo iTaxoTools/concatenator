@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 from typing import Iterator, Optional, Protocol
+from dataclasses import dataclass
+from pathlib import Path
 from itertools import tee
 from copy import copy
 
@@ -8,6 +10,7 @@ import pandas as pd
 
 from .utils import ConfigurableCallable, fill_empty
 from .file_utils import PathLike
+from .file_types import FileType, FileFormat
 from .codons import GeneticCode, ReadingFrame
 
 
@@ -78,8 +81,18 @@ class Operator(ConfigurableCallable):
 class GeneStream:
     """An iterator over GeneSeries items with some extra functionalities"""
 
-    def __init__(self, iterator: Iterator[GeneSeries]):
+    @dataclass
+    class Source:
+        type: FileType
+        format: FileFormat
+        path: Path
+
+    def __init__(self,
+        iterator: Iterator[GeneSeries],
+        source: Optional[Source] = None
+    ):
         self.iterator = iterator
+        self.source = source
 
     def __iter__(self):
         return self.iterator
@@ -103,7 +116,7 @@ class GeneStream:
         return matches[0]
 
     def pipe(self, op: Operator) -> GeneStream:
-        return GeneStream((op.iter(self)))
+        return GeneStream((op.iter(self)), self.source)
 
 
 class GeneDataFrame:
