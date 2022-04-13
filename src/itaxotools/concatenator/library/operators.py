@@ -392,6 +392,8 @@ class OpGeneralInfo(Operator):
         dataframe.set_index(
             [InfoColumns.Gene, InfoColumns.Taxon], inplace=True, verify_integrity=True
         )
+        # drop rows where the sequence is completely missing
+        dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > dataframe[InfoColumns.MissingCount]].copy()
         self.table += GeneralInfo(dataframe)
         return gene
 

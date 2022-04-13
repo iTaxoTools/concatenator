@@ -6,7 +6,7 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 import pandas as pd
-import numpy as np
+import networkx as nx
 
 from .file_types import FileFormat
 
@@ -216,7 +216,7 @@ class GeneralInfo:
         result = dataframe.groupby(InfoColumns.Taxon).agg(
             **{
                 "number of markers with data": pd.NamedAgg(
-                    column=InfoColumns.Gene, aggfunc="count"
+                    column=InfoColumns.Gene, aggfunc="nunique"
                 ),
                 "total number of nucleotides": pd.NamedAgg(
                     column=InfoColumns.NucleotideCount, aggfunc="sum"
@@ -239,14 +239,87 @@ class GeneralInfo:
             1
             - result["number of markers with data"]
             / dataframe[InfoColumns.Gene].nunique()
+        ) * 100
+        result["% of missing data (nucleotides)"] *= (
+            100 / result["total number of nucleotides"]
         )
-        result["% of missing data (nucleotides)"] /= result[
-            "total number of nucleotides"
-        ]
         result["GC content of sequences"] /= result["total number of nucleotides"]
         result.index.name = "taxon name"
 
         return result
+
+    def by_gene(self, gene_info: GeneInfo) -> pd.DataFrame:
+        """
+        Returns a pandas DataFrame with index "gene name" and columns:
+            number of taxa with data
+            total number of nucleotide in alignment
+            % of missing data (nucleotides)
+            % of missing data (taxa)
+            GC content of sequences
+            re-aligned by Mafft yes/no
+            padded to compensate for unequal sequence lengths yes/no
+            padded to start with 1st codon position yes/no
+        """
+        dataframe = self.dataframe.reset_index()
+        result = dataframe.groupby(InfoColumns.Gene).agg(
+            **{
+                "number of taxa with data": pd.NamedAgg(
+                    column=InfoColumns.Taxon, aggfunc="nunique"
+                ),
+                "total number of nucleotides in alignment": pd.NamedAgg(
+                    column=InfoColumns.NucleotideCount, aggfunc="sum"
+                ),
+                "% of missing data (nucleotides)": pd.NamedAgg(
+                    column=InfoColumns.MissingCount, aggfunc="sum"
+                ),
+                "GC content of sequences": pd.NamedAgg(
+                    column=InfoColumns.GCCount, aggfunc="sum"
+                ),
+            }
+        )
+        result["% of missing data (taxa)"] = (
+            1
+            - result["number of taxa with data"] / dataframe[InfoColumns.Gene].nunique()
+        ) * 100
+        result["% of missing data (nucleotides)"] *= (
+            100 / result["total number of nucleotides in alignment"]
+        )
+        result["GC content of sequences"] *= (
+            100 / result["total number of nucleotides in alignment"]
+        )
+        result = result.join(gene_info.dataframe, how="left")
+        for yes_no_column in GeneInfoColumns:
+            result[yes_no_column] = result[yes_no_column].map(
+                {True: "yes", False: "no"}
+            )
+        result.rename(
+            columns={
+                GeneInfoColumns.MafftRealigned: "re-aligned by Mafft yes/no",
+                GeneInfoColumns.PaddedLength: "padded to compensate for unequal sequence lengths yes/no",
+                GeneInfoColumns.PaddedCodonPosition: "padded to start with 1st codon position yes/no",
+            },
+            inplace=True,
+        )
+        result.index.name = "taxon name"
+
+        return result
+
+    def disjoint_taxon_groups(self) -> Iterator[set]:
+        """
+        Yields sets of taxon, such taxons in different sets have no genes in common
+        """
+        left_taxa = self.dataframe.index.to_frame(index=False)
+        right_taxa = left_taxa.copy()
+        left_taxa.rename(columns={InfoColumns.Taxon: "left"}, inplace=True)
+        right_taxa.rename(columns={InfoColumns.Taxon: "right"}, inplace=True)
+        connected_taxa = left_taxa.merge(
+            right_taxa, on=InfoColumns.Gene, suffixes=[None, None]
+        )[["left", "right"]]
+        graph = nx.from_pandas_edgelist(
+            connected_taxa, source="left", target="right", edge_attr=None
+        )
+        for component in nx.connected_components(graph):
+            yield component
 
 
 @dataclass
@@ -254,3 +327,23 @@ class FileGeneralInfo:
     filename: str
     file_format: FileFormat
     table: GeneralInfo
+
+
+class GeneInfoColumns(Enum):
+    MafftRealigned = auto()  # re-aligned by Mafft yes/no
+    PaddedLength = auto()  # padded to compensate for unequal sequence lengths yes/no
+    PaddedCodonPosition = auto()  # padded to start with 1st codon position yes/no
+
+
+class GeneInfo:
+    """
+    Contains a pandas DataFrame with index `InfoColumns.Gene` and columns:
+        GeneInfoColumns.MafftRealigned (re-aligned by Mafft yes/no)
+        GeneInfoColumns.PaddedLength (padded to compensate for unequal sequence lengths yes/no)
+        GeneInfoColumns.PaddedCodonPosition (padded to start with 1st codon position yes/no)
+    """
+
+    def __init__(self, dataframe: pd.DataFrame):
+        assert dataframe.index.name == InfoColumns.Gene
+        assert set(dataframe.columns) == set(GeneInfoColumns)
+        self.dataframe = dataframe
