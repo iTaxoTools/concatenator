@@ -373,6 +373,8 @@ def test_general_info():
     print(table.dataframe.to_string())
     print(table.total_data().to_string())
     print(table.by_taxon().to_string())
+    for taxa in table.disjoint_taxon_groups():
+        print(taxa)
     genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
     filenames = ["foo", "bar", "baz"]
     file_formats = [FileFormat.Tab, FileFormat.Nexus, FileFormat.Ali]

@@ -6,6 +6,7 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 import pandas as pd
+import networkx as nx
 
 from .file_types import FileFormat
 
@@ -304,14 +305,21 @@ class GeneralInfo:
         return result
 
     def disjoint_taxon_groups(self) -> Iterator[set]:
+        """
+        Yields sets of taxon, such taxons in different sets have no genes in common
+        """
         left_taxa = self.dataframe.index.to_frame(index=False)
-        right_taxa = left_taxa.copy
-        left_taxa.rename(columns={InfoColumns.Taxon: "left"})
-        right_taxa.rename(columns={InfoColumns.Taxon: "right"})
+        right_taxa = left_taxa.copy()
+        left_taxa.rename(columns={InfoColumns.Taxon: "left"}, inplace=True)
+        right_taxa.rename(columns={InfoColumns.Taxon: "right"}, inplace=True)
         connected_taxa = left_taxa.merge(
-            right_taxa, on=InfoColumns.Gene, suffixes=None
+            right_taxa, on=InfoColumns.Gene, suffixes=[None, None]
         )[["left", "right"]]
-        raise NotImplementedError
+        graph = nx.from_pandas_edgelist(
+            connected_taxa, source="left", target="right", edge_attr=None
+        )
+        for component in nx.connected_components(graph):
+            yield component
 
 
 @dataclass
