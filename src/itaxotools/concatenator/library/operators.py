@@ -1,4 +1,5 @@
 from typing import Callable, Dict, List, Iterator, Optional, Set
+from collections import defaultdict
 
 import pandas as pd
 import re
@@ -15,7 +16,7 @@ from .utils import (
     has_uniform_length,
 )
 from .codons import final_column_reading_frame, ReadingFrame
-from .general_info import GeneralInfo, InfoColumns
+from .general_info import GeneralInfo, InfoColumns, FileGeneralInfo
 
 
 class InvalidGeneSeries(Exception):
@@ -393,6 +394,30 @@ class OpGeneralInfo(Operator):
         )
         self.table += GeneralInfo(dataframe)
         return gene
+
+
+class OpGeneralInfoPerFile(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ops = defaultdict(lambda: OpGeneralInfo())
+        self.sources = dict()
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert gene.stream is not None
+        if gene.stream.id not in self.sources:
+            self.sources[gene.stream.id] = gene.stream.source
+        op = self.ops[gene.stream.id]
+        return op(gene)
+
+    def get_info(self) -> pd.DataFrame:
+        return GeneralInfo.by_input_file(self._file_infos())
+
+    def _file_infos(self) -> Iterator[FileGeneralInfo]:
+        for id in self.ops.keys():
+            filename = self.sources[id].path.name
+            file_format = self.sources[id].format
+            table = self.ops[id].table
+            yield FileGeneralInfo(filename, file_format, table)
 
 
 # Pending removal, functionality to be merged into GeneDataFrame?

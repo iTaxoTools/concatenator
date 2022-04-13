@@ -26,6 +26,7 @@ from itaxotools.concatenator.library.operators import (
     OpMakeUniform,
     OpGeneralInfo,
     OpIndexMerge,
+    OpGeneralInfoPerFile,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
 from itaxotools.concatenator.library.general_info import FileGeneralInfo, GeneralInfo
@@ -376,3 +377,15 @@ def test_general_info():
             yield FileGeneralInfo(filename, file_format, op.table)
 
     print(GeneralInfo.by_input_file(stream_with_files()).to_string())
+
+
+def test_general_info_per_file():
+    op = OpGeneralInfoPerFile()
+    stream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    piped = stream.pipe(op)
+    for _ in piped: pass
+    stream = read_from_path(Path(__file__).parent / "test_read"/ "multi.nex")
+    piped = stream.pipe(op)
+    for _ in piped: pass
+    print(op.get_info().to_string())
+    # assert False
