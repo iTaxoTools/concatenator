@@ -6,7 +6,6 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 import pandas as pd
-import numpy as np
 
 from .file_types import FileFormat
 
@@ -303,6 +302,16 @@ class GeneralInfo:
         result.index.name = "taxon name"
 
         return result
+
+    def disjoint_taxon_groups(self) -> Iterator[set]:
+        left_taxa = self.dataframe.index.to_frame(index=False)
+        right_taxa = left_taxa.copy
+        left_taxa.rename(columns={InfoColumns.Taxon: "left"})
+        right_taxa.rename(columns={InfoColumns.Taxon: "right"})
+        connected_taxa = left_taxa.merge(
+            right_taxa, on=InfoColumns.Gene, suffixes=None
+        )[["left", "right"]]
+        raise NotImplementedError
 
 
 @dataclass
