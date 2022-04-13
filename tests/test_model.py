@@ -98,10 +98,32 @@ def test_gene_dataframe_duplicate():
 
 
 def test_gene_stream_piping():
-    stream = GeneStream(iter([]), '$Source', 42)
-    piped = stream.pipe(OpPass())
+
+    class OpTest(Operator):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.stream = None
+
+        def call(self, gene):
+            print(gene)
+            self.stream = gene.stream
+            return gene
+
+    series = pd.Series({
+            "seq1": "TAA",
+            "seq2": "GCATAA",
+        }, name="gene")
+    series.index.name = "seqid"
+    gene = GeneSeries(series)
+
+    op = OpTest()
+    stream = GeneStream(iter([gene]), '$Source', 42)
+    piped = stream.pipe(op)
+    for _ in piped:
+        pass
     assert piped.source == '$Source'
     assert piped.id == 42
+    assert op.stream == stream
 
 
 def test_reading_frame():

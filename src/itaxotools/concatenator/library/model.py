@@ -46,6 +46,9 @@ class GeneSeries:
         self.missing = missing
         self.gap = gap
 
+        # Tagged when retrieved from a GeneStream
+        self.stream = None
+
     def copy(self):
         other = copy(self)
         if self.series is not None:
@@ -99,10 +102,15 @@ class GeneStream:
         self.id = id or next(self._counter)
 
     def __iter__(self):
-        return self.iterator
+        return (self._tag_gene(gene) for gene in self.iterator)
 
     def __next__(self):
-        return next(self.iterator)
+        gene = next(self.iterator)
+        return self._tag_gene(gene)
+
+    def _tag_gene(self, gene: GeneSeries) -> GeneSeries:
+        gene.stream = self
+        return gene
 
     def __len__(self) -> int:
         # Used for testing, should be avoided otherwise
