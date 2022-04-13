@@ -419,3 +419,12 @@ def test_general_info_per_file():
     assert table.iloc[0]['sequence length maximum'] == 12
     assert table.iloc[0]['% missing nucleotides'] == 40.0
     assert table.iloc[0]['% GC content'] == 50.0
+
+
+def test_general_info_disjoint():
+    stream = read_from_path(TEST_DATA_DIR / "disjoint.tab")
+    operator = OpGeneralInfo()
+    for gene in stream.pipe(operator):
+        print(gene.series)
+    groups = list(operator.table.disjoint_taxon_groups())
+    assert len(groups) == 2
