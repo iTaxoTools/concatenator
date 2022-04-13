@@ -3,7 +3,8 @@ import pytest
 import pandas as pd
 
 from itaxotools.concatenator.library.model import (
-    GeneSeries, GeneDataFrame, BadGeneJoin)
+    GeneSeries, GeneStream, GeneDataFrame, BadGeneJoin, Operator)
+from itaxotools.concatenator.library.operators import OpPass
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 
 
@@ -94,6 +95,35 @@ def test_gene_dataframe_duplicate():
     with pytest.raises(BadGeneJoin):
         stream = [gene1, gene2]
         gdf = GeneDataFrame.from_stream(stream)
+
+
+def test_gene_stream_piping():
+
+    class OpTest(Operator):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.stream = None
+
+        def call(self, gene):
+            print(gene)
+            self.stream = gene.stream
+            return gene
+
+    series = pd.Series({
+            "seq1": "TAA",
+            "seq2": "GCATAA",
+        }, name="gene")
+    series.index.name = "seqid"
+    gene = GeneSeries(series)
+
+    op = OpTest()
+    stream = GeneStream(iter([gene]), '$Source', 42)
+    piped = stream.pipe(op)
+    for _ in piped:
+        pass
+    assert piped.source == '$Source'
+    assert piped.id == 42
+    assert op.stream == stream
 
 
 def test_reading_frame():

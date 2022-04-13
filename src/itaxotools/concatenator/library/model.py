@@ -1,13 +1,16 @@
 
 from __future__ import annotations
 from typing import Iterator, Optional, Protocol
-from itertools import tee
+from dataclasses import dataclass
+from pathlib import Path
+from itertools import tee, count
 from copy import copy
 
 import pandas as pd
 
 from .utils import ConfigurableCallable, fill_empty
 from .file_utils import PathLike
+from .file_types import FileType, FileFormat
 from .codons import GeneticCode, ReadingFrame
 
 
@@ -42,6 +45,9 @@ class GeneSeries:
         self.codon_names = codon_names
         self.missing = missing
         self.gap = gap
+
+        # Tagged when retrieved from a GeneStream
+        self.stream = None
 
     def copy(self):
         other = copy(self)
@@ -78,14 +84,33 @@ class Operator(ConfigurableCallable):
 class GeneStream:
     """An iterator over GeneSeries items with some extra functionalities"""
 
-    def __init__(self, iterator: Iterator[GeneSeries]):
+    @dataclass
+    class Source:
+        type: FileType
+        format: FileFormat
+        path: Path
+
+    _counter = count(1,1)
+
+    def __init__(self,
+        iterator: Iterator[GeneSeries],
+        source: Optional[Source] = None,
+        id: Optional[int] = None
+    ):
         self.iterator = iterator
+        self.source = source
+        self.id = id or next(self._counter)
 
     def __iter__(self):
-        return self.iterator
+        return (self._tag_gene(gene) for gene in self.iterator)
 
     def __next__(self):
-        return next(self.iterator)
+        gene = next(self.iterator)
+        return self._tag_gene(gene)
+
+    def _tag_gene(self, gene: GeneSeries) -> GeneSeries:
+        gene.stream = self
+        return gene
 
     def __len__(self) -> int:
         # Used for testing, should be avoided otherwise
@@ -103,7 +128,7 @@ class GeneStream:
         return matches[0]
 
     def pipe(self, op: Operator) -> GeneStream:
-        return GeneStream((op.iter(self)))
+        return GeneStream((op.iter(self)), self.source, self.id)
 
 
 class GeneDataFrame:

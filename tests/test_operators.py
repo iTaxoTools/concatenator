@@ -28,6 +28,7 @@ from itaxotools.concatenator.library.operators import (
     OpMakeUniform,
     OpGeneralInfo,
     OpIndexMerge,
+    OpGeneralInfoPerFile,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
 from itaxotools.concatenator.library.general_info import (
@@ -38,6 +39,8 @@ from itaxotools.concatenator.library.general_info import (
     GeneInfoColumns,
 )
 from itaxotools.concatenator.library.file_types import FileFormat
+
+TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
 
 def assert_gene_meta_equal(gene1, gene2):
@@ -365,7 +368,7 @@ def test_index_merge():
 
 
 def test_general_info():
-    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    genestream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     operator = OpGeneralInfo()
     for _ in genestream.pipe(operator):
         pass
@@ -375,18 +378,8 @@ def test_general_info():
     print(table.by_taxon().to_string())
     for taxa in table.disjoint_taxon_groups():
         print(taxa)
-    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
-    filenames = ["foo", "bar", "baz"]
-    file_formats = [FileFormat.Tab, FileFormat.Nexus, FileFormat.Ali]
 
-    def stream_with_files() -> Iterator[FileGeneralInfo]:
-        for filename, file_format, gene in zip(filenames, file_formats, genestream):
-            op = OpGeneralInfo()
-            op(gene)
-            yield FileGeneralInfo(filename, file_format, op.table)
-
-    print(GeneralInfo.by_input_file(stream_with_files()).to_string())
-    genestream = read_from_path(Path(__file__).with_name("sequences.tab"))
+    genestream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     gene_index = pd.Index([gene.name for gene in genestream])
     gene_index.name = InfoColumns.Gene
     gene_info = GeneInfo(
@@ -406,3 +399,32 @@ def test_general_info():
         )
     )
     print(table.by_gene(gene_info).to_string())
+
+
+def test_general_info_per_file():
+    op = OpGeneralInfoPerFile()
+    stream = read_from_path(TEST_DATA_DIR / "simple.tab")
+    piped = stream.pipe(op)
+    for _ in piped: pass
+    stream = read_from_path(TEST_DATA_DIR / "sequences.tab")
+    piped = stream.pipe(op)
+    for _ in piped: pass
+
+    table = op.get_info()
+    assert table.iloc[0]['input file name'] == "simple.tab"
+    assert table.iloc[0]['input file format'] == FileFormat.Tab
+    assert table.iloc[0]['number of samples'] == 1
+    assert table.iloc[0]['number of markers'] == 2
+    assert table.iloc[0]['sequence length minimum'] == 8
+    assert table.iloc[0]['sequence length maximum'] == 12
+    assert table.iloc[0]['% missing nucleotides'] == 40.0
+    assert table.iloc[0]['% GC content'] == 50.0
+
+
+def test_general_info_disjoint():
+    stream = read_from_path(TEST_DATA_DIR / "disjoint.tab")
+    operator = OpGeneralInfo()
+    for gene in stream.pipe(operator):
+        print(gene.series)
+    groups = list(operator.table.disjoint_taxon_groups())
+    assert len(groups) == 2

@@ -1,0 +1,4 @@
+seqid	sequence_16S	sequence_cytb	sequence_coi
+sample1	ACGT	-	-
+sample2	ACGT	ACGT	-
+sample3	-	-	ACGT

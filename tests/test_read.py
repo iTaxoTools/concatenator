@@ -63,8 +63,12 @@ multi_tests = [
 ]
 
 
+def get_input_path(test: ReadTest) -> Path:
+    return TEST_DATA_DIR / test.input.name
+
+
 def get_stream(test: ReadTest) -> GeneStream:
-    input_path = TEST_DATA_DIR / test.input.name
+    input_path = get_input_path(test)
     type, format = autodetect(input_path)
     assert type == test.input.type
     assert format == test.input.format
@@ -87,17 +91,25 @@ def assert_matches(test: ReadTest, gene: GeneSeries, series: pd.Series) -> None:
 
 @pytest.mark.parametrize("test", simple_tests)
 def test_read_simple(test: ReadTest, series_simple: pd.Series) -> None:
-    stream = list(get_stream(test))
-    assert len(stream) == 1
-    for gene in stream:
+    stream = get_stream(test)
+    assert stream.source.type == test.input.type
+    assert stream.source.format == test.input.format
+    assert stream.source.path == get_input_path(test)
+    genes = list(stream)
+    assert len(genes) == 1
+    for gene in genes:
         assert_matches(test, gene, series_simple)
 
 
 @pytest.mark.parametrize("test", multi_tests)
 def test_read_multi(test: ReadTest, dataframe_multi: pd.DataFrame) -> None:
-    stream = list(get_stream(test))
-    assert len(stream) == 2
-    for gene in stream:
+    stream = get_stream(test)
+    assert stream.source.type == test.input.type
+    assert stream.source.format == test.input.format
+    assert stream.source.path == get_input_path(test)
+    genes = list(stream)
+    assert len(genes) == 2
+    for gene in genes:
         assert gene.name in dataframe_multi.columns
         assert_matches(test, gene, dataframe_multi[gene.name])
 

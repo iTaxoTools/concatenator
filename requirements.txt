@@ -2,7 +2,6 @@ appdirs==1.4.4
 attrs==21.4.0
 clldutils==3.11.1
 colorlog==6.6.0
-concatenator==0.2.0
 csvw==2.0.0
 DNAconvert==0.2.0
 iniconfig==1.1.1
