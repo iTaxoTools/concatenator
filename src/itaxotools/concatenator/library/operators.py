@@ -68,6 +68,27 @@ class OpCheckValid(Operator):
         return self.op_check_duplicates(gene)
 
 
+class OpTagSet(Operator):
+    tag: str = Field("tag", value="")
+    value: object = Field("value", value=None)
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert self.tag.isidentifier()
+        gene = gene.copy()
+        gene.tags[self.tag] = self.value
+        return gene
+
+
+class OpTagDelete(Operator):
+    tag: str = Field("tag", value="")
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert self.tag.isidentifier()
+        gene = gene.copy()
+        del gene.tags[self.tag]
+        return gene
+
+
 class OpIndexMerge(Operator):
     index: str = Field("index", value="seqid")
     glue: str = Field("glue", value="_")
@@ -102,20 +123,6 @@ class OpDropEmpty(Operator):
         gene.series = gene.series[gene.series.str.len() > 0]
         if not len(gene.series):
             return None
-        return gene
-
-
-class OpPadRight(Operator):
-    padding: str = Field("padding", value="-")
-
-    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        if not self.padding:
-            return gene
-        assert len(self.padding) == 1
-        gene = gene.copy()
-        gene.series = gene.series.fillna("", inplace=False)
-        max_length = gene.series.str.len().max()
-        gene.series = gene.series.str.ljust(max_length, self.padding)
         return gene
 
 

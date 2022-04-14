@@ -6,7 +6,8 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from itaxotools.concatenator.library.model import GeneSeries, GeneStream
+from itaxotools.concatenator.library.model import (
+    GeneSeries, GeneStream, Operator)
 from itaxotools.concatenator.library.types import TextCase, Charset
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
@@ -29,6 +30,8 @@ from itaxotools.concatenator.library.operators import (
     OpGeneralInfo,
     OpIndexMerge,
     OpGeneralInfoPerFile,
+    OpTagSet,
+    OpTagDelete,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
 from itaxotools.concatenator.library.general_info import (
@@ -49,6 +52,21 @@ def assert_gene_meta_equal(gene1, gene2):
     assert gene1.genetic_code == gene2.genetic_code
     assert gene1.reading_frame == gene2.reading_frame
     assert gene1.codon_names == gene2.codon_names
+
+
+def test_tag_set_delete():
+    series = pd.Series(
+        {
+            "seq1": "ACGT"
+        },
+        name="gene",
+    )
+    series.index.name = "seqid"
+    gene = GeneSeries(series)
+    added = OpTagSet('test', 42)(gene)
+    assert added.tags.test == 42
+    removed = OpTagDelete('test')(added)
+    assert 'test' not in removed.tags
 
 
 @pytest.fixture

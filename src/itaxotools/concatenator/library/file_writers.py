@@ -254,9 +254,7 @@ class _ContainerWriter(FileWriter):
             .pipe(OpIndexMerge())
             .pipe(OpMakeUniform(self.padding)))
         if self.adjust_frames:
-            padding = self.padding
-            if self.translate_missing:
-                padding = self.translate_missing
+            padding = self.translate_missing or self.padding
             stream = stream.pipe(OpReverseNegativeReadingFrames())
             stream = stream.pipe(OpPadReadingFrames(padding))
         return stream
@@ -425,9 +423,7 @@ class NexusWriter(FileWriter):
             .from_stream(stream, filler=self.padding)
             .to_stream())
         if self.adjust_frames:
-            padding = self.padding
-            if self.translate_missing:
-                padding = self.translate_missing
+            padding = self.translate_missing or self.padding
             stream = stream.pipe(OpReverseNegativeReadingFrames())
             stream = stream.pipe(OpPadReadingFrames(padding))
         return stream
