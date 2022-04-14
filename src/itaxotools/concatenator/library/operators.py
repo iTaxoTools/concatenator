@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Iterator, Optional, Set
+from typing import Callable, Dict, List, Iterator, Iterable, Optional, Set
 from collections import defaultdict
 
 import pandas as pd
@@ -16,7 +16,8 @@ from .utils import (
     has_uniform_length,
 )
 from .codons import final_column_reading_frame, ReadingFrame
-from .general_info import GeneralInfo, InfoColumns, FileGeneralInfo
+from .general_info import (
+    GeneralInfo, InfoColumns, FileGeneralInfo, GeneInfoColumns, GeneInfo)
 
 
 class InvalidGeneSeries(Exception):
@@ -194,7 +195,7 @@ class OpFilterGenes(Operator):
 
 class OpStencilGenes(Operator):
     operator: Operator = Field("operator", value=OpPass())
-    genes: Set = Field("genes", value=set())
+    genes: Iterable = Field("genes", value=list())
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self.genes:
@@ -427,6 +428,32 @@ class OpGeneralInfoPerFile(Operator):
             file_format = self.sources[id].format
             table = self.ops[id].table
             yield FileGeneralInfo(filename, file_format, table)
+
+
+class OpGeneralInfoPerGene(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gene_info = pd.DataFrame(columns=[col for col in GeneInfoColumns])
+        self.gene_info.index.name = InfoColumns.Gene
+
+    def _append_gene_tags(
+        self, gene: str, mafft: bool, length: bool, codon: bool
+    ):
+        self.gene_info.loc[gene] = [mafft, length, codon]
+
+    def call(self, original: GeneSeries) -> Optional[GeneSeries]:
+        gene = OpIndexMerge(index="taxon")(original)
+        self._append_gene_tags(
+            gene.name,
+            gene.tags.get('MafftRealigned', False),
+            gene.tags.get('PaddedLength', False),
+            gene.tags.get('PaddedCodonPosition', False),
+        )
+        return original
+
+    def get_info(self, general_info: GeneralInfo) -> pd.DataFrame:
+        gene_info = GeneInfo(self.gene_info)
+        return general_info.by_gene(gene_info)
 
 
 # Pending removal, functionality to be merged into GeneDataFrame?

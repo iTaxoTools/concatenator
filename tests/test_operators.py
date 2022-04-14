@@ -30,6 +30,7 @@ from itaxotools.concatenator.library.operators import (
     OpGeneralInfo,
     OpIndexMerge,
     OpGeneralInfoPerFile,
+    OpGeneralInfoPerGene,
     OpTagSet,
     OpTagDelete,
 )
@@ -437,6 +438,38 @@ def test_general_info_per_file():
     assert table.iloc[0]['sequence length maximum'] == 12
     assert table.iloc[0]['% missing nucleotides'] == 40.0
     assert table.iloc[0]['% GC content'] == 50.0
+
+
+def test_general_info_per_gene():
+    stream = read_from_path(TEST_DATA_DIR / "per_gene.tab")
+    op_general = OpGeneralInfo()
+    op_per_gene = OpGeneralInfoPerGene()
+    op_stencil_mafft = OpStencilGenes(
+        OpTagSet('MafftRealigned', True), ['16S'])
+    op_stencil_len = OpStencilGenes(
+        OpTagSet('PaddedLength', True), ['16S'])
+    op_stencil_codon = OpStencilGenes(
+        OpTagSet('PaddedCodonPosition', True), ['cytb'])
+    piped = (
+        stream
+        .pipe(op_stencil_mafft)
+        .pipe(op_stencil_len)
+        .pipe(op_stencil_codon)
+        .pipe(op_general)
+        .pipe(op_per_gene)
+        )
+    for _ in piped: pass
+    table = op_per_gene.get_info(op_general.table)
+    print(table.to_string())
+    assert table.loc['16S']['number of taxa with data'] == 2
+    assert table.loc['16S']['total number of nucleotides in alignment'] == 12
+    assert table.loc['16S']['% of missing data (nucleotides)'] == 50.0
+    assert table.loc['16S']['GC content of sequences'] == 0.0
+    assert table.loc['16S']['% of missing data (taxa)'] == 40.0
+    assert table.loc['16S']['re-aligned by Mafft yes/no'] == 'yes'
+    assert table.loc['16S']['padded to compensate for unequal sequence lengths yes/no'] == 'yes'
+    assert table.loc['16S']['padded to start with 1st codon position yes/no'] == 'no'
+    assert False
 
 
 def test_general_info_disjoint():
