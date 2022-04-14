@@ -382,8 +382,8 @@ class OpGeneralInfo(Operator):
         super().__init__(*args, **kwargs)
         self.table = GeneralInfo.empty()
 
-    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        gene = OpIndexMerge(index="taxon")(gene)
+    def call(self, original: GeneSeries) -> Optional[GeneSeries]:
+        gene = OpIndexMerge(index="taxon")(original)
         assert gene.series is not None
         dataframe = pd.DataFrame(gene.series.str.len()).rename(
             columns=(lambda _: InfoColumns.NucleotideCount)
@@ -402,7 +402,7 @@ class OpGeneralInfo(Operator):
         # drop rows where the sequence is completely missing
         dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > dataframe[InfoColumns.MissingCount]].copy()
         self.table += GeneralInfo(dataframe)
-        return gene
+        return original
 
 
 class OpGeneralInfoPerFile(Operator):
