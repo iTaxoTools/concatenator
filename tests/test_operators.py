@@ -384,6 +384,8 @@ def test_index_merge():
 
 
 def test_general_info():
+    TOTAL_DATA = pd.read_pickle(TEST_DATA_DIR / "test_general_info" / "total_data.pkl")
+    BY_TAXON = pd.read_pickle(TEST_DATA_DIR / "test_general_info" / "by_taxon.pkl")
     genestream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     operator = OpGeneralInfo()
     for _ in genestream.pipe(operator):
@@ -391,30 +393,18 @@ def test_general_info():
     table = operator.table
     print(table.dataframe.to_string())
     print(table.total_data().to_string())
+    assert table.total_data().equals(TOTAL_DATA)
     print(table.by_taxon().to_string())
+    assert table.by_taxon().equals(BY_TAXON)
     for taxa in table.disjoint_taxon_groups():
         print(taxa)
-
-    genestream = read_from_path(TEST_DATA_DIR / "sequences.tab")
-    gene_index = pd.Index([gene.name for gene in genestream])
-    gene_index.name = InfoColumns.Gene
-    gene_info = GeneInfo(
-        pd.DataFrame(
-            {
-                GeneInfoColumns.MafftRealigned: random.choices(
-                    [True, False], k=len(gene_index)
-                ),
-                GeneInfoColumns.PaddedLength: random.choices(
-                    [True, False], k=len(gene_index)
-                ),
-                GeneInfoColumns.PaddedCodonPosition: random.choices(
-                    [True, False], k=len(gene_index)
-                ),
-            },
-            index=gene_index,
-        )
-    )
-    print(table.by_gene(gene_info).to_string())
+        assert taxa == {
+            "sample4_Mantella crocea_FGZC346_Ranomafana",
+            "sample3_Mantella aurantiaca_FGZC345_Andasibe",
+            "sample1_Mantella aurantiaca_ZCMV1234_Andasibe",
+            "sample2_Mantella aurantiaca_ZCMV9876_Andasibe",
+            "sample5_Mantella crocea_MNHN1991_Ranomafana",
+        }
 
 
 def test_general_info_per_file():
@@ -437,6 +427,15 @@ def test_general_info_per_file():
     assert table.iloc[0]["sequence length maximum"] == 8
     assert table.iloc[0]["% missing nucleotides"] == 40.0
     assert table.iloc[0]["% GC content"] == 50.0
+
+    assert table.iloc[1]["input file name"] == "sequences.tab"
+    assert table.iloc[1]["input file format"] == FileFormat.Tab
+    assert table.iloc[1]["number of samples"] == 5
+    assert table.iloc[1]["number of markers"] == 3
+    assert table.iloc[1]["sequence length minimum"] == 8
+    assert table.iloc[1]["sequence length maximum"] == 10
+    assert table.iloc[1]["% missing nucleotides"] == 0.0
+    assert (table.iloc[1]["% GC content"] - 41 / 123 * 100) < 0.0001
 
 
 def test_general_info_per_gene():

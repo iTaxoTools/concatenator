@@ -309,7 +309,7 @@ class GeneralInfo:
             },
             inplace=True,
         )
-        result.index.name = "taxon name"
+        result.index.name = "gene name"
 
         return result
 
