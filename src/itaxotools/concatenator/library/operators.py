@@ -17,7 +17,12 @@ from .utils import (
 )
 from .codons import final_column_reading_frame, ReadingFrame
 from .general_info import (
-    GeneralInfo, InfoColumns, FileGeneralInfo, GeneInfoColumns, GeneInfo)
+    GeneralInfo,
+    InfoColumns,
+    FileGeneralInfo,
+    GeneInfoColumns,
+    GeneInfo,
+)
 
 
 class InvalidGeneSeries(Exception):
@@ -389,8 +394,12 @@ class OpGeneralInfo(Operator):
         dataframe = pd.DataFrame(gene.series.str.len()).rename(
             columns=(lambda _: InfoColumns.NucleotideCount)
         )
-        missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing + gene.gap))
+        missing_regex = re.compile(
+            "|".join(re.escape(c) for c in gene.missing + gene.gap)
+        )
         dataframe[InfoColumns.MissingCount] = gene.series.str.count(missing_regex)
+        # NucleotideCount only counts non-missing nucleotides
+        dataframe[InfoColumns.NucleotideCount] -= dataframe[InfoColumns.MissingCount]
         dataframe[InfoColumns.SeqCount] = 1
         dataframe[InfoColumns.SeqLenMax] = dataframe[InfoColumns.NucleotideCount]
         dataframe[InfoColumns.SeqLenMin] = dataframe[InfoColumns.NucleotideCount]
@@ -401,7 +410,7 @@ class OpGeneralInfo(Operator):
             [InfoColumns.Gene, InfoColumns.Taxon], inplace=True, verify_integrity=True
         )
         # drop rows where the sequence is completely missing
-        dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > dataframe[InfoColumns.MissingCount]].copy()
+        dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > 0].copy()
         self.table += GeneralInfo(dataframe)
         return original
 
@@ -436,18 +445,16 @@ class OpGeneralInfoPerGene(Operator):
         self.gene_info = pd.DataFrame(columns=[col for col in GeneInfoColumns])
         self.gene_info.index.name = InfoColumns.Gene
 
-    def _append_gene_tags(
-        self, gene: str, mafft: bool, length: bool, codon: bool
-    ):
+    def _append_gene_tags(self, gene: str, mafft: bool, length: bool, codon: bool):
         self.gene_info.loc[gene] = [mafft, length, codon]
 
     def call(self, original: GeneSeries) -> Optional[GeneSeries]:
         gene = OpIndexMerge(index="taxon")(original)
         self._append_gene_tags(
             gene.name,
-            gene.tags.get('MafftRealigned', False),
-            gene.tags.get('PaddedLength', False),
-            gene.tags.get('PaddedCodonPosition', False),
+            gene.tags.get("MafftRealigned", False),
+            gene.tags.get("PaddedLength", False),
+            gene.tags.get("PaddedCodonPosition", False),
         )
         return original
 

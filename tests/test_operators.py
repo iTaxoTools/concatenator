@@ -6,8 +6,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from itaxotools.concatenator.library.model import (
-    GeneSeries, GeneStream, Operator)
+from itaxotools.concatenator.library.model import GeneSeries, GeneStream, Operator
 from itaxotools.concatenator.library.types import TextCase, Charset
 from itaxotools.concatenator.library.codons import GeneticCode, ReadingFrame
 from itaxotools.concatenator.library.operators import (
@@ -57,17 +56,15 @@ def assert_gene_meta_equal(gene1, gene2):
 
 def test_tag_set_delete():
     series = pd.Series(
-        {
-            "seq1": "ACGT"
-        },
+        {"seq1": "ACGT"},
         name="gene",
     )
     series.index.name = "seqid"
     gene = GeneSeries(series)
-    added = OpTagSet('test', 42)(gene)
+    added = OpTagSet("test", 42)(gene)
     assert added.tags.test == 42
-    removed = OpTagDelete('test')(added)
-    assert 'test' not in removed.tags
+    removed = OpTagDelete("test")(added)
+    assert "test" not in removed.tags
 
 
 @pytest.fixture
@@ -424,52 +421,67 @@ def test_general_info_per_file():
     op = OpGeneralInfoPerFile()
     stream = read_from_path(TEST_DATA_DIR / "simple.tab")
     piped = stream.pipe(op)
-    for _ in piped: pass
+    for _ in piped:
+        pass
     stream = read_from_path(TEST_DATA_DIR / "sequences.tab")
     piped = stream.pipe(op)
-    for _ in piped: pass
+    for _ in piped:
+        pass
 
     table = op.get_info()
-    assert table.iloc[0]['input file name'] == "simple.tab"
-    assert table.iloc[0]['input file format'] == FileFormat.Tab
-    assert table.iloc[0]['number of samples'] == 1
-    assert table.iloc[0]['number of markers'] == 2
-    assert table.iloc[0]['sequence length minimum'] == 8
-    assert table.iloc[0]['sequence length maximum'] == 12
-    assert table.iloc[0]['% missing nucleotides'] == 40.0
-    assert table.iloc[0]['% GC content'] == 50.0
+    assert table.iloc[0]["input file name"] == "simple.tab"
+    assert table.iloc[0]["input file format"] == FileFormat.Tab
+    assert table.iloc[0]["number of samples"] == 1
+    assert table.iloc[0]["number of markers"] == 2
+    assert table.iloc[0]["sequence length minimum"] == 4
+    assert table.iloc[0]["sequence length maximum"] == 8
+    assert table.iloc[0]["% missing nucleotides"] == 40.0
+    assert table.iloc[0]["% GC content"] == 50.0
 
 
 def test_general_info_per_gene():
     stream = read_from_path(TEST_DATA_DIR / "per_gene.tab")
     op_general = OpGeneralInfo()
     op_per_gene = OpGeneralInfoPerGene()
-    op_stencil_mafft = OpStencilGenes(
-        OpTagSet('MafftRealigned', True), ['16S'])
-    op_stencil_len = OpStencilGenes(
-        OpTagSet('PaddedLength', True), ['16S'])
-    op_stencil_codon = OpStencilGenes(
-        OpTagSet('PaddedCodonPosition', True), ['cytb'])
+    op_stencil_mafft = OpStencilGenes(OpTagSet("MafftRealigned", True), ["16S"])
+    op_stencil_len = OpStencilGenes(OpTagSet("PaddedLength", True), ["16S"])
+    op_stencil_codon = OpStencilGenes(OpTagSet("PaddedCodonPosition", True), ["cytb"])
     piped = (
-        stream
-        .pipe(op_stencil_mafft)
+        stream.pipe(op_stencil_mafft)
         .pipe(op_stencil_len)
         .pipe(op_stencil_codon)
         .pipe(op_general)
         .pipe(op_per_gene)
-        )
-    for _ in piped: pass
+    )
+    for _ in piped:
+        pass
     table = op_per_gene.get_info(op_general.table)
     print(table.to_string())
-    assert table.loc['16S']['number of taxa with data'] == 2
-    assert table.loc['16S']['total number of nucleotides in alignment'] == 12
-    assert table.loc['16S']['% of missing data (nucleotides)'] == 50.0
-    assert table.loc['16S']['GC content of sequences'] == 0.0
-    assert table.loc['16S']['% of missing data (taxa)'] == 40.0
-    assert table.loc['16S']['re-aligned by Mafft yes/no'] == 'yes'
-    assert table.loc['16S']['padded to compensate for unequal sequence lengths yes/no'] == 'yes'
-    assert table.loc['16S']['padded to start with 1st codon position yes/no'] == 'no'
-    assert False
+    assert table.loc["16S"]["number of taxa with data"] == 3
+    assert table.loc["16S"]["total number of nucleotides in alignment"] == 12
+    assert table.loc["16S"]["% of missing data (nucleotides)"] == 50.0
+    assert table.loc["16S"]["GC content of sequences"] == 50.0
+    assert table.loc["16S"]["% of missing data (taxa)"] == 40.0
+    assert table.loc["16S"]["re-aligned by Mafft yes/no"] == "yes"
+    assert (
+        table.loc["16S"]["padded to compensate for unequal sequence lengths yes/no"]
+        == "yes"
+    )
+    assert table.loc["16S"]["padded to start with 1st codon position yes/no"] == "no"
+    assert table.loc["cytb"]["number of taxa with data"] == 5
+    assert table.loc["cytb"]["total number of nucleotides in alignment"] == 40
+    assert (
+        abs(table.loc["cytb"]["% of missing data (nucleotides)"] - 4 / 12 * 100)
+        < 0.0001
+    )
+    assert table.loc["cytb"]["GC content of sequences"] == 50.0
+    assert table.loc["cytb"]["% of missing data (taxa)"] == 0.0
+    assert table.loc["cytb"]["re-aligned by Mafft yes/no"] == "no"
+    assert (
+        table.loc["cytb"]["padded to compensate for unequal sequence lengths yes/no"]
+        == "no"
+    )
+    assert table.loc["cytb"]["padded to start with 1st codon position yes/no"] == "yes"
 
 
 def test_general_info_disjoint():
