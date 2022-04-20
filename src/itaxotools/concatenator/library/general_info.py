@@ -97,20 +97,22 @@ class GeneralInfo:
                 "Maximum number of taxa per marker",
                 "Average number of taxa per marker",
             ],
-            dtype="object"
+            dtype="object",
         )
         dataframe = self.dataframe.reset_index()
         result["Number of taxa"] = dataframe[InfoColumns.Taxon].nunique()
         result["Number of genes (markers)"] = dataframe[InfoColumns.Gene].nunique()
         result["% missing data"] = (
             dataframe[InfoColumns.MissingCount].sum()
-            / dataframe[InfoColumns.NucleotideCount].sum()
+            / (
+                dataframe[InfoColumns.NucleotideCount].sum()
+                + dataframe[InfoColumns.MissingCount].sum()
+            )
             * 100
         )
         result["GC content of sequences"] = (
             dataframe[InfoColumns.GCCount].sum()
-            / (dataframe[InfoColumns.NucleotideCount].sum()
-               - dataframe[InfoColumns.MissingCount].sum())
+            / (dataframe[InfoColumns.NucleotideCount].sum())
             * 100
         )
         result["Total number of nucleotides in concatenated data set"] = dataframe[
@@ -173,13 +175,12 @@ class GeneralInfo:
             rows.append(row)
         result = pd.DataFrame(rows)
         result[InfoColumns.GCCount] = (
-            result[InfoColumns.GCCount] / (
-                result[InfoColumns.NucleotideCount]
-                - result[InfoColumns.MissingCount])
-            * 100
+            result[InfoColumns.GCCount] / (result[InfoColumns.NucleotideCount]) * 100
         )
         result[InfoColumns.MissingCount] = (
-            result[InfoColumns.MissingCount] / result[InfoColumns.NucleotideCount] * 100
+            result[InfoColumns.MissingCount]
+            / (result[InfoColumns.NucleotideCount] + result[InfoColumns.MissingCount])
+            * 100
         )
         result.drop(columns=InfoColumns.NucleotideCount, inplace=True)
         result.rename(
@@ -245,10 +246,11 @@ class GeneralInfo:
             - result["number of markers with data"]
             / dataframe[InfoColumns.Gene].nunique()
         ) * 100
-        result["% of missing data (nucleotides)"] *= (
-            100 / result["total number of nucleotides"]
+        result["% of missing data (nucleotides)"] *= 100 / (
+            result["total number of nucleotides"]
+            + result["% of missing data (nucleotides)"]
         )
-        result["GC content of sequences"] /= result["total number of nucleotides"]
+        result["GC content of sequences"] *= 100 / result["total number of nucleotides"]
         result.index.name = "taxon name"
 
         return result
@@ -284,10 +286,12 @@ class GeneralInfo:
         )
         result["% of missing data (taxa)"] = (
             1
-            - result["number of taxa with data"] / dataframe[InfoColumns.Gene].nunique()
+            - result["number of taxa with data"]
+            / dataframe[InfoColumns.Taxon].nunique()
         ) * 100
-        result["% of missing data (nucleotides)"] *= (
-            100 / result["total number of nucleotides in alignment"]
+        result["% of missing data (nucleotides)"] *= 100 / (
+            result["total number of nucleotides in alignment"]
+            + result["% of missing data (nucleotides)"]
         )
         result["GC content of sequences"] *= (
             100 / result["total number of nucleotides in alignment"]
@@ -305,7 +309,7 @@ class GeneralInfo:
             },
             inplace=True,
         )
-        result.index.name = "taxon name"
+        result.index.name = "gene name"
 
         return result
 

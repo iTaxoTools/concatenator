@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Iterator, Optional, Set
+from typing import Callable, Dict, List, Iterator, Iterable, Optional, Set
 from collections import defaultdict
 
 import pandas as pd
@@ -16,7 +16,13 @@ from .utils import (
     has_uniform_length,
 )
 from .codons import final_column_reading_frame, ReadingFrame
-from .general_info import GeneralInfo, InfoColumns, FileGeneralInfo
+from .general_info import (
+    GeneralInfo,
+    InfoColumns,
+    FileGeneralInfo,
+    GeneInfoColumns,
+    GeneInfo,
+)
 
 
 class InvalidGeneSeries(Exception):
@@ -68,6 +74,27 @@ class OpCheckValid(Operator):
         return self.op_check_duplicates(gene)
 
 
+class OpTagSet(Operator):
+    tag: str = Field("tag", value="")
+    value: object = Field("value", value=None)
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert self.tag.isidentifier()
+        gene = gene.copy()
+        gene.tags[self.tag] = self.value
+        return gene
+
+
+class OpTagDelete(Operator):
+    tag: str = Field("tag", value="")
+
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        assert self.tag.isidentifier()
+        gene = gene.copy()
+        del gene.tags[self.tag]
+        return gene
+
+
 class OpIndexMerge(Operator):
     index: str = Field("index", value="seqid")
     glue: str = Field("glue", value="_")
@@ -102,20 +129,6 @@ class OpDropEmpty(Operator):
         gene.series = gene.series[gene.series.str.len() > 0]
         if not len(gene.series):
             return None
-        return gene
-
-
-class OpPadRight(Operator):
-    padding: str = Field("padding", value="-")
-
-    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        if not self.padding:
-            return gene
-        assert len(self.padding) == 1
-        gene = gene.copy()
-        gene.series = gene.series.fillna("", inplace=False)
-        max_length = gene.series.str.len().max()
-        gene.series = gene.series.str.ljust(max_length, self.padding)
         return gene
 
 
@@ -187,7 +200,7 @@ class OpFilterGenes(Operator):
 
 class OpStencilGenes(Operator):
     operator: Operator = Field("operator", value=OpPass())
-    genes: Set = Field("genes", value=set())
+    genes: Iterable = Field("genes", value=list())
 
     def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
         if gene.name in self.genes:
@@ -375,14 +388,18 @@ class OpGeneralInfo(Operator):
         super().__init__(*args, **kwargs)
         self.table = GeneralInfo.empty()
 
-    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
-        gene = OpIndexMerge(index="taxon")(gene)
+    def call(self, original: GeneSeries) -> Optional[GeneSeries]:
+        gene = OpIndexMerge(index="taxon")(original)
         assert gene.series is not None
         dataframe = pd.DataFrame(gene.series.str.len()).rename(
             columns=(lambda _: InfoColumns.NucleotideCount)
         )
-        missing_regex = re.compile("|".join(re.escape(c) for c in gene.missing + gene.gap))
+        missing_regex = re.compile(
+            "|".join(re.escape(c) for c in gene.missing + gene.gap)
+        )
         dataframe[InfoColumns.MissingCount] = gene.series.str.count(missing_regex)
+        # NucleotideCount only counts non-missing nucleotides
+        dataframe[InfoColumns.NucleotideCount] -= dataframe[InfoColumns.MissingCount]
         dataframe[InfoColumns.SeqCount] = 1
         dataframe[InfoColumns.SeqLenMax] = dataframe[InfoColumns.NucleotideCount]
         dataframe[InfoColumns.SeqLenMin] = dataframe[InfoColumns.NucleotideCount]
@@ -393,9 +410,9 @@ class OpGeneralInfo(Operator):
             [InfoColumns.Gene, InfoColumns.Taxon], inplace=True, verify_integrity=True
         )
         # drop rows where the sequence is completely missing
-        dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > dataframe[InfoColumns.MissingCount]].copy()
+        dataframe = dataframe.loc[dataframe[InfoColumns.NucleotideCount] > 0].copy()
         self.table += GeneralInfo(dataframe)
-        return gene
+        return original
 
 
 class OpGeneralInfoPerFile(Operator):
@@ -420,6 +437,30 @@ class OpGeneralInfoPerFile(Operator):
             file_format = self.sources[id].format
             table = self.ops[id].table
             yield FileGeneralInfo(filename, file_format, table)
+
+
+class OpGeneralInfoPerGene(Operator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gene_info = pd.DataFrame(columns=[col for col in GeneInfoColumns])
+        self.gene_info.index.name = InfoColumns.Gene
+
+    def _append_gene_tags(self, gene: str, mafft: bool, length: bool, codon: bool):
+        self.gene_info.loc[gene] = [mafft, length, codon]
+
+    def call(self, original: GeneSeries) -> Optional[GeneSeries]:
+        gene = OpIndexMerge(index="taxon")(original)
+        self._append_gene_tags(
+            gene.name,
+            gene.tags.get("MafftRealigned", False),
+            gene.tags.get("PaddedLength", False),
+            gene.tags.get("PaddedCodonPosition", False),
+        )
+        return original
+
+    def get_info(self, general_info: GeneralInfo) -> pd.DataFrame:
+        gene_info = GeneInfo(self.gene_info)
+        return general_info.by_gene(gene_info)
 
 
 # Pending removal, functionality to be merged into GeneDataFrame?

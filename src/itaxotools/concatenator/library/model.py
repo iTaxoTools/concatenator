@@ -8,6 +8,8 @@ from copy import copy
 
 import pandas as pd
 
+from itaxotools.common.utility import AttrDict
+
 from .utils import ConfigurableCallable, fill_empty
 from .file_utils import PathLike
 from .file_types import FileType, FileFormat
@@ -46,11 +48,15 @@ class GeneSeries:
         self.missing = missing
         self.gap = gap
 
-        # Tagged when retrieved from a GeneStream
+        # Automatically updated when retrieved from a GeneStream
         self.stream = None
+
+        # Populated by user
+        self.tags = AttrDict()
 
     def copy(self):
         other = copy(self)
+        other.tags = AttrDict(self.tags)
         if self.series is not None:
             other.series = self.series.copy(deep=False)
         return other
