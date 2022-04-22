@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import Iterator
+from typing import Iterator, Tuple
 from enum import Enum, auto
 from dataclasses import dataclass
 
@@ -329,6 +329,26 @@ class GeneralInfo:
         )
         for component in nx.connected_components(graph):
             yield component
+
+    def unconnected_taxons(self) -> Iterator[Tuple[str, str]]:
+        """
+        Yields pairs of taxon names that have no genes in common
+        """
+        left_taxa = self.dataframe.index.to_frame(index=False)
+        right_taxa = left_taxa.copy()
+        left_taxa.rename(columns={InfoColumns.Taxon: "left"}, inplace=True)
+        right_taxa.rename(columns={InfoColumns.Taxon: "right"}, inplace=True)
+        connected_taxa = left_taxa.merge(
+            right_taxa, on=InfoColumns.Gene, suffixes=[None, None]
+        )[["left", "right"]]
+        connected = pd.MultiIndex.from_frame(connected_taxa)
+        all_pairs = pd.MultiIndex.from_product(
+            [connected_taxa["left"].unique(), connected_taxa["left"].unique()]
+        )
+        unconnected = all_pairs.difference(connected)
+        for taxon1, taxon2 in unconnected:
+            if taxon1 < taxon2:
+                yield (taxon1, taxon2)
 
 
 @dataclass
