@@ -490,3 +490,12 @@ def test_general_info_disjoint():
         print(gene.series)
     groups = list(operator.table.disjoint_taxon_groups())
     assert len(groups) == 2
+
+
+def test_unconnected_taxons():
+    stream = read_from_path(TEST_DATA_DIR / "long_with_missing2.tsv")
+    operator = OpGeneralInfo()
+    for _ in stream.pipe(operator):
+        pass
+    unconnected_pairs = list(operator.table.unconnected_taxons())
+    assert len(unconnected_pairs) == 12
