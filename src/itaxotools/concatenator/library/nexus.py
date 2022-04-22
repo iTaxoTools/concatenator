@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-from typing import (
-    TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict)
+from typing import TextIO, Iterator, ClassVar, Set, List, Optional, Tuple, Dict
 from enum import Enum
 import tempfile
 import re
@@ -25,7 +24,7 @@ def write(genes: Iterator[pd.DataFrame], output: TextIO) -> None:
         output_fragment["seqid"] = into_seqids(gene.iloc[:, :-1].copy())
         output_fragment["sequence"] = gene.iloc[:, -1]
 
-        gene_name = gene.columns[-1][len("sequence_"):]
+        gene_name = gene.columns[-1][len("sequence_") :]
         gene_len = len(gene.iat[0, -1])
         charsets[gene_name] = gene_len
 
@@ -78,10 +77,11 @@ def nexus_writer(
     stream: GeneStream,
     out: TextIO,
     justification: Justification = Justification.Left,
-    separator: str = ' ',
+    separator: str = " ",
 ) -> None:
     buffer = tempfile.TemporaryFile(
-        mode='w+', encoding='utf-8', errors='surrogateescape')
+        mode="w+", encoding="utf-8", errors="surrogateescape"
+    )
     charsets = list()
     missings = OrderedSet()
     gaps = OrderedSet()
@@ -93,59 +93,52 @@ def nexus_writer(
         assert has_uniform_length(series)
 
         length = len(series.iat[0])
-        charsets.append(Charset(
-            gene.name,
-            cursor,
-            length,
-            gene.reading_frame,
-            gene.codon_names))
+        charsets.append(
+            Charset(gene.name, cursor, length, gene.reading_frame, gene.codon_names)
+        )
         cursor += length
         index_len = series.index.str.len().max()
         for index, sequence in series.iteritems():
-            buffer.write((
-                f'{justification.apply(index, index_len)}'
-                f'{separator}{sequence}\n'))
-        buffer.write('\n')
+            buffer.write(
+                (f"{justification.apply(index, index_len)}" f"{separator}{sequence}\n")
+            )
+        buffer.write("\n")
         ntax = len(series)
         missings |= OrderedSet(gene.missing.upper())
         gaps |= OrderedSet(gene.gap.upper())
 
-    out.write('#NEXUS\n\n')
-    out.write('BEGIN DATA;\n\n')
-    out.write(f'Dimensions Nchar={cursor-1} Ntax={ntax};\n')
-    out.write('Format Datatype=DNA')
+    out.write("#NEXUS\n\n")
+    out.write("BEGIN DATA;\n\n")
+    out.write(f"Dimensions Nchar={cursor-1} Ntax={ntax};\n")
+    out.write("Format Datatype=DNA")
     for missing in sorted(missings, reverse=True):
-        out.write(f' Missing={missing}')
+        out.write(f" Missing={missing}")
     for gap in sorted(gaps, reverse=True):
-        out.write(f' Gap={gap}')
-    out.write(' Interleave=yes;\n')
-    out.write('Matrix\n\n')
+        out.write(f" Gap={gap}")
+    out.write(" Interleave=yes;\n")
+    out.write("Matrix\n\n")
 
     buffer.seek(0)
     for line in buffer:
         out.write(line)
-    out.write(';\nEND;\n\n\n')
-    out.write('BEGIN SETS;\n\n')
+    out.write(";\nEND;\n\n\n")
+    out.write("BEGIN SETS;\n\n")
     buffer.close()
 
     for charset in charsets:
-        out.write(f'charset {str(charset)}\n')
-    out.write('\n')
+        out.write(f"charset {str(charset)}\n")
+    out.write("\n")
 
     for charset in (cs for cs in charsets if cs.frame):
         for codon in charset.codon_sets():
-            out.write(f'charset {str(codon)}\n')
-        out.write('\n')
+            out.write(f"charset {str(codon)}\n")
+        out.write("\n")
 
-    out.write('END;\n')
+    out.write("END;\n")
 
 
-def stream_to_path(
-    stream: GeneStream,
-    path: PathLike,
-    *args, **kwargs
-) -> None:
-    with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
+def stream_to_path(stream: GeneStream, path: PathLike, *args, **kwargs) -> None:
+    with path.open("w", encoding="utf-8", errors="surrogateescape") as file:
         nexus_writer(stream, file, *args, **kwargs)
 
 
@@ -158,15 +151,15 @@ def read(input: TextIO) -> pd.DataFrame:
 
 
 def dataframe_from_path(path: PathLike) -> GeneDataFrame:
-    with path.open(encoding='utf-8', errors='surrogateescape') as file:
+    with path.open(encoding="utf-8", errors="surrogateescape") as file:
         commands = NexusCommands(file)
         reader = NexusReader()
         for command, args in commands:
             reader.execute(command, args)
         data = reader.return_table()
-    data.set_index('seqid', inplace=True)
-    missing = ''.join(reader.missings)
-    gap = ''.join(reader.gaps)
+    data.set_index("seqid", inplace=True)
+    missing = "".join(reader.missings)
+    gap = "".join(reader.gaps)
     gdf = GeneDataFrame(data, missing=missing, gap=gap)
     return gdf
 
@@ -434,6 +427,11 @@ class NexusReader:
             self.sequences(args)
         elif command == "charset":
             self.add_charset(args)
+        else:
+            logging.warning("Unknown NEXUS command {command}")
+        # skip unused arguments
+        for _ in args:
+            pass
 
     def configure_format(self, args: Iterator[str]) -> None:
         """
@@ -498,16 +496,17 @@ class NexusReader:
             if len(args_tuple) != 3 or args_tuple[1] != "=":
                 raise ValueError(f"Invalid arguments for 'charset': {args_tuple}")
             name, _, position = args_tuple
-            if '\\' in position:
+            if "\\" in position:
                 return
-            start_s, hyphen, _ = position.partition('-')
+            start_s, hyphen, _ = position.partition("-")
             if not (hyphen and start_s.isdigit()):
                 raise ValueError(f"Invalid charset position: {repr(position)}")
             self.charsets[int(start_s)] = name
 
     def columns(self) -> List[str]:
-        return (["seqid"] +
-                [self.charsets[position] for position in sorted(self.charsets.keys())])
+        return ["seqid"] + [
+            self.charsets[position] for position in sorted(self.charsets.keys())
+        ]
 
     def return_table(self) -> pd.DataFrame:
         self.table.reset_index(inplace=True)
@@ -519,9 +518,11 @@ class NexusReader:
             logging.warning(
                 "Several blocks of sequences in interleaved format detected, "
                 "but character sets missing or wrongly specified. "
-                "All sequences will be read in as a single gene.")
+                "All sequences will be read in as a single gene."
+            )
             concat_table = self.table.iloc[:, 0:1].copy()
             if len(self.table.columns) >= 2:
-                concat_table['sequence_gene'] = (
-                    self.table.iloc[:, 1].str.cat(self.table.iloc[:, 2:]))
+                concat_table["sequence_gene"] = self.table.iloc[:, 1].str.cat(
+                    self.table.iloc[:, 2:]
+                )
             return concat_table
