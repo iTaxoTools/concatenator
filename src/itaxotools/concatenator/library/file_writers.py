@@ -8,7 +8,7 @@ from .utils import ConfigurableCallable, Field, Group
 from .file_utils import ZipFile, ZipPath
 from .file_types import FileType, FileFormat, get_extension
 from .operators import (
-    OpCheckValid, OpIndexMerge, OpMakeUniform, OpDropEmpty,
+    OpCheckValid, OpIndexMerge, OpMakeUniform, OpDropEmpty, OpDropIfAllEmpty,
     OpSequenceCase, OpExtractCharsets, OpTranslateGap, OpPadReadingFrames,
     OpSanitizeGeneNames, OpSanitizeSpeciesNames, OpSpreadsheetCompatibility,
     OpTranslateMissing, OpReverseNegativeReadingFrames)
@@ -421,7 +421,8 @@ class NexusWriter(FileWriter):
         stream = (
             GeneDataFrame
             .from_stream(stream, filler=self.padding)
-            .to_stream())
+            .to_stream()
+            .pipe(OpDropIfAllEmpty()))
         if self.adjust_frames:
             padding = self.translate_missing or self.padding
             stream = stream.pipe(OpReverseNegativeReadingFrames())

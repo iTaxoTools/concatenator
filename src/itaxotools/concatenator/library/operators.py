@@ -132,6 +132,15 @@ class OpDropEmpty(Operator):
         return gene
 
 
+class OpDropIfAllEmpty(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        temp = gene.copy()
+        temp = OpDropEmpty()(temp)
+        if temp is None:
+            return None
+        return gene
+
+
 class OpMakeUniform(Operator):
     padding: str = Field("padding", value="")
 

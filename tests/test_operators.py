@@ -32,6 +32,7 @@ from itaxotools.concatenator.library.operators import (
     OpGeneralInfoPerGene,
     OpTagSet,
     OpTagDelete,
+    OpDropIfAllEmpty,
 )
 from itaxotools.concatenator.library.file_readers import read_from_path
 from itaxotools.concatenator.library.general_info import (
@@ -499,3 +500,35 @@ def test_unconnected_taxons():
         pass
     unconnected_pairs = list(operator.table.unconnected_taxons())
     assert len(unconnected_pairs) == 12
+
+
+def test_drop_if_all_empty():
+    series = pd.Series(
+        {
+            "seq1": "----",
+            "seq2": "----",
+            "seq3": "----",
+        },
+        name="gene",
+    )
+    series.index.name = "seqid"
+
+    gene = GeneSeries(series, missing="-")
+    altered = OpDropIfAllEmpty()(gene)
+    assert altered is None
+
+
+def test_drop_if_all_empty_kept():
+    series = pd.Series(
+        {
+            "seq1": "ACGT",
+            "seq2": "----",
+            "seq3": "----",
+        },
+        name="gene",
+    )
+    series.index.name = "seqid"
+
+    gene = GeneSeries(series, missing="-")
+    altered = OpDropIfAllEmpty()(gene)
+    assert len(altered.series) == 3
