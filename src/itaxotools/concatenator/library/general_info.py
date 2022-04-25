@@ -227,9 +227,6 @@ class GeneralInfo:
                 "total number of nucleotides": pd.NamedAgg(
                     column=InfoColumns.NucleotideCount, aggfunc="sum"
                 ),
-                "% of missing data (nucleotides)": pd.NamedAgg(
-                    column=InfoColumns.MissingCount, aggfunc="sum"
-                ),
                 "sequence length minimum": pd.NamedAgg(
                     column=InfoColumns.SeqLenMin, aggfunc="min"
                 ),
@@ -241,15 +238,21 @@ class GeneralInfo:
                 ),
             }
         )
+        for_gene_max_length = dataframe[[InfoColumns.Gene]].copy()
+        for_gene_max_length["length"] = (
+            dataframe[InfoColumns.NucleotideCount] + dataframe[InfoColumns.MissingCount]
+        )
+        total_length = float(
+            for_gene_max_length.groupby(InfoColumns.Gene)["length"].max().sum()
+        )
         result["% of missing data (markers)"] = (
             1
             - result["number of markers with data"]
             / dataframe[InfoColumns.Gene].nunique()
         ) * 100
-        result["% of missing data (nucleotides)"] *= 100 / (
-            result["total number of nucleotides"]
-            + result["% of missing data (nucleotides)"]
-        )
+        result["% of missing data (nucleotides)"] = (
+            1 - result["total number of nucleotides"] / total_length
+        ) * 100
         result["GC content of sequences"] *= 100 / result["total number of nucleotides"]
         result.index.name = "taxon name"
 
