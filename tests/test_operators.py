@@ -532,3 +532,13 @@ def test_drop_if_all_empty_kept():
     gene = GeneSeries(series, missing="-")
     altered = OpDropIfAllEmpty()(gene)
     assert len(altered.series) == 3
+
+
+def test_long_missing_general_info():
+    BY_TAXON = pd.read_pickle(TEST_DATA_DIR / "long_with_missing2_tsv.pkl")
+    genestream = read_from_path(TEST_DATA_DIR / "long_with_missing2.tsv")
+    operator = OpGeneralInfo()
+    for _ in genestream.pipe(operator):
+        pass
+    table = operator.table
+    assert table.by_taxon().equals(BY_TAXON)
