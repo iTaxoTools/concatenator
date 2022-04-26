@@ -3,14 +3,17 @@
 from pathlib import Path
 from typing import Dict
 from dataclasses import dataclass
+from itertools import product
 
 import pytest
 import pandas as pd
 
 from itaxotools.concatenator import (
     FileType, FileFormat, GeneSeries, GeneStream, get_writer)
+from itaxotools.concatenator.library.file_writers import file_writers
 from itaxotools.concatenator.library.codons import ReadingFrame
 from itaxotools.concatenator.library.file_utils import ZipPath
+
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -116,3 +119,35 @@ def test_write(test: WriteTest, tmp_path: Path, request) -> None:
     writer = get_writer(test.type, test.format).update(**test.kwargs)
     writer(stream, test_path)
     assert_eq_files(test.type, test_path, output_path)
+
+
+valid_type_formats = [
+    (type, format) for type, format in product(list(FileType), list(FileFormat))
+    if format in file_writers[type]
+]
+
+
+class SimpleFilterTest:
+    def __init__(self):
+        self.filtered = False
+
+    def filter(self, stream: GeneStream) -> GeneStream:
+        self.filtered = True
+        return stream
+
+
+@pytest.mark.parametrize("type, format", valid_type_formats)
+def test_write_filter(
+    type: FileType,
+    format: FileFormat,
+    stream_simple: GeneStream,
+    tmp_path: Path
+) -> None:
+
+    simple_filter_test = SimpleFilterTest()
+    out_path = tmp_path / 'out'
+    writer = get_writer(type, format)
+    writer.filters.append(simple_filter_test.filter)
+    writer(stream_simple, out_path)
+    assert simple_filter_test.filtered
+    assert out_path.exists()

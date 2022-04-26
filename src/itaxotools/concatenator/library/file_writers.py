@@ -65,6 +65,18 @@ class FileWriter(ConfigurableCallable):
         type=bool,
         default=True)
 
+    def __init__(self, *args, **kwargs):
+        """You may append custom filters to self.filters"""
+        super().__init__(*args, **kwargs)
+        self.filters = list()
+        self.filters.append(self.filter)
+
+    def apply_filters(self, stream: GeneStream) -> GeneStream:
+        """Apply all filters"""
+        for filter in self.filters:
+            stream = filter(stream)
+        return stream
+
     def filter(self, stream: GeneStream) -> GeneStream:
         """Stream operations, obeys inheritance"""
         stream = stream.pipe(OpCheckValid())
@@ -131,7 +143,7 @@ class _GeneWriter(FileWriter):
         raise NotImplementedError
 
     def call(self, stream: GeneStream, path: Path) -> None:
-        stream = self.filter(stream)
+        stream = self.apply_filters(stream)
         self.write(stream, path)
 
 
@@ -144,7 +156,7 @@ class _ConcatenatedWriter(_GeneWriter):
         return stream
 
     def write(self, stream: GeneStream, path: Path) -> None:
-        stream = self.filter(stream)
+        stream = self.apply_filters(stream)
         joined = GeneDataFrame.from_stream(stream, filler=self.padding)
         data = joined.dataframe.apply(
             lambda row: ''.join(row.values.astype(str)), axis=1)
@@ -165,7 +177,7 @@ class _MultiFileWriter(_GeneWriter):
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
-        stream = self.filter(stream)
+        stream = self.apply_filters(stream)
         container = self.create(path)
         for gene in stream:
             name = gene.series.name + get_extension(FileType.File, self.format)
@@ -260,7 +272,7 @@ class _ContainerWriter(FileWriter):
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
-        stream = self.filter(stream)
+        stream = self.apply_filters(stream)
         container = self.create(path)
         stream = stream.pipe(self.op_charsets)
         joined = GeneDataFrame.from_stream(stream, filler=self.padding)
@@ -430,7 +442,7 @@ class NexusWriter(FileWriter):
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
-        stream = self.filter(stream)
+        stream = self.apply_filters(stream)
         nexus.stream_to_path(stream, path, self.justification, self.separator)
 
 
@@ -474,7 +486,7 @@ class TabWriter(FileWriter):
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
-        stream = self.filter(stream)
+        stream = self.apply_filters(stream)
         tabfile.stream_to_path(stream, path, self.sequence_prefix)
 
 
