@@ -231,7 +231,7 @@ class GeneralInfo:
                     column=InfoColumns.SeqLenMin, aggfunc="min"
                 ),
                 "sequence length maximum": pd.NamedAgg(
-                    column=InfoColumns.SeqLenMin, aggfunc="max"
+                    column=InfoColumns.SeqLenMax, aggfunc="max"
                 ),
                 "GC content of sequences": pd.NamedAgg(
                     column=InfoColumns.GCCount, aggfunc="sum"
@@ -254,6 +254,8 @@ class GeneralInfo:
             1 - result["total number of nucleotides"] / total_length
         ) * 100
         result["GC content of sequences"] *= 100 / result["total number of nucleotides"]
+        result["% of missing data (nucleotides)"] = result["% of missing data (nucleotides)"].astype("float")
+        result["GC content of sequences"] = result["GC content of sequences"].astype("float")
         result.index.name = "taxon name"
 
         return result
@@ -312,6 +314,8 @@ class GeneralInfo:
             },
             inplace=True,
         )
+        result["% of missing data (nucleotides)"] = result["% of missing data (nucleotides)"].astype("float")
+        result["GC content of sequences"] = result["GC content of sequences"].astype("float")
         result.index.name = "gene name"
 
         return result
