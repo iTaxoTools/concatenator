@@ -472,6 +472,23 @@ class OpGeneralInfoPerGene(Operator):
         return general_info.by_gene(gene_info)
 
 
+class OpGeneralInfoTagMafftRealigned(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        return OpTagSet('MafftRealigned', True)(gene)
+
+
+class OpGeneralInfoTagPaddedLength(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        padded = not has_uniform_length(gene.series)
+        return OpTagSet('PaddedLength', padded)(gene)
+
+
+class OpGeneralInfoTagPaddedCodonPosition(Operator):
+    def call(self, gene: GeneSeries) -> Optional[GeneSeries]:
+        padded = int(gene.reading_frame) not in [0, 1, -1]
+        return OpTagSet('PaddedCodonPosition', padded)(gene)
+
+
 # Pending removal, functionality to be merged into GeneDataFrame?
 def _join_any(stream: GeneStream) -> GeneDataFrame:
     sentinel = "\u0000"
