@@ -65,44 +65,44 @@ class GeneralInfo:
     def total_data(self) -> pd.Series:
         """
         Returns a pandas Series with index:
-                Number of taxa
-                Number of genes (markers)
-                % missing data
-                GC content of sequences
-                Total number of nucleotides in concatenated data set
-                Minimum number of nucleotides per taxon
-                Maximum number of nucleotides per taxon
-                Average number of nucleotides per taxon
-                Minimum number of markers per taxon
-                Maximum number of markers per taxon
-                Average number of markers per taxon
-                Minimum number of taxa per markers
-                Maximum number of taxa per marker
-                Average number of taxa per marker
+                Number of markers
+                Number of samples
+                Total number of nucleotides
+                Missing nucleotides (%)
+                GC content (%)
+                Minimum number of nucleotides per sample
+                Maximum number of nucleotides per sample
+                Average number of nucleotides per sample
+                Minimum number of markers per sample
+                Maximum number of markers per sample
+                Average number of markers per sample
+                Minimum number of samples per marker
+                Maximum number of samples per marker
+                Average number of samples per marker
         """
         result = pd.Series(
             index=[
-                "Number of taxa",
-                "Number of genes (markers)",
-                "% missing data",
-                "GC content of sequences",
-                "Total number of nucleotides in concatenated data set",
-                "Minimum number of nucleotides per taxon",
-                "Maximum number of nucleotides per taxon",
-                "Average number of nucleotides per taxon",
-                "Minimum number of markers per taxon",
-                "Maximum number of markers per taxon",
-                "Average number of markers per taxon",
-                "Minimum number of taxa per markers",
-                "Maximum number of taxa per marker",
-                "Average number of taxa per marker",
+                "Number of markers",
+                "Number of samples",
+                "Total number of nucleotides",
+                "Missing nucleotides (%)",
+                "GC content (%)",
+                "Minimum number of nucleotides per sample",
+                "Maximum number of nucleotides per sample",
+                "Average number of nucleotides per sample",
+                "Minimum number of markers per sample",
+                "Maximum number of markers per sample",
+                "Average number of markers per sample",
+                "Minimum number of samples per marker",
+                "Maximum number of samples per marker",
+                "Average number of samples per marker",
             ],
             dtype="object",
         )
         dataframe = self.dataframe.reset_index()
-        result["Number of taxa"] = dataframe[InfoColumns.Taxon].nunique()
-        result["Number of genes (markers)"] = dataframe[InfoColumns.Gene].nunique()
-        result["% missing data"] = (
+        result["Number of samples"] = dataframe[InfoColumns.Taxon].nunique()
+        result["Number of markers"] = dataframe[InfoColumns.Gene].nunique()
+        result["Missing nucleotides (%)"] = (
             dataframe[InfoColumns.MissingCount].sum()
             / (
                 dataframe[InfoColumns.NucleotideCount].sum()
@@ -110,52 +110,52 @@ class GeneralInfo:
             )
             * 100
         )
-        result["GC content of sequences"] = (
+        result["GC content (%)"] = (
             dataframe[InfoColumns.GCCount].sum()
             / (dataframe[InfoColumns.NucleotideCount].sum())
             * 100
         )
-        result["Total number of nucleotides in concatenated data set"] = dataframe[
+        result["Total number of nucleotides"] = dataframe[
             InfoColumns.NucleotideCount
         ].sum()
-        result["Minimum number of nucleotides per taxon"] = (
+        result["Minimum number of nucleotides per sample"] = (
             dataframe.groupby(InfoColumns.Taxon)[InfoColumns.NucleotideCount]
             .sum()
             .min()
         )
-        result["Maximum number of nucleotides per taxon"] = (
+        result["Maximum number of nucleotides per sample"] = (
             dataframe.groupby(InfoColumns.Taxon)[InfoColumns.NucleotideCount]
             .sum()
             .max()
         )
-        result["Average number of nucleotides per taxon"] = (
-            result["Total number of nucleotides in concatenated data set"]
-            / result["Number of taxa"]
+        result["Average number of nucleotides per sample"] = (
+            result["Total number of nucleotides"]
+            / result["Number of samples"]
         )
         markers_per_taxon = dataframe.groupby(InfoColumns.Taxon)[
             InfoColumns.Gene
         ].count()
-        result["Minimum number of markers per taxon"] = markers_per_taxon.min()
-        result["Maximum number of markers per taxon"] = markers_per_taxon.max()
-        result["Average number of markers per taxon"] = markers_per_taxon.mean()
+        result["Minimum number of markers per sample"] = markers_per_taxon.min()
+        result["Maximum number of markers per sample"] = markers_per_taxon.max()
+        result["Average number of markers per sample"] = markers_per_taxon.mean()
         taxa_per_marker = dataframe.groupby(InfoColumns.Gene)[InfoColumns.Taxon].count()
-        result["Minimum number of taxa per markers"] = taxa_per_marker.min()
-        result["Maximum number of taxa per marker"] = taxa_per_marker.max()
-        result["Average number of taxa per marker"] = taxa_per_marker.mean()
+        result["Minimum number of samples per marker"] = taxa_per_marker.min()
+        result["Maximum number of samples per marker"] = taxa_per_marker.max()
+        result["Average number of samples per marker"] = taxa_per_marker.mean()
         return result
 
     @staticmethod
     def by_input_file(tables: Iterator[FileGeneralInfo]) -> pd.DataFrame:
         """
         Returns a pandas DataFrame with columns:
-            input file name
-            input file format
-            number of samples
-            number of markers
-            sequence length minimum
-            sequence length maximum
-            % missing nucleotides
-            % GC content
+            Input file name
+            Input file format
+            Number of markers
+            Number of samples
+            Sequence length minimum
+            Sequence length maximum
+            Missing nucleotides (%)
+            GC content (%)
         """
         rows = []
         for file_info in tables:
@@ -170,8 +170,8 @@ class GeneralInfo:
                     InfoColumns.GCCount: "sum",
                 }
             )
-            row["input file name"] = file_info.filename
-            row["input file format"] = file_info.file_format
+            row["Input file name"] = file_info.filename
+            row["Input file format"] = file_info.file_format
             rows.append(row)
         result = pd.DataFrame(rows)
         result[InfoColumns.GCCount] = (
@@ -185,55 +185,55 @@ class GeneralInfo:
         result.drop(columns=InfoColumns.NucleotideCount, inplace=True)
         result.rename(
             columns={
-                InfoColumns.Taxon: "number of samples",
-                InfoColumns.Gene: "number of markers",
-                InfoColumns.SeqLenMin: "sequence length minimum",
-                InfoColumns.SeqLenMax: "sequence length maximum",
-                InfoColumns.MissingCount: "% missing nucleotides",
-                InfoColumns.GCCount: "% GC content",
+                InfoColumns.Taxon: "Number of samples",
+                InfoColumns.Gene: "Number of markers",
+                InfoColumns.SeqLenMin: "Sequence length minimum",
+                InfoColumns.SeqLenMax: "Sequence length maximum",
+                InfoColumns.MissingCount: "Missing nucleotides (%)",
+                InfoColumns.GCCount: "GC content (%)",
             },
             inplace=True,
         )
+        result.set_index("Input file name", inplace=True)
         return result[
             [
-                "input file name",
-                "input file format",
-                "number of samples",
-                "number of markers",
-                "sequence length minimum",
-                "sequence length maximum",
-                "% missing nucleotides",
-                "% GC content",
+                "Input file format",
+                "Number of markers",
+                "Number of samples",
+                "Sequence length minimum",
+                "Sequence length maximum",
+                "Missing nucleotides (%)",
+                "GC content (%)",
             ]
         ]
 
     def by_taxon(self) -> pd.DataFrame:
         """
         Returns a pandas DataFrame with index "taxon name" and columns:
-            number of markers with data
-            total number of nucleotides
-            % of missing data (nucleotides)
-            % of missing data (markers)
-            sequence length minimum
-            sequence length maximum
-            GC content of sequences
+            Markers with data
+            Total number of nucleotides
+            Sequence length minimum
+            Sequence length maximum
+            Missing nucleotides (%)
+            Missing markers (%)
+            GC content (%)
         """
         dataframe = self.dataframe.reset_index()
         result = dataframe.groupby(InfoColumns.Taxon).agg(
             **{
-                "number of markers with data": pd.NamedAgg(
+                "Markers with data": pd.NamedAgg(
                     column=InfoColumns.Gene, aggfunc="nunique"
                 ),
-                "total number of nucleotides": pd.NamedAgg(
+                "Total number of nucleotides": pd.NamedAgg(
                     column=InfoColumns.NucleotideCount, aggfunc="sum"
                 ),
-                "sequence length minimum": pd.NamedAgg(
+                "Sequence length minimum": pd.NamedAgg(
                     column=InfoColumns.SeqLenMin, aggfunc="min"
                 ),
-                "sequence length maximum": pd.NamedAgg(
+                "Sequence length maximum": pd.NamedAgg(
                     column=InfoColumns.SeqLenMax, aggfunc="max"
                 ),
-                "GC content of sequences": pd.NamedAgg(
+                "GC content (%)": pd.NamedAgg(
                     column=InfoColumns.GCCount, aggfunc="sum"
                 ),
             }
@@ -245,17 +245,17 @@ class GeneralInfo:
         total_length = float(
             for_gene_max_length.groupby(InfoColumns.Gene)["length"].max().sum()
         )
-        result["% of missing data (markers)"] = (
+        result["Missing markers (%)"] = (
             1
-            - result["number of markers with data"]
+            - result["Markers with data"]
             / dataframe[InfoColumns.Gene].nunique()
         ) * 100
-        result["% of missing data (nucleotides)"] = (
-            1 - result["total number of nucleotides"] / total_length
+        result["Missing nucleotides (%)"] = (
+            1 - result["Total number of nucleotides"] / total_length
         ) * 100
-        result["GC content of sequences"] *= 100 / result["total number of nucleotides"]
-        result["% of missing data (nucleotides)"] = result["% of missing data (nucleotides)"].astype("float")
-        result["GC content of sequences"] = result["GC content of sequences"].astype("float")
+        result["GC content (%)"] *= 100 / result["Total number of nucleotides"]
+        result["Missing nucleotides (%)"] = result["Missing nucleotides (%)"].astype("float")
+        result["GC content (%)"] = result["GC content (%)"].astype("float")
         result.index.name = "taxon name"
 
         return result
@@ -263,43 +263,43 @@ class GeneralInfo:
     def by_gene(self, gene_info: GeneInfo) -> pd.DataFrame:
         """
         Returns a pandas DataFrame with index "gene name" and columns:
-            number of taxa with data
-            total number of nucleotide in alignment
-            % of missing data (nucleotides)
-            % of missing data (taxa)
-            GC content of sequences
-            re-aligned by Mafft yes/no
-            padded to compensate for unequal sequence lengths yes/no
-            padded to start with 1st codon position yes/no
+            Number of samples with data
+            Total number of nucleotides
+            Missing nucleotides (%)
+            Missing samples (%)
+            GC content (%)
+            Re-aligned by MAFFT
+            Padded to compensate for unequal sequence lengths
+            Padded to start with 1st codon position
         """
         dataframe = self.dataframe.reset_index()
         result = dataframe.groupby(InfoColumns.Gene).agg(
             **{
-                "number of taxa with data": pd.NamedAgg(
+                "Number of samples with data": pd.NamedAgg(
                     column=InfoColumns.Taxon, aggfunc="nunique"
                 ),
-                "total number of nucleotides in alignment": pd.NamedAgg(
+                "Total number of nucleotides": pd.NamedAgg(
                     column=InfoColumns.NucleotideCount, aggfunc="sum"
                 ),
-                "% of missing data (nucleotides)": pd.NamedAgg(
+                "Missing nucleotides (%)": pd.NamedAgg(
                     column=InfoColumns.MissingCount, aggfunc="sum"
                 ),
-                "GC content of sequences": pd.NamedAgg(
+                "GC content (%)": pd.NamedAgg(
                     column=InfoColumns.GCCount, aggfunc="sum"
                 ),
             }
         )
-        result["% of missing data (taxa)"] = (
+        result["Missing samples (%)"] = (
             1
-            - result["number of taxa with data"]
+            - result["Number of samples with data"]
             / dataframe[InfoColumns.Taxon].nunique()
         ) * 100
-        result["% of missing data (nucleotides)"] *= 100 / (
-            result["total number of nucleotides in alignment"]
-            + result["% of missing data (nucleotides)"]
+        result["Missing nucleotides (%)"] *= 100 / (
+            result["Total number of nucleotides"]
+            + result["Missing nucleotides (%)"]
         )
-        result["GC content of sequences"] *= (
-            100 / result["total number of nucleotides in alignment"]
+        result["GC content (%)"] *= (
+            100 / result["Total number of nucleotides"]
         )
         result = result.join(gene_info.dataframe, how="left")
         for yes_no_column in GeneInfoColumns:
@@ -308,14 +308,14 @@ class GeneralInfo:
             )
         result.rename(
             columns={
-                GeneInfoColumns.MafftRealigned: "re-aligned by Mafft yes/no",
-                GeneInfoColumns.PaddedLength: "padded to compensate for unequal sequence lengths yes/no",
-                GeneInfoColumns.PaddedCodonPosition: "padded to start with 1st codon position yes/no",
+                GeneInfoColumns.MafftRealigned: "Re-aligned by MAFFT",
+                GeneInfoColumns.PaddedLength: "Padded to compensate for unequal sequence lengths",
+                GeneInfoColumns.PaddedCodonPosition: "Padded to start with 1st codon position",
             },
             inplace=True,
         )
-        result["% of missing data (nucleotides)"] = result["% of missing data (nucleotides)"].astype("float")
-        result["GC content of sequences"] = result["GC content of sequences"].astype("float")
+        result["Missing nucleotides (%)"] = result["Missing nucleotides (%)"].astype("float")
+        result["GC content (%)"] = result["GC content (%)"].astype("float")
         result.index.name = "gene name"
 
         return result
@@ -366,17 +366,17 @@ class FileGeneralInfo:
 
 
 class GeneInfoColumns(Enum):
-    MafftRealigned = auto()  # re-aligned by Mafft yes/no
-    PaddedLength = auto()  # padded to compensate for unequal sequence lengths yes/no
-    PaddedCodonPosition = auto()  # padded to start with 1st codon position yes/no
+    MafftRealigned = auto()  # Re-aligned by MAFFT
+    PaddedLength = auto()  # Padded to compensate for unequal sequence lengths
+    PaddedCodonPosition = auto()  # Padded to start with 1st codon position
 
 
 class GeneInfo:
     """
     Contains a pandas DataFrame with index `InfoColumns.Gene` and columns:
-        GeneInfoColumns.MafftRealigned (re-aligned by Mafft yes/no)
-        GeneInfoColumns.PaddedLength (padded to compensate for unequal sequence lengths yes/no)
-        GeneInfoColumns.PaddedCodonPosition (padded to start with 1st codon position yes/no)
+        GeneInfoColumns.MafftRealigned (Re-aligned by MAFFT)
+        GeneInfoColumns.PaddedLength (Padded to compensate for unequal sequence lengths)
+        GeneInfoColumns.PaddedCodonPosition (Padded to start with 1st codon position)
     """
 
     def __init__(self, dataframe: pd.DataFrame):
