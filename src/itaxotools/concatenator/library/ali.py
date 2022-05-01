@@ -145,7 +145,7 @@ def ali_writer(gene: GeneSeries, outfile: TextIO) -> None:
     outfile.write(f'#Percent of ?: {missing_percent}\n')
     outfile.write('#\n')
 
-    for index, sequence in series.iteritems():
+    for index, sequence in series.items():
         if isinstance(index, tuple):
             index = '_'.join([str(x) for x in index if x is not None])
         outfile.write('>' + index + '\n')

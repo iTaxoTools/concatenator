@@ -64,7 +64,7 @@ def phylip_writer(gene: GeneSeries, outfile: TextIO, relaxed: bool = True) -> No
     assert has_uniform_length(series)
     seq_length = len(series.iat[0])
     outfile.write(f'{len(series)} {seq_length}\n')
-    for index, sequence in series.iteritems():
+    for index, sequence in series.items():
         if isinstance(index, tuple):
             # this should never happen
             index = '_'.join([str(x) for x in index if x is not None])

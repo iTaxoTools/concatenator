@@ -98,7 +98,7 @@ def nexus_writer(
         )
         cursor += length
         index_len = series.index.str.len().max()
-        for index, sequence in series.iteritems():
+        for index, sequence in series.items():
             buffer.write(
                 (f"{justification.apply(index, index_len)}" f"{separator}{sequence}\n")
             )
