@@ -10,7 +10,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="concatenator",
-    version="0.2.0",
+    version="0.2.1",
     description="Performs a sequence of transformations on an input file",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -21,14 +21,14 @@ setup(
         include=("itaxotools*",),
         where="src",
     ),
-    python_requires=">=3.8, <4",
+    python_requires=">=3.8.6, <4",
     install_requires=[
         "zipp>=3.6.0",  # BUGFIX: backport from Python 3.9.1
         "pandas>=1.3.0",
         "regex>=2021.8.28",
+        "networkx>=2.8",
         "itaxotools-common==0.2.2",
         "DNAconvert>=0.2.0",
-        "networkx>=2.8",
     ],
     extras_require={
         "dev": [
@@ -46,6 +46,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3 :: Only",
     ],
     include_package_data=True,
