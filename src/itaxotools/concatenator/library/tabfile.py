@@ -26,7 +26,7 @@ def write_from_columns(columns: Iterator[pd.Series], outfile: TextIO) -> None:
     for column in columns:
         table = table.join(column, how="outer")
     table.index.name = "seqid"
-    table.to_csv(outfile, sep="\t", line_terminator="\n")
+    table.to_csv(outfile, sep="\t", line_terminator="\n", errors="surrogateescape")
 
 
 T = TypeVar("T")
@@ -78,22 +78,20 @@ def write_rows(rows: Iterator[List[str]], output: TextIO) -> None:
 
 
 def dataframe_from_path(
-    path: PathLike,
-    sequence_prefix: str = 'sequence_'
+    path: PathLike, sequence_prefix: str = "sequence_"
 ) -> GeneDataFrame:
-    with path.open(encoding='utf-8', errors='surrogateescape') as file:
-        data = pd.read_csv(file, sep='\t', dtype=str, keep_default_na=False)
+    with path.open(encoding="utf-8", errors="surrogateescape") as file:
+        data = pd.read_csv(file, sep="\t", dtype=str, keep_default_na=False)
     indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
     data.set_index(indices, inplace=True)
-    data.columns = [
-        removeprefix(col, sequence_prefix) for col in data.columns]
-    gdf = GeneDataFrame(data, missing='Nn?', gap='-')
+    data.columns = [removeprefix(col, sequence_prefix) for col in data.columns]
+    gdf = GeneDataFrame(data, missing="Nn?", gap="-")
     return gdf
 
 
 def stream_from_path(
     path: PathLike,
-    sequence_prefix: str = 'sequence_',
+    sequence_prefix: str = "sequence_",
 ) -> GeneStream:
     gdf = dataframe_from_path(path, sequence_prefix)
     return gdf.to_stream()
@@ -102,9 +100,9 @@ def stream_from_path(
 def stream_to_path(
     stream: GeneStream,
     path: PathLike,
-    sequence_prefix: str = 'sequence_',
+    sequence_prefix: str = "sequence_",
 ) -> None:
     data = GeneDataFrame.from_stream(stream).dataframe
     data.columns = [sequence_prefix + col for col in data.columns]
-    with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
+    with path.open("w", encoding="utf-8", errors="surrogateescape") as file:
         data.to_csv(file, sep="\t", line_terminator="\n")

@@ -311,7 +311,7 @@ class Tokenizer:
         """
         Testing method to check that the tokens are read correctly
         """
-        with open(path) as file:
+        with open(path, errors="surrogateescape") as file:
             for token in Tokenizer(file):
                 print(repr(token))
 
@@ -357,7 +357,7 @@ class NexusCommands:
         """
         Testing method to check that commands are read correctly
         """
-        with open(path) as file:
+        with open(path, errors="surrogateescape") as file:
             for command, args in NexusCommands(file):
                 print(repr(command), [repr(arg) for arg in args])
 

@@ -5,9 +5,9 @@ import zipfile
 from pathlib import Path
 from zipfile import ZipFile
 from zipp import Path as ZipPath_
-from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union
+from typing import TextIO, Callable, BinaryIO, Iterator, Tuple, Union, Any
 
-__all__ = ['ZipFile', 'ZipPath', ...]
+__all__ = ["ZipFile", "ZipPath", ...]
 
 
 class ZipPath(ZipPath_):
@@ -63,7 +63,7 @@ class ZipOutput:
     def open(self, name: str) -> TextIO:
         """Opens a file in the archive for writing"""
         file = self.archive.open(name, mode="w")
-        return io.TextIOWrapper(file)
+        return io.TextIOWrapper(file, errors="surrogateescape")
 
 
 class ZipInput:
@@ -76,4 +76,4 @@ class ZipInput:
         """Yields names and the files in the archive"""
         for filename in self.archive.namelist():
             with self.archive.open(filename, mode="r") as file:
-                yield (filename, io.TextIOWrapper(file, errors="replace"))
+                yield (filename, io.TextIOWrapper(file, errors="surrogateescape"))
