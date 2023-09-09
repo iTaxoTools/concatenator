@@ -1,31 +1,5 @@
 #NEXUS
 
-BEGIN DATA;
-
-Dimensions Nchar=32 Ntax=1;
-Format Datatype=DNA Missing=N Missing=? Gap=- Interleave=yes;
-Matrix
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-;
-END;
-
-
 BEGIN SETS;
 
 charset gene7 = 29-32;

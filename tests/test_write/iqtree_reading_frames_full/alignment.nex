@@ -1,33 +1,14 @@
 #NEXUS
 
-BEGIN DATA;
-
-Dimensions Nchar=32 Ntax=1;
-Format Datatype=DNA Missing=N Missing=? Gap=- Interleave=yes;
-Matrix
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-seq1 GCTA
-
-;
-END;
-
-
 BEGIN SETS;
 
+charset gene0 = 1-4;
+charset gene1 = 5-8;
+charset gene2 = 9-12;
+charset gene3 = 13-16;
+charset gene4 = 17-20;
+charset gene5 = 21-24;
+charset gene6 = 25-28;
 charset gene7 = 29-32;
 
 charset gene0_1st = 1-4\3;

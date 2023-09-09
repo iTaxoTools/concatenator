@@ -79,16 +79,26 @@ def stream_reading_frames() -> GeneStream:
     series6.index.name = 'seqid'
     gene6 = GeneSeries(series6, reading_frame=ReadingFrame(-3))
 
-    return GeneStream(iter([gene0, gene1, gene2, gene3, gene4, gene5, gene6]))
+    series7 = pd.Series({'seq1': 'GCTA'}, name='gene7')
+    series7.index.name = 'seqid'
+    gene7 = GeneSeries(series7, reading_frame=ReadingFrame(0))
+
+    return GeneStream(iter([gene0, gene1, gene2, gene3, gene4, gene5, gene6, gene7]))
 
 
 write_tests = [
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_simple', 'simple.nex'),
     WriteTest(FileType.File, FileFormat.Nexus, {}, 'stream_altered', 'altered.nex'),
-    WriteTest(FileType.File, FileFormat.Nexus, dict(adjust_frames=False),
+    WriteTest(FileType.File, FileFormat.Nexus, dict(adjust_frames=False, include_full_markers_with_codons=False),
         'stream_reading_frames', 'reading_frames.nex'),
+    WriteTest(FileType.File, FileFormat.Nexus, dict(adjust_frames=False, include_full_markers_with_codons=True),
+        'stream_reading_frames', 'reading_frames_full.nex'),
     WriteTest(FileType.Directory, FileFormat.PartitionFinder, {}, 'stream_simple', 'partition_finder_simple'),
     WriteTest(FileType.Directory, FileFormat.IQTree, {}, 'stream_simple', 'iqtree_simple'),
+    WriteTest(FileType.Directory, FileFormat.IQTree, dict(adjust_frames=False, include_full_markers_with_codons=False),
+        'stream_reading_frames', 'iqtree_reading_frames'),
+    WriteTest(FileType.Directory, FileFormat.IQTree, dict(adjust_frames=False, include_full_markers_with_codons=True),
+        'stream_reading_frames', 'iqtree_reading_frames_full'),
 ]
 
 

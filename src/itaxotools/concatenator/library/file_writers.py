@@ -299,6 +299,14 @@ class _IQTreeWriter(_ContainerWriter):
         type=str,
         default='alignment.phy')
 
+    include_full_markers_with_codons = Field(
+        key='include_full_markers_with_codons',
+        label='Include full markers with codons',
+        doc=('Include the full marker definition for markers \n'
+             'that have codon subsets defined via reading frames.'),
+        type=bool,
+        default=False)
+
     @property
     def params(self) -> Group:
         return Group(key='root', children=[
@@ -308,6 +316,7 @@ class _IQTreeWriter(_ContainerWriter):
                 'padding',
                 'translate_missing',
                 'translate_gap',
+                'include_full_markers_with_codons',
                 'adjust_frames',
                 'sanitize',
             ]])
@@ -316,7 +325,8 @@ class _IQTreeWriter(_ContainerWriter):
         cfg_name = self.alignment.split('.')[0] + '.nex'
         iqtree.write_nexus(
             container / cfg_name,
-            self.op_charsets.charsets)
+            self.op_charsets.charsets,
+            self.include_full_markers_with_codons)
 
 
 class _PartitionFinderWriter(_ContainerWriter):
@@ -408,6 +418,14 @@ class NexusWriter(FileWriter):
         type=bool,
         default=True)
 
+    include_full_markers_with_codons = Field(
+        key='include_full_markers_with_codons',
+        label='Include full markers with codons',
+        doc=('Include the full marker definition for markers \n'
+             'that have codon subsets defined via reading frames.'),
+        type=bool,
+        default=False)
+
     @property
     def params(self) -> Group:
         return Group(key='root', children=[
@@ -418,6 +436,7 @@ class NexusWriter(FileWriter):
                 'translate_gap',
                 'justification',
                 'separator',
+                'include_full_markers_with_codons',
                 'adjust_frames',
                 'sanitize',
             ]])
@@ -443,7 +462,11 @@ class NexusWriter(FileWriter):
 
     def call(self, stream: GeneStream, path: Path) -> None:
         stream = self.apply_filters(stream)
-        nexus.stream_to_path(stream, path, self.justification, self.separator)
+        nexus.stream_to_path(
+            stream, path,
+            self.justification,
+            self.separator,
+            self.include_full_markers_with_codons)
 
 
 @file_writer(FileType.File, FileFormat.Tab)

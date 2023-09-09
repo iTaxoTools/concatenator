@@ -78,6 +78,7 @@ def nexus_writer(
     out: TextIO,
     justification: Justification = Justification.Left,
     separator: str = " ",
+    include_full_markers_with_codons: bool = False,
 ) -> None:
     buffer = tempfile.TemporaryFile(
         mode="w+", encoding="utf-8", errors="surrogateescape"
@@ -125,14 +126,28 @@ def nexus_writer(
     out.write("BEGIN SETS;\n\n")
     buffer.close()
 
-    for charset in charsets:
-        out.write(f"charset {str(charset)}\n")
-    out.write("\n")
+    if include_full_markers_with_codons:
+        for charset in charsets:
+            out.write(f'charset {str(charset)}\n')
+        out.write('\n')
+        for charset in (cs for cs in charsets if cs.frame):
+            for codon in charset.codon_sets():
+                out.write(f'charset {str(codon)}\n')
+            out.write('\n')
+    else:
+        full_charsets = [cs for cs in charsets if not cs.frame]
+        split_charsets = [cs for cs in charsets if cs.frame]
 
-    for charset in (cs for cs in charsets if cs.frame):
-        for codon in charset.codon_sets():
-            out.write(f"charset {str(codon)}\n")
-        out.write("\n")
+        if full_charsets:
+            for charset in full_charsets:
+                out.write(f'charset {str(charset)}\n')
+            out.write('\n')
+
+        if split_charsets:
+            for charset in split_charsets:
+                for codon in charset.codon_sets():
+                    out.write(f'charset {str(codon)}\n')
+                out.write('\n')
 
     out.write("END;\n")
 
