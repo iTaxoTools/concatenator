@@ -255,7 +255,7 @@ class _ContainerWriter(FileWriter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.op_charsets = OpExtractCharsets()
+        self.op_charsets = None
         self.params.translate_missing.value = '?'
         self.params.translate_gap.value = '-'
         self.params.padding.value = '-'
@@ -272,6 +272,7 @@ class _ContainerWriter(FileWriter):
         return stream
 
     def call(self, stream: GeneStream, path: Path) -> None:
+        self.op_charsets = OpExtractCharsets()
         stream = self.apply_filters(stream)
         container = self.create(path)
         stream = stream.pipe(self.op_charsets)
