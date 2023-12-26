@@ -27,7 +27,7 @@ setup(
         "pandas>=1.3.0",
         "regex>=2021.8.28",
         "networkx>=2.8",
-        "itaxotools-common==0.2.2",
+        'itaxotools-common==0.3.3',
         "DNAconvert>=0.2.0",
     ],
     extras_require={
@@ -47,6 +47,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3 :: Only",
     ],
     include_package_data=True,
