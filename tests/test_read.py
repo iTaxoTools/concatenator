@@ -77,7 +77,7 @@ def get_stream(test: ReadTest) -> GeneStream:
 
 
 def assert_series_equal(s1: pd.Series, s2: pd.Series):
-    for (k1, v1), (k2, v2) in zip(s1.iteritems(), s2.iteritems()):
+    for (k1, v1), (k2, v2) in zip(s1.items(), s2.items()):
         assert k1 == k2
         assert v1 == v2
 
@@ -95,7 +95,7 @@ def test_read_simple(test: ReadTest, series_simple: pd.Series) -> None:
     assert stream.source.type == test.input.type
     assert stream.source.format == test.input.format
     assert stream.source.path == get_input_path(test)
-    genes = list(stream)
+    genes = list(gene for gene in stream)
     assert len(genes) == 1
     for gene in genes:
         assert_matches(test, gene, series_simple)
@@ -107,7 +107,7 @@ def test_read_multi(test: ReadTest, dataframe_multi: pd.DataFrame) -> None:
     assert stream.source.type == test.input.type
     assert stream.source.format == test.input.format
     assert stream.source.path == get_input_path(test)
-    genes = list(stream)
+    genes = list(gene for gene in stream)
     assert len(genes) == 2
     for gene in genes:
         assert gene.name in dataframe_multi.columns

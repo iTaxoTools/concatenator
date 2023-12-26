@@ -210,7 +210,7 @@ def test_charsets(stream_simple):
     gene2 = stream["gene2"]
     op_charsets = OpExtractCharsets()
     altered = stream.pipe(op_charsets)
-    genes = list(altered)
+    genes = list(gene for gene in altered)
     assert len(genes) == 2
     assert_gene_meta_equal(gene1, genes[0])
     assert_gene_meta_equal(gene2, genes[1])

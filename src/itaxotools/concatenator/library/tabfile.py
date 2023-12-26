@@ -26,7 +26,7 @@ def write_from_columns(columns: Iterator[pd.Series], outfile: TextIO) -> None:
     for column in columns:
         table = table.join(column, how="outer")
     table.index.name = "seqid"
-    table.to_csv(outfile, sep="\t", line_terminator="\n")
+    table.to_csv(outfile, sep="\t", lineterminator="\n")
 
 
 T = TypeVar("T")
@@ -107,4 +107,4 @@ def stream_to_path(
     data = GeneDataFrame.from_stream(stream).dataframe
     data.columns = [sequence_prefix + col for col in data.columns]
     with path.open('w', encoding='utf-8', errors='surrogateescape') as file:
-        data.to_csv(file, sep="\t", line_terminator="\n")
+        data.to_csv(file, sep="\t", lineterminator="\n")

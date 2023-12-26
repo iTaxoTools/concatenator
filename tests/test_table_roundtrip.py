@@ -13,7 +13,7 @@ from gen_stream import gen_table, stream_table
 
 
 def assert_series_equal(s1: pd.Series, s2: pd.Series):
-    for (k1, v1), (k2, v2) in zip(s1.iteritems(), s2.iteritems()):
+    for (k1, v1), (k2, v2) in zip(s1.items(), s2.items()):
         assert k1 == k2
         assert v1 == v2
 
@@ -31,7 +31,7 @@ def test_table_roundtrip(
     except WriterNotFound:
         return
     table, name = gen_table(filetype, format)
-    table.to_csv(tmp_path / 'generated.tsv', sep="\t", line_terminator="\n")
+    table.to_csv(tmp_path / 'generated.tsv', sep="\t", lineterminator="\n")
     tmp_file = tmp_path / f'{name}{get_extension(filetype, format)}'
     write_to_path(stream_table(table), tmp_file, filetype, format)
     genes_original = sorted(stream_table(table), key=lambda s: s.name)

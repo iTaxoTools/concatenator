@@ -268,7 +268,7 @@ class OpSanitizeSpeciesNames(Operator):
         indices = gene.series.index.names
         data = gene.series.reset_index()
         try:
-            data[indices] = data[indices].applymap(sanitize)
+            data[indices] = data[indices].map(sanitize)
         except Exception as e:
             print(data[indices])
             raise e
@@ -355,6 +355,7 @@ class OpExtractCharsets(Operator):
         charset = Charset(
             gene.name, self.cursor, length, gene.reading_frame, gene.codon_names
         )
+        print('####', charset)
         self.charsets.append(charset)
         self.cursor += length
         return gene

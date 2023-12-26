@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-from typing import Iterator, Optional, Protocol
+from typing import Iterator, Optional, Protocol, Dict, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 from itertools import tee, count
@@ -103,6 +103,7 @@ class GeneStream:
         source: Optional[Source] = None,
         id: Optional[int] = None
     ):
+        print('iter', iterator)
         self.iterator = iterator
         self.source = source
         self.id = id or next(self._counter)
