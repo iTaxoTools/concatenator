@@ -3,11 +3,11 @@ from typing import Callable, Dict, Iterator
 from pathlib import Path
 
 from .model import GeneStream, GeneIO
-from .utils import ConfigurableCallable, Field
+from .utils import ConfigurableCallable, Field, Translation
 from .file_types import FileFormat, FileType
 from .file_utils import ZipPath
 from .file_identify import autodetect
-from .operators import OpCheckValid
+from .operators import OpCheckValid, OpTranslateSequences
 
 from . import ali, fasta, phylip
 from . import nexus, tabfile
@@ -17,9 +17,13 @@ class FileReader(ConfigurableCallable):
     type: FileType = None
     format: FileFormat = None
 
+    _space_map: Translation = str.maketrans('', '', ' ')
+
     def filter(self, stream: GeneStream) -> GeneStream:
         """Stream operations, obeys inheritance"""
-        return stream.pipe(OpCheckValid())
+        op_spaces = OpTranslateSequences(self._space_map)
+        op_check = OpCheckValid()
+        return stream.pipe(op_spaces).pipe(op_check)
 
     def call(self, path: Path) -> GeneStream:
         """Read from path, then apply filter operations"""
@@ -49,6 +53,10 @@ class _GeneReader(FileReader):
 
     def read(self, path: Path) -> GeneStream:
         raise NotImplementedError
+
+    def filter(self, stream: GeneStream) -> GeneStream:
+        stream = super().filter(stream)
+        return stream
 
     def call(self, path: Path) -> GeneStream:
         stream = self.read(path)
