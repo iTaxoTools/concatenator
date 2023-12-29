@@ -65,6 +65,8 @@ simple_tests = [
 multi_tests = [
     ReadTest(File('multi.tsv', FileType.File, FileFormat.Tab), {}, 'Nn?', '-'),
     ReadTest(File('multi.nex', FileType.File, FileFormat.Nexus), {}, 'Nn?', '-'),
+    ReadTest(File('with_spaces/multi.tsv', FileType.File, FileFormat.Tab), {}, 'Nn?', '-'),
+    ReadTest(File('with_spaces/multi.nex', FileType.File, FileFormat.Nexus), {}, 'Nn?', '-'),
 ]
 
 
@@ -96,8 +98,6 @@ def assert_matches(test: ReadTest, gene: GeneSeries, series: pd.Series) -> None:
 
 @pytest.mark.parametrize("test", simple_tests)
 def test_read_simple(test: ReadTest, series_simple: pd.Series) -> None:
-    if test.input.name == 'with_spaces/simple.nex':
-        pytest.skip('Nexus parser cannot handle space padding')
     stream = get_stream(test)
     assert stream.source.type == test.input.type
     assert stream.source.format == test.input.format
@@ -123,8 +123,6 @@ def test_read_multi(test: ReadTest, dataframe_multi: pd.DataFrame) -> None:
 
 @pytest.mark.parametrize("test", simple_tests)
 def test_load_simple(test: ReadTest, series_simple: pd.Series) -> None:
-    if test.input.name == 'with_spaces/simple.nex':
-        pytest.skip('Nexus parser cannot handle space padding')
     input_path = TEST_DATA_DIR / test.input.name
     gdf = load_from_path(input_path)
     for col in gdf.dataframe:

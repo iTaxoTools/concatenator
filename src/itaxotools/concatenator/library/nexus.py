@@ -5,6 +5,7 @@ from enum import Enum
 import tempfile
 import re
 import logging
+from itertools import chain
 
 import pandas as pd
 
@@ -191,7 +192,7 @@ class Tokenizer:
     Emits the stream of words and punctuation
     """
 
-    punctuation: ClassVar[Set[str]] = set("=;")
+    punctuation: ClassVar[Set[str]] = set("=;\n")
 
     def __init__(self, file: TextIO):
         """
@@ -296,14 +297,16 @@ class Tokenizer:
             if c is None:
                 # EOF => return the last token
                 if self.token:
-                    "".join(self.token)
+                    token = self.replace_token([])
+                    return token
                 else:
                     raise StopIteration
             elif c in Tokenizer.punctuation:
                 # punctuation is a token by itself => save it into the token
-                token = self.replace_token([c])
-                if token:
+                if self.token:
+                    token = self.replace_token([c])
                     return token
+                return c
             elif c == "[":
                 # a comment => skip it
                 self.skip_comment()
@@ -350,7 +353,9 @@ class NexusCommands:
 
     def __next__(self) -> Tuple[str, Iterator[str]]:
         # next token is the command name
-        command = next(self.tokenizer).casefold()
+        command = '\n'
+        while command == '\n':
+            command = next(self.tokenizer).casefold()
 
         def arguments() -> Iterator[str]:
             # emit tokens until the ';'
@@ -400,10 +405,36 @@ class NexusReader:
         self.missings = set()
         self.gaps = set()
 
+    @staticmethod
+    def iter_concrete_args(args: Iterator[str]) -> str:
+        while True:
+            try:
+                arg = next(args)
+                if arg != '\n':
+                    yield arg
+            except StopIteration:
+                return
+
+    @staticmethod
+    def iter_all_args(args: Iterator[str]) -> str:
+        yield from args
+
+    @staticmethod
+    def iter_until_newline(args: Iterator[str]) -> str:
+        while True:
+            try:
+                arg = next(args)
+                if arg == '\n':
+                    return
+                yield arg
+            except StopIteration:
+                return
+
     def begin_block(self, args: Iterator[str]) -> None:
         """
         Sets the state for the next block
         """
+        args = self.iter_concrete_args(args)
         try:
             arg = next(args).casefold()
             state = NexusReader.nexus_state[arg]
@@ -452,6 +483,7 @@ class NexusReader:
         """
         Configure the internal state in responce to the 'format' command
         """
+        args = self.iter_concrete_args(args)
         # If the 'datatype' is DNA, RNA, Nucleotide or Protein, prepare for reading
         for arg in args:
             if arg.casefold() == "datatype":
@@ -473,6 +505,7 @@ class NexusReader:
                 self.interleave = True
 
     def read_dimensions(self, args: Iterator[str]) -> None:
+        args = self.iter_concrete_args(args)
         for arg in args:
             if arg.casefold() == "ntax":
                 if next(args) != "=":
@@ -486,19 +519,39 @@ class NexusReader:
         """
         Reads the matrix into self.table
         """
+        args = self.iter_all_args(args)
         if self.read_matrix and self.ntax and self.state == NexusState.Data:
-            column_count = 0
-            while True:
-                try:
-                    column = {}
-                    for _ in range(self.ntax):
-                        seqid = next(args)
-                        gene = next(args)
-                        column[seqid] = gene
-                except StopIteration:
-                    break
+
+            def get_lines(args):
+                while True:
+                    try:
+                        peek = next(args)
+                        if peek == '\n':
+                            continue
+                    except StopIteration:
+                        return
+                    yield self.iter_until_newline(chain([peek], args))
+
+            def get_bunches(lines):
+                while True:
+                    try:
+                        peek = iter(list(next(lines)))
+                        rest = (next(lines) for _ in range(self.ntax - 1))
+                        yield chain([peek], rest)
+                    except StopIteration:
+                        return
+
+            lines = get_lines(args)
+            bunches = get_bunches(lines)
+
+            for column_count, bunch in enumerate(bunches):
+                column = {}
+                for line in bunch:
+                    seqid = next(line)
+                    gene = ''.join(line)
+                    column[seqid] = gene
                 self.table[column_count] = pd.Series(column)
-                column_count += 1
+
         self.read_matrix = False
         self.ntax = None
 
@@ -506,6 +559,7 @@ class NexusReader:
         """
         Adds charset name to self.columns
         """
+        args = self.iter_concrete_args(args)
         if self.state == NexusState.Sets:
             args_tuple = tuple(args)
             if len(args_tuple) != 3 or args_tuple[1] != "=":
