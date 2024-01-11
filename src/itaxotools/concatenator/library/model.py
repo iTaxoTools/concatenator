@@ -103,7 +103,6 @@ class GeneStream:
         source: Optional[Source] = None,
         id: Optional[int] = None
     ):
-        print('iter', iterator)
         self.iterator = iterator
         self.source = source
         self.id = id or next(self._counter)
