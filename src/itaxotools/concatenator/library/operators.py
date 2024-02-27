@@ -268,7 +268,7 @@ class OpSanitizeSpeciesNames(Operator):
         indices = gene.series.index.names
         data = gene.series.reset_index()
         try:
-            data[indices] = data[indices].map(sanitize)
+            data[indices] = data[indices].applymap(sanitize)
         except Exception as e:
             print(data[indices])
             raise e

@@ -27,7 +27,7 @@ setup(
         "pandas>=1.3.0",
         "regex>=2021.8.28",
         "networkx>=2.8",
-        'itaxotools-common==0.3.3',
+        'itaxotools-common>=0.3.3',
         "DNAconvert>=0.2.0",
     ],
     extras_require={

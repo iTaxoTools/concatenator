@@ -83,7 +83,7 @@ def dataframe_from_path(
 ) -> GeneDataFrame:
     with path.open(encoding='utf-8', errors='surrogateescape') as file:
         data = pd.read_csv(file, sep='\t', dtype=str, keep_default_na=False)
-        data = data.map(lambda x: x.replace(' ', '') if isinstance(x, str) else x)
+        data = data.applymap(lambda x: x.replace(' ', '') if isinstance(x, str) else x)
     indices = [x for x in data.columns if not x.startswith(sequence_prefix)]
     data.set_index(indices, inplace=True)
     data.columns = [
