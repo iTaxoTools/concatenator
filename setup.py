@@ -10,7 +10,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="concatenator",
-    version="0.2.1",
+    version="0.2.2",
     description="Performs a sequence of transformations on an input file",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -27,7 +27,7 @@ setup(
         "pandas>=1.3.0",
         "regex>=2021.8.28",
         "networkx>=2.8",
-        'itaxotools-common==0.3.3',
+        'itaxotools-common>=0.3.3',
         "DNAconvert>=0.2.0",
     ],
     extras_require={
@@ -43,11 +43,13 @@ setup(
     },
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3 :: Only",
     ],
     include_package_data=True,
